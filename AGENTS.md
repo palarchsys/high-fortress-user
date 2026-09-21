@@ -4,6 +4,7 @@ Durcissement **workstation** Ubuntu 26.04. Inspiré de `palarchsys/high-fortress
 
 ## Interdits (non négociables)
 
+- Ubuntu Pro est **obligatoire** (jeton, sauf déjà attachée). ESM infra/apps + livepatch : échec = stop install.
 - Ne jamais changer le mot de passe **root** ni celui de l’utilisateur courant (`chpasswd`, `passwd`, `usermod -p`, `chage` qui force une expiration).
 - Ne jamais casser Firefox, Steam, Discord, Telegram, les dépôts APT, KVM, QEMU/libvirt.
 - Ne pas `chmod 700` les compilateurs (Proton / DXVK / dev).

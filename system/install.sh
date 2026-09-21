@@ -3,7 +3,7 @@
 # system/install.sh
 # =============================================================================
 # Rôle       : Arborescence, outils de base, dépôt Lynis CISOfy, Ubuntu Pro
-#              optionnel, paquets Lynis (acct, sysstat, pam, rng).
+#              obligatoire, paquets Lynis (acct, sysstat, pam, rng).
 #              Ne réécrit PAS les sources APT existantes.
 # =============================================================================
 
@@ -55,35 +55,45 @@ EOF
 chmod 644 "${LYNIS_LIST}"
 success "Dépôt Lynis configuré (sources Ubuntu non modifiées)"
 
-if [[ -n "${UBUNTU_PRO_TOKEN// /}" ]]; then
-    title "Ubuntu Pro"
-    run_silent_apt install -y ubuntu-pro-client
+title "Ubuntu Pro (obligatoire)"
+run_silent_apt install -y ubuntu-pro-client
+
+if ubuntu_pro_attached; then
+    success "Ubuntu Pro : déjà attachée"
+else
+    if [[ -z "${UBUNTU_PRO_TOKEN// /}" || "${UBUNTU_PRO_TOKEN}" == "already-attached" ]]; then
+        error "Ubuntu Pro obligatoire : jeton manquant. Compte : https://ubuntu.com/pro/dashboard"
+    fi
     attach_out=$(pro attach "${UBUNTU_PRO_TOKEN}" 2>&1) && attach_rc=0 || attach_rc=$?
     if [[ "${attach_rc}" -eq 0 ]]; then
         success "Ubuntu Pro : machine attachée"
     elif echo "${attach_out}" | grep -qiE 'already attached'; then
-        warn "Ubuntu Pro : déjà attachée"
+        success "Ubuntu Pro : déjà attachée"
     else
-        warn "Ubuntu Pro attach a échoué — install poursuivie"
-        debug "${attach_out}"
-    fi
-    for svc in esm-infra esm-apps; do
-        en_out=$(pro enable "${svc}" --assume-yes 2>&1) && en_rc=0 || en_rc=$?
-        if [[ "${en_rc}" -eq 0 ]] || echo "${en_out}" | grep -qiE 'already enabled'; then
-            success "Ubuntu Pro : ${svc}"
-        else
-            warn "Ubuntu Pro : ${svc} non activé"
-            debug "${en_out}"
-        fi
-    done
-    lp_out=$(pro enable livepatch --assume-yes 2>&1) && lp_rc=0 || lp_rc=$?
-    if [[ "${lp_rc}" -eq 0 ]] || echo "${lp_out}" | grep -qiE 'already enabled'; then
-        success "Ubuntu Pro : livepatch"
-    else
-        warn "Livepatch non activé — install poursuivie"
-        debug "${lp_out}"
+        error "Ubuntu Pro attach a échoué (obligatoire) : ${attach_out}"
     fi
 fi
+
+if ! ubuntu_pro_attached; then
+    error "Ubuntu Pro : la machine n'est pas attachée après pro attach."
+fi
+
+for svc in esm-infra esm-apps; do
+    en_out=$(pro enable "${svc}" --assume-yes 2>&1) && en_rc=0 || en_rc=$?
+    if [[ "${en_rc}" -eq 0 ]] || echo "${en_out}" | grep -qiE 'already enabled'; then
+        success "Ubuntu Pro : ${svc} activé"
+    else
+        error "Ubuntu Pro : impossible d'activer ${svc} (obligatoire) : ${en_out}"
+    fi
+done
+
+lp_out=$(pro enable livepatch --assume-yes 2>&1) && lp_rc=0 || lp_rc=$?
+if [[ "${lp_rc}" -eq 0 ]] || echo "${lp_out}" | grep -qiE 'already enabled'; then
+    success "Ubuntu Pro : livepatch activé"
+else
+    error "Ubuntu Pro : livepatch obligatoire, activation échouée : ${lp_out}"
+fi
+success "Ubuntu Pro installé (attaché + ESM + livepatch)"
 
 title "Mise à jour système"
 info "apt-get update + upgrade (dépôts existants conservés)..."

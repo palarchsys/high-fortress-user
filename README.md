@@ -10,6 +10,7 @@ Dépôt : [https://github.com/palarchsys/high-fortress-user](https://github.com/
 
 - **Ne change jamais** le mot de passe root ni celui de l’utilisateur courant.
 - **Ne casse pas** Firefox, Steam, Discord, Telegram, les dépôts APT, KVM, QEMU/libvirt.
+- **Ubuntu Pro obligatoire** (attache + ESM infra/apps + livepatch).
 - Vise un **bon score Lynis** (seuil 80, tests VPS documentés et sautés).
 
 Détail : [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md).
@@ -32,9 +33,9 @@ curl -fsSL -H "Authorization: Bearer $GH_TOKEN" \
   | sudo bash
 ```
 
-Pendant l’install (facultatif) :
+Pendant l’install :
 
-- jeton Ubuntu Pro (Entrée = ignorer)
+- **jeton Ubuntu Pro** (obligatoire, sauf machine déjà attachée) — [ubuntu.com/pro/dashboard](https://ubuntu.com/pro/dashboard)
 - e-mail d’alertes watchdogs (Entrée = journaux locaux seulement, **pas de Postfix**)
 
 ## Ce qui est appliqué
@@ -52,6 +53,7 @@ Pendant l’install (facultatif) :
 | ClamAV | Daemon + freshclam + scan hebdo — **pas** OnAccess `/` |
 | Unattended-upgrades | Mises à jour de **sécurité** uniquement |
 | PAM | YESCRYPT, pwquality (futurs mots de passe), faillock — **aucun `chpasswd`** |
+| Ubuntu Pro | **Obligatoire** : attach + `esm-infra` + `esm-apps` + livepatch |
 | Lynis | Dépôt CISOfy + `custom.prf` des exceptions desktop |
 
 ## Après l’install

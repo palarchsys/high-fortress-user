@@ -155,6 +155,20 @@ else
     ok "clamonacc inactif/masqué"
 fi
 
+title "Ubuntu Pro"
+
+if ! command -v pro >/dev/null 2>&1; then
+    ko "ubuntu-pro-client absent"
+elif ubuntu_pro_attached; then
+    ok "Ubuntu Pro attaché"
+    pro_txt="$(pro status 2>/dev/null || true)"
+    echo "${pro_txt}" | grep -qiE 'esm-infra.*enabled|esm-infra.*activ' && ok "esm-infra enabled" || ko "esm-infra non activé"
+    echo "${pro_txt}" | grep -qiE 'esm-apps.*enabled|esm-apps.*activ' && ok "esm-apps enabled" || ko "esm-apps non activé"
+    echo "${pro_txt}" | grep -qiE 'livepatch.*enabled|livepatch.*activ' && ok "livepatch enabled" || ko "livepatch non activé"
+else
+    ko "Ubuntu Pro non attaché (obligatoire)"
+fi
+
 title "Lynis"
 
 if command -v lynis >/dev/null 2>&1; then

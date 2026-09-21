@@ -35,9 +35,10 @@ echo "   • Aucun mot de passe (root / ${CURRENT_USER}) ne sera modifié."
 echo "   • Firefox, Steam, Discord, Telegram, dépôts APT, KVM/QEMU : préservés."
 echo "   • UFW : deny incoming, ALLOW outgoing (Steam / Discord / Telegram / apt)."
 echo "   • SSH : drop-in, PasswordAuthentication conservé, PermitRootLogin no."
+echo "   • Ubuntu Pro : obligatoire (ESM infra/apps + livepatch)."
 echo ""
 
-prompt_optional_secrets
+prompt_and_save_secrets
 init_install_log
 trap collect_install_logs EXIT
 

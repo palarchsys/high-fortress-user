@@ -386,6 +386,17 @@ collect_install_logs() {
     fi
 }
 
+ubuntu_pro_attached() {
+    command -v pro >/dev/null 2>&1 || return 1
+    local st
+    st="$(pro status --format json 2>/dev/null || true)"
+    if [[ -n "$st" ]] && command -v jq >/dev/null 2>&1; then
+        echo "$st" | jq -e '.attached == true' >/dev/null 2>&1 && return 0
+    fi
+    pro status 2>/dev/null | grep -qiE 'This machine is attached|machine is attached to an Ubuntu Pro|est attachée|Attached:[[:space:]]*(yes|true)' && return 0
+    return 1
+}
+
 ask_conf() {
     local name="$1"
     local label="$2"
@@ -410,8 +421,9 @@ ask_conf() {
     export "$name"
 }
 
-prompt_optional_secrets() {
-    title "Options (tout est facultatif — Entrée = ignorer)"
+prompt_and_save_secrets() {
+    title "Secrets d'exploitation"
+    echo "   Ubuntu Pro est obligatoire (ESM + livepatch)."
     echo "   Aucun mot de passe utilisateur ne sera demandé ni modifié."
     echo ""
 
@@ -423,7 +435,19 @@ prompt_optional_secrets() {
         echo ""
     fi
 
-    ask_conf UBUNTU_PRO_TOKEN "Jeton Ubuntu Pro (vide = ignorer)" 1
+    if ubuntu_pro_attached; then
+        info "Ubuntu Pro : machine déjà attachée — jeton non redemandé."
+        UBUNTU_PRO_TOKEN="${UBUNTU_PRO_TOKEN:-already-attached}"
+        export UBUNTU_PRO_TOKEN
+    else
+        while [[ -z "${UBUNTU_PRO_TOKEN// /}" ]]; do
+            UBUNTU_PRO_TOKEN=""
+            ask_conf UBUNTU_PRO_TOKEN "Jeton Ubuntu Pro (obligatoire — ubuntu.com/pro)" 1
+            if [[ -z "${UBUNTU_PRO_TOKEN// /}" ]]; then
+                warn "Le jeton Ubuntu Pro est obligatoire. Relais : https://ubuntu.com/pro/dashboard"
+            fi
+        done
+    fi
     ask_conf WATCHDOG_MAIL "E-mail d'alertes watchdogs (vide = journaux locaux seulement)"
 
     local old_umask
@@ -438,5 +462,5 @@ WATCHDOG_MAIL="${WATCHDOG_MAIL:-}"
 EOF
     chmod 600 "$dest"
     umask "${old_umask}"
-    success "Options enregistrées dans ${dest} (chmod 600)"
+    success "Secrets enregistrés dans ${dest} (chmod 600)"
 }

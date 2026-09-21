@@ -29,6 +29,7 @@ Inspiré de [`palarchsys/high-fortress`](https://github.com/palarchsys/high-fort
 
 ## Préservé
 
+- **Ubuntu Pro** — attach + ESM + livepatch **obligatoires** (Lynis PKGS / livepatch).
 - **Firefox** (deb, snap ou flatpak) — user namespaces, `/tmp` exécutable, AppArmor distro.
 - **Steam** — outgoing libre, Proton/compilateurs, ptrace_scope=1, pas de scan OnAccess du library.
 - **Discord / Telegram** — Electron, `/tmp`, 443/UDP sortant.
