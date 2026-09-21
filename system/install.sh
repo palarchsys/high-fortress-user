@@ -1,0 +1,137 @@
+#!/usr/bin/env bash
+# =============================================================================
+# system/install.sh
+# =============================================================================
+# Rôle       : Arborescence, outils de base, dépôt Lynis CISOfy, Ubuntu Pro
+#              optionnel, paquets Lynis (acct, sysstat, pam, rng).
+#              Ne réécrit PAS les sources APT existantes.
+# =============================================================================
+
+DIR_INSTALL_PATH="${1}"
+export DIR_INSTALL_PATH
+SERVER_TYPE="${2}"
+export SERVER_TYPE
+
+# shellcheck disable=SC2155
+readonly DIR_SCRIPT_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+
+source "${DIR_INSTALL_PATH}/lib.sh"
+source "${DIR_INSTALL_PATH}/global.conf"
+
+require_root
+detect_current_user
+
+title "Arborescence projet"
+info "Création ${CONFIG_BASE_DIR} ..."
+ensure_dir "${CONFIG_BASE_DIR}" 755
+ensure_dir "${SECRETS_DIR}" 700
+success "Répertoires projet prêts"
+
+title "Outils de base"
+info "Installation des outils de base (sources APT existantes intactes)..."
+run_silent_apt install -y apt-listchanges needrestart apt-show-versions \
+    openssh-server openssh-client curl openssl rsync ca-certificates \
+    jq gnupg gettext-base lsb-release
+success "Outils de base installés"
+
+title "Dépôt Lynis CISOfy"
+info "Création /etc/apt/keyrings..."
+ensure_dir /etc/apt/keyrings 755
+
+LYNIS_KEY="/etc/apt/keyrings/cisofy-software.gpg"
+LYNIS_LIST="/etc/apt/sources.list.d/lynis.list"
+
+if [[ ! -f "${LYNIS_KEY}" ]]; then
+    info "Téléchargement de la clé GPG Lynis..."
+    curl -fsSL https://packages.cisofy.com/keys/cisofy-software-public.key | gpg --dearmor -o "${LYNIS_KEY}"
+    chmod 644 "${LYNIS_KEY}"
+    chown root:root "${LYNIS_KEY}"
+    success "Clé GPG Lynis installée"
+fi
+
+tee "${LYNIS_LIST}" > /dev/null << EOF
+deb [arch=$(dpkg --print-architecture) signed-by=${LYNIS_KEY}] https://packages.cisofy.com/community/lynis/deb/ stable main
+EOF
+chmod 644 "${LYNIS_LIST}"
+success "Dépôt Lynis configuré (sources Ubuntu non modifiées)"
+
+if [[ -n "${UBUNTU_PRO_TOKEN// /}" ]]; then
+    title "Ubuntu Pro"
+    run_silent_apt install -y ubuntu-pro-client
+    attach_out=$(pro attach "${UBUNTU_PRO_TOKEN}" 2>&1) && attach_rc=0 || attach_rc=$?
+    if [[ "${attach_rc}" -eq 0 ]]; then
+        success "Ubuntu Pro : machine attachée"
+    elif echo "${attach_out}" | grep -qiE 'already attached'; then
+        warn "Ubuntu Pro : déjà attachée"
+    else
+        warn "Ubuntu Pro attach a échoué — install poursuivie"
+        debug "${attach_out}"
+    fi
+    for svc in esm-infra esm-apps; do
+        en_out=$(pro enable "${svc}" --assume-yes 2>&1) && en_rc=0 || en_rc=$?
+        if [[ "${en_rc}" -eq 0 ]] || echo "${en_out}" | grep -qiE 'already enabled'; then
+            success "Ubuntu Pro : ${svc}"
+        else
+            warn "Ubuntu Pro : ${svc} non activé"
+            debug "${en_out}"
+        fi
+    done
+    lp_out=$(pro enable livepatch --assume-yes 2>&1) && lp_rc=0 || lp_rc=$?
+    if [[ "${lp_rc}" -eq 0 ]] || echo "${lp_out}" | grep -qiE 'already enabled'; then
+        success "Ubuntu Pro : livepatch"
+    else
+        warn "Livepatch non activé — install poursuivie"
+        debug "${lp_out}"
+    fi
+fi
+
+title "Mise à jour système"
+info "apt-get update + upgrade (dépôts existants conservés)..."
+run_silent_apt update
+run_silent_apt upgrade -y
+success "Mise à jour terminée"
+
+title "Comptabilité et PAM (Lynis ACCT / AUTH)"
+run_silent_apt install -y acct sysstat libpam-tmpdir libpam-pwquality
+if [[ -f /etc/default/sysstat ]]; then
+    sed -i 's/ENABLED="false"/ENABLED="true"/' /etc/default/sysstat
+fi
+try_silent systemctl enable --now sysstat
+try_silent systemctl enable --now acct
+success "acct, sysstat, libpam-tmpdir, libpam-pwquality"
+
+title "Entropie (haveged + rng-tools-debian)"
+run_silent_apt install -y rng-tools-debian haveged
+run_silent systemctl enable --now haveged
+if ! systemctl is-active --quiet haveged; then
+    warn "haveged installé mais inactif"
+else
+    success "haveged actif"
+fi
+
+info "Configuration rng-tools-debian (HWRNG si présent, sinon haveged)..."
+{
+    echo "# High-Fortress User — Lynis CRYP-8004"
+    echo "HRNGDEVICE=/dev/hwrng"
+} > /etc/default/rng-tools-debian
+chmod 644 /etc/default/rng-tools-debian
+try_silent systemctl enable rng-tools-debian
+try_silent systemctl restart rng-tools-debian.service
+if systemctl is-active --quiet rng-tools-debian && pgrep -x rngd >/dev/null; then
+    success "rngd actif"
+else
+    info "Pas de HWRNG exploitable — entropie via haveged (OK desktop)"
+fi
+
+title "Lynis"
+run_silent_apt install -y lynis --no-install-recommends
+success "Lynis installé"
+
+title "Purge des paquets rc (Lynis PKGS-7346)"
+mapfile -t rc_pkgs < <(dpkg -l | awk '/^rc/{print $2}')
+if ((${#rc_pkgs[@]})); then
+    DEBIAN_FRONTEND=noninteractive dpkg --purge "${rc_pkgs[@]}" >/dev/null 2>&1 || true
+    success "Purge : ${#rc_pkgs[@]} paquet(s) rc"
+else
+    success "Aucun paquet rc à purger"
+fi

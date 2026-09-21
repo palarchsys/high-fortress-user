@@ -1,0 +1,9 @@
+verify-report-*.md
+verify-report-*.txt
+verify-report-*.tsv
+secrets.conf
+.idea/
+.venv/
+logs/
+*.swp
+*~

@@ -1,0 +1,10 @@
+# High-Fortress User — timers (root). cron.allow NON restreint (desktop).
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+15  3    * * *   root    nice -n 19 ionice -c3 ${CONFIG_BASE_DIR}/cron/bin/aide.sh
+40  3    * * 0   root    nice -n 19 ionice -c3 ${CONFIG_BASE_DIR}/cron/bin/rkhunter.sh
+10  4    * * 0   root    nice -n 19 ionice -c3 ${CONFIG_BASE_DIR}/cron/bin/chkrootkit.sh
+30  4    * * 1   root    nice -n 19 ionice -c3 ${CONFIG_BASE_DIR}/cron/bin/clamav.sh
+50  4    * * 2   root    nice -n 19 ionice -c3 ${CONFIG_BASE_DIR}/cron/bin/debsums.sh
+20  5    * * 3   root    nice -n 19 ionice -c3 ${CONFIG_BASE_DIR}/cron/bin/lynis-cron.sh
