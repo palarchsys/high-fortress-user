@@ -21,6 +21,9 @@ LOG_FILE="${LOG_DIR}/chkrootkit-${STAMP}.log"
 ALERT_FILE="${ALERT_DIR}/chkrootkit-${STAMP}.txt"
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 IGNORE="${HERE}/chkrootkit.ignore"
+# Exclusions ajoutées depuis un courriel. Hors de cron/bin : une
+# réinstallation recopie les scripts sans effacer cette liste.
+LOCAL_IGNORE="${HFU_BASE}/cron/chkrootkit.local.ignore"
 if ! command -v chkrootkit >/dev/null; then
     log_ok "chkrootkit absent — skip"
     exit 0
@@ -28,19 +31,26 @@ fi
 set +e
 chkrootkit -q -s 'NetworkManager|wpa_supplicant|systemd-networkd' > "${LOG_FILE}" 2>&1
 set -e
-if [[ -f "${IGNORE}" ]]; then
-    python3 - "${LOG_FILE}" "${IGNORE}" << 'PY'
+if [[ -f "${IGNORE}" || -f "${LOCAL_IGNORE}" ]]; then
+    python3 - "${LOG_FILE}" "${IGNORE}" "${LOCAL_IGNORE}" << 'PY'
 import re
 import sys
 from pathlib import Path
 
-log_path, ignore_path = sys.argv[1], sys.argv[2]
+log_path = sys.argv[1]
 patterns = []
-for raw in Path(ignore_path).read_text(errors="replace").splitlines():
-    line = raw.strip()
-    if not line or line.startswith("#"):
+for ignore_path in sys.argv[2:]:
+    path = Path(ignore_path)
+    if not path.is_file():
         continue
-    patterns.append(re.compile(line))
+    for raw in path.read_text(errors="replace").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        try:
+            patterns.append(re.compile(line))
+        except re.error:
+            continue
 
 def ignored(line):
     return any(p.search(line) for p in patterns)
@@ -73,7 +83,8 @@ Path(log_path).write_text(("\n".join(out) + "\n") if out else "")
 PY
 fi
 if [[ -s "${LOG_FILE}" ]]; then
-    log_alert "chkrootkit a produit une sortie (voir ${LOG_FILE})"
+    HFU_CHKROOTKIT_IGNORE=1 \
+        log_alert "chkrootkit a produit une sortie (voir ${LOG_FILE})"
 else
     log_ok "chkrootkit silencieux (OK)"
 fi

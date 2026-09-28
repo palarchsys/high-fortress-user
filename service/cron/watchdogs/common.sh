@@ -102,12 +102,15 @@ log_alert() {
         module="$(basename "${LOG_FILE}" | sed -E 's/-[0-9]{8}-.*//')"
     fi
     module="${module:-contrôle}"
-    # Second bloc du courriel AIDE seulement, quand l'écart est un
-    # changement de fichiers et non une erreur du programme.
+    # Second bloc du courriel, sous le journal.
+    # AIDE : recalculer la base. chkrootkit : enregistrer ces lignes.
     local note="" note_cmd=""
     if [[ "${HFU_AIDE_REFRESH:-}" == "1" ]]; then
         note="Si ce journal correspond à des changements attendus (une mise à jour, un logiciel que vous avez installé, un fichier que vous avez modifié) et qu'il ne révèle pas d'anomalie, exécutez la commande ci-dessous. Elle recalcule la base de référence AIDE à partir du disque actuel."
         note_cmd="sudo bash ${HFU_BASE}/bin/aide-refresh-db.sh"
+    elif [[ "${HFU_CHKROOTKIT_IGNORE:-}" == "1" && -n "${LOG_FILE:-}" ]]; then
+        note="Si les lignes de ce journal sont des faux positifs que vous reconnaissez, et qu'aucune ne révèle une anomalie, exécutez la commande ci-dessous. Elle enregistre ces détections. Le prochain contrôle de chkrootkit ne les signalera plus."
+        note_cmd="sudo bash ${HFU_BASE}/bin/chkrootkit-ignore-log.sh '${LOG_FILE}'"
     fi
     if [[ -n "${WATCHDOG_MAIL:-}" && -x "${HFU_BASE}/cron/bin/send.sh" ]]; then
         TITLE="Alerte ${module}" \

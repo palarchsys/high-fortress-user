@@ -146,6 +146,18 @@ Si le journal mentionne un fichier que vous n'avez pas modifié, ne lancez pas c
 
 Le courriel de fin d'installation est un essai d'envoi. Son objet indique que l'installation s'est terminée. Il ne contient pas ce second bloc.
 
+## Courriel chkrootkit
+
+chkrootkit cherche des signes connus de compromission au démarrage. Une ligne qui n'est pas déjà dans la liste d'exclusion produit un courriel.
+
+Le courriel contient d'abord le journal. En dessous, un second bloc donne la commande complète, avec le nom réel du journal de cette alerte. Copiez-la telle quelle : rien n'est à modifier.
+
+La commande affiche le nombre de détections enregistrées. Le contrôle suivant ne signale plus ces lignes exactes. Une ligne différente, par exemple un autre numéro de processus, produit un nouveau courriel.
+
+Les exclusions ajoutées ainsi sont dans `/opt/high-fortress-user/cron/chkrootkit.local.ignore`. Une réinstallation du poste conserve ce fichier.
+
+Si une ligne du journal vous est inconnue, ne lancez pas cette commande. Conservez le courriel et relisez le chemin indiqué.
+
 ## Après l'installation
 
 Un redémarrage est souvent utile lorsque le noyau ou des bibliothèques ont été mis à jour. Ouvrez ensuite Brave, Discord et KeePassXC depuis le menu des applications. Discord démarre avec Vencord.
