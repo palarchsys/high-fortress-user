@@ -26,7 +26,7 @@ sudo apt-get install curl -y
 curl -fsSL https://raw.githubusercontent.com/palarchsys/high-fortress-user/main/install.sh | sudo bash
 ```
 
-Les cinq questions portent sur le jeton Ubuntu Pro et l'e-mail Gmail. La saisie des secrets est masquée. Entrée conserve une valeur déjà enregistrée. L'installation démarre dès que les réponses sont acceptées.
+Les cinq questions portent sur le jeton Ubuntu Pro et l'e-mail Gmail. Un secret s'affiche en astérisques, puis une ligne Confirmation redemande la même saisie. Entrée conserve une valeur déjà enregistrée. L'installation démarre dès que les réponses sont acceptées.
 
 Pour recontrôler les fichiers sans relancer l'installation : `sudo bash /opt/high-fortress-user/src/configure.sh --check`.
 

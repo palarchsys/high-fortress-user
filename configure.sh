@@ -30,15 +30,47 @@ Usage :
   bash configure.sh --check        contrôle les fichiers, code 0 si conformes
 
 Adresse Gmail seulement. Entrée conserve une valeur déjà enregistrée.
-Un secret est saisi deux fois, sans affichage.
+Un secret s'affiche en astérisques, puis une seconde ligne demande la confirmation.
 EOF
 }
 
+# Affiche une étoile par caractère. Retour arrière efface une étoile.
+# Entrée termine. Le texte réel reste dans la variable.
+hfu_read_stars() {
+    local __out="$1"
+    local char="" buf=""
+    while true; do
+        IFS= read -r -s -n 1 char || error "Entrée interrompue"
+        if [[ -z "${char}" || "${char}" == $'\n' ]]; then
+            printf '\n' >&2
+            break
+        fi
+        if [[ "${char}" == $'\177' || "${char}" == $'\b' ]]; then
+            if [[ -n "${buf}" ]]; then
+                buf="${buf%?}"
+                printf '\b \b' >&2
+            fi
+            continue
+        fi
+        buf+="${char}"
+        printf '*' >&2
+    done
+    printf -v "${__out}" '%s' "${buf}"
+}
+
+# Libellé en bleu, deux-points alignés avec la ligne Confirmation.
+hfu_secret_line() {
+    local label="$1" dest="$2" width="$3"
+    printf '   \e[34m%*s\e[0m : ' "${width}" "${label}" >&2
+    hfu_read_stars "${dest}"
+}
+
 # __kind : pro_token | gmail | secret | smtp
-# Un secret est masqué et confirmé deux fois. Entrée reprend la valeur déjà connue.
+# Un secret s'affiche en astérisques et se confirme sur la ligne suivante.
+# Entrée vide reprend la valeur déjà connue, sans la réafficher.
 hfu_prompt() {
     local __var="$1" __label="$2" __example="$3" __default="$4" __kind="$5" __hint="$6"
-    local value="" confirm="" attempt current=""
+    local value="" confirm="" attempt current="" width
     current="${!__var:-}"
     [[ -n "${current}" ]] && __default="${current}"
     for attempt in 1 2 3; do
@@ -46,16 +78,14 @@ hfu_prompt() {
             if [[ -n "${__default}" ]]; then
                 info "Entrée conserve la valeur déjà enregistrée."
             fi
-            printf '   \e[34m➤\e[0m ' >&2
-            IFS= read -r -s value || error "Entrée interrompue"
-            printf '\n' >&2
+            width="${#__label}"
+            [[ "${width}" -lt 12 ]] && width=12
+            hfu_secret_line "${__label}" value "${width}"
             value="${value// /}"
             if [[ -z "${value}" && -n "${__default}" ]]; then
                 value="${__default}"
             else
-                printf '   \e[34m➤\e[0m ' >&2
-                IFS= read -r -s confirm || error "Entrée interrompue"
-                printf '\n' >&2
+                hfu_secret_line "Confirmation" confirm "${width}"
                 confirm="${confirm// /}"
                 if [[ "${value}" != "${confirm}" ]]; then
                     warn "Les deux saisies sont différentes."
