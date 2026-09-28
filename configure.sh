@@ -142,6 +142,16 @@ if [[ -n "${1:-}" || $# -gt 0 ]]; then
     exit 2
 fi
 
+# curl | sudo bash a déjà lu le script sur l'entrée standard.
+# Les questions suivantes arrivent sur le terminal.
+if [[ ! -t 0 ]]; then
+    if [[ ! -r /dev/tty ]]; then
+        printf 'Pas de terminal pour les questions. Lancez : sudo bash %s/configure.sh\n' "${DIR_SCRIPT}" >&2
+        exit 1
+    fi
+    exec </dev/tty
+fi
+
 hfu_config_set_builtin_defaults
 
 # Relit un fichier déjà écrit pour proposer ses valeurs.

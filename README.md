@@ -19,21 +19,20 @@ Prévoyez du temps : le téléchargement des paquets et le calcul de la base d'i
 
 ## Installation
 
-Cette commande télécharge le programme et le place dans `/opt/high-fortress-user/src` :
+Cette commande installe curl, télécharge le programme dans `/opt/high-fortress-user/src`, puis lance la configuration :
 
 ```bash
+sudo apt-get install curl -y
 curl -fsSL https://raw.githubusercontent.com/palarchsys/high-fortress-user/main/install.sh | sudo bash
 ```
 
-La première fois, elle s'arrête : le jeton Ubuntu Pro et le mot de passe d'envoi ne sont pas encore enregistrés. Enchaînez avec :
+Les questions portent sur le jeton Ubuntu Pro et le mot de passe d'envoi. La saisie des secrets est masquée. Une confirmation `o` enregistre les fichiers. Quand elles sont terminées, lancez l'installation :
 
 ```bash
-sudo bash /opt/high-fortress-user/src/configure.sh
-sudo bash /opt/high-fortress-user/src/configure.sh --check
 sudo bash /opt/high-fortress-user/src/run.sh
 ```
 
-`configure.sh` pose les questions et écrit deux fichiers sur la machine. La saisie des secrets est masquée. Une confirmation `o` les enregistre. `--check` affiche `Configuration conforme` lorsque ces fichiers sont acceptés. `run.sh` réalise l'installation et ne repose pas les questions.
+`run.sh` ne repose pas les questions. Pour recontrôler les fichiers avant : `sudo bash /opt/high-fortress-user/src/configure.sh --check`. Il affiche `Configuration conforme` lorsqu'ils sont acceptés.
 
 Si vous avez déjà cloné le dossier vous-même :
 

@@ -9,6 +9,7 @@
 # =============================================================================
 
 # Commande :
+#   sudo apt-get install curl -y
 #   curl -fsSL https://raw.githubusercontent.com/palarchsys/high-fortress-user/main/install.sh | sudo bash
 #
 # Le script :
@@ -16,10 +17,8 @@
 #   2. télécharge l'archive de la branche main ;
 #   3. la place dans /opt/high-fortress-user/src (ou HF_INSTALL_ROOT) ;
 #   4. conserve un global.conf et un secrets.conf déjà préparés ;
-#   5. lance run.sh seulement si bash configure.sh --check réussit.
-#
-# La première exécution s'arrête après le téléchargement : configure.sh
-# n'a pas encore écrit les fichiers. Les commandes à lancer sont affichées.
+#   5. lance configure.sh. run.sh ne part que si la configuration
+#      est déjà enregistrée et que son contrôle réussit.
 # =============================================================================
 
 set -euo pipefail
@@ -81,12 +80,15 @@ if [[ "${keep}" == "1" ]]; then
     chmod 600 "${INSTALL_ROOT}/secrets.conf" || true
 fi
 
+# Première exécution : les questions de configure.sh partent tout de suite.
+# configure.sh --check dirait « secrets.conf absent » avant toute saisie.
+if [[ "${keep}" != "1" ]]; then
+    printf '\nTéléchargement terminé. Les sources sont dans %s.\n' "${INSTALL_ROOT}"
+    printf 'Lancement de la configuration.\n\n'
+    exec bash "${INSTALL_ROOT}/configure.sh"
+fi
+
 if ! bash "${INSTALL_ROOT}/configure.sh" --check; then
-    printf '\nLes sources sont dans %s.\n' "${INSTALL_ROOT}" >&2
-    printf 'Il reste à enregistrer le jeton Ubuntu Pro, puis à installer :\n' >&2
-    printf '  sudo bash %s/configure.sh\n' "${INSTALL_ROOT}" >&2
-    printf '  sudo bash %s/configure.sh --check\n' "${INSTALL_ROOT}" >&2
-    printf '  sudo bash %s/run.sh\n' "${INSTALL_ROOT}" >&2
     exit 1
 fi
 
