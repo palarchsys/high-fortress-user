@@ -156,7 +156,7 @@ SERVER_TYPE="WORKSTATION"
 # 1 = copie supplémentaire dans logs/ du dossier des sources.
 DEBUG_INSTALL_LOGS=${DEBUG_INSTALL_LOGS}
 
-# Score Lynis en dessous duquel la vérification affiche un avertissement.
+# Score Lynis minimal exigé à la fin de l'installation.
 LYNIS_MIN_SCORE=${LYNIS_MIN_SCORE}
 
 HFU_OS_ID="${HFU_OS_ID}"
