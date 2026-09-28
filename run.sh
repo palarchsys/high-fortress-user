@@ -17,7 +17,7 @@
 #   2. Réglages du poste, Postfix, SSH
 #   3. Pile de sécurité, dont ClamAV en continu
 #   4. Logiciels du bureau, puis leurs profils AppArmor
-#   5. Purge des paquets résiduels, recette, base AIDE, courriel
+#   5. Purge des paquets résiduels, recette, base AIDE, e-mail
 #
 # Les comptes créés par l'installateur Ubuntu et les dépôts APT déjà
 # présents ne sont pas modifiés.
@@ -148,12 +148,12 @@ run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "verify/workstation.sh"
 # Dernière écriture de l'installation. Brave, Thunderbird,
 # les profils AppArmor, les scripts de contrôle et la purge sont
 # déjà sur le disque. La recette n'écrit que des journaux dans
-# /var/log, hors du périmètre AIDE. Le courriel de test part ensuite.
+# /var/log, hors du périmètre AIDE. L'e-mail de test part ensuite.
 run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "service/aide/init-db.sh"
 
-title "Courriel de test"
+title "E-mail de test"
 if [[ -z "${WATCHDOG_MAIL:-}" ]]; then
-    error "WATCHDOG_MAIL est vide : le courriel de fin d'installation ne peut pas partir."
+    error "WATCHDOG_MAIL est vide : l'e-mail de fin d'installation ne peut pas partir."
 fi
 export TITLE="Installation terminée"
 export MODULE_NAME="Installation"
@@ -162,11 +162,11 @@ export WATCHDOG_MAIL
 export CONTENT="Ceci est un message de test.
 
 L'installation de ${PROJECT_NAME} s'est terminée correctement.
-Ce courriel vérifie que Postfix peut joindre ${WATCHDOG_MAIL}."
+Cet e-mail vérifie que Postfix peut joindre ${WATCHDOG_MAIL}."
 if ! bash "${DIR_INSTALL_PATH}/service/cron/watchdogs/send.sh"; then
-    error "Le courriel de test vers ${WATCHDOG_MAIL} n'a pas été accepté par Postfix."
+    error "L'e-mail de test vers ${WATCHDOG_MAIL} n'a pas été accepté par Postfix."
 fi
-success "Courriel de test envoyé à ${WATCHDOG_MAIL}"
+success "E-mail de test envoyé à ${WATCHDOG_MAIL}"
 
 step_off "Installation terminée"
 

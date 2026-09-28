@@ -5,7 +5,7 @@
 # Créateur   : palarchsys
 #
 # Rôle
-#   Fonctions partagées : journal local, puis envoi du courriel d'alerte.
+#   Fonctions partagées : journal local, puis envoi de l'e-mail d'alerte.
 # =============================================================================
 
 # Fonctions partagées des contrôles planifiés.
@@ -23,7 +23,7 @@ if [[ -f "${HFU_BASE}/cron/mail.conf" ]]; then
 fi
 log_ok()  { printf '%s %s\n' "$(date -Iseconds)" "$*" | tee -a "${LOG_FILE}"; }
 
-# Prépare le texte du courriel : résumé, puis le journal remis en forme.
+# Prépare le texte de l'e-mail : résumé, puis le journal remis en forme.
 # Les mots de passe, jetons et clés privées sont remplacés par [masqué].
 hfu_alert_excerpt() {
     python3 - "${1:-}" << 'PY'
@@ -102,7 +102,7 @@ log_alert() {
         module="$(basename "${LOG_FILE}" | sed -E 's/-[0-9]{8}-.*//')"
     fi
     module="${module:-contrôle}"
-    # Second bloc du courriel, sous le journal.
+    # Second bloc de l'e-mail, sous le journal.
     # AIDE : recalculer la base. chkrootkit : enregistrer ces lignes.
     local note="" note_cmd=""
     if [[ "${HFU_AIDE_REFRESH:-}" == "1" ]]; then

@@ -5,7 +5,7 @@
 # Créateur   : palarchsys
 #
 # Rôle
-#   Compare la base AIDE au disque. Un écart déclenche une alerte et un courriel.
+#   Compare la base AIDE au disque. Un écart déclenche une alerte et un e-mail.
 # =============================================================================
 
 set -euo pipefail

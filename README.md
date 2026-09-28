@@ -1,6 +1,6 @@
 # High-Fortress User
 
-High-Fortress User prépare un poste Ubuntu 26.04 pour un usage quotidien. Il active les mises à jour de sécurité Ubuntu Pro, règle le pare-feu et les contrôles du système, installe les logiciels du bureau, puis envoie un courriel de confirmation.
+High-Fortress User prépare un poste Ubuntu 26.04 pour un usage quotidien. Il active les mises à jour de sécurité Ubuntu Pro, règle le pare-feu et les contrôles du système, installe les logiciels du bureau, puis envoie un e-mail de confirmation.
 
 Le compte créé pendant l'installation d'Ubuntu reste tel quel : le nom, le mot de passe, le dossier personnel et l'interpréteur de commandes ne changent pas.
 
@@ -81,7 +81,7 @@ Guide Google : [Se connecter avec des mots de passe d'application](https://suppo
 2. Les réglages du poste, la messagerie locale (Postfix) et SSH.
 3. La pile de sécurité : pare-feu, Fail2Ban, audit, rkhunter, chkrootkit, ClamAV, CrowdSec, debsums, AppArmor, AIDE, mises à jour automatiques, puis les contrôles planifiés.
 4. Brave, Thunderbird (dépôt Mozilla), KeePassXC, Discord et Vencord, puis les profils dont ces programmes ont besoin pour leur bac à sable.
-5. Retrait des paquets résiduels, vérification du poste, enregistrement de la base AIDE, courriel de test.
+5. Retrait des paquets résiduels, vérification du poste, enregistrement de la base AIDE, e-mail de test.
 
 QEMU, libvirt et Telegram ne sont pas installés. S'ils sont déjà présents sur le poste, l'installation ne les retire pas.
 
@@ -127,36 +127,34 @@ Les dépôts APT déjà configurés sur la machine ne sont pas remplacés. Trois
 | Contrôles au démarrage | AIDE, rkhunter, chkrootkit, le parcours ClamAV et debsums. Ils utilisent au plus 20 % du processeur et une priorité basse, deux minutes après le démarrage. |
 | Lynis | N'est jamais lancé tout seul. La commande est plus bas, à lancer quand vous le décidez. |
 | CrowdSec | Lit les journaux SSH et système, et bloque l'adresse attaquante dans le pare-feu pendant 24 heures. |
-| Courriel | Chaque alerte part vers l'adresse Gmail indiquée dans `configure.sh`. |
+| E-mail | Chaque alerte part vers l'adresse Gmail indiquée dans `configure.sh`. |
 | Journaux | `/var/log/high-fortress-user/` et `/opt/high-fortress-user/cron/`. |
 
-## Courriel AIDE
+## E-mail AIDE
 
-AIDE photographie les fichiers importants à la fin de l'installation. Au démarrage suivant, il compare le disque à cette photo. Un fichier ajouté, retiré ou modifié produit un courriel.
+AIDE photographie les fichiers importants à la fin de l'installation. Au démarrage suivant, il compare le disque à cette photo. Un fichier ajouté, retiré ou modifié produit un e-mail.
 
-Le courriel contient d'abord le journal. En dessous, lorsque l'écart est un changement de fichiers, un second bloc explique quoi faire : si vous reconnaissez ces changements et qu'aucune ligne ne révèle d'anomalie, exécutez la commande indiquée. Elle recalcule la photo à partir du disque actuel.
+L'e-mail contient d'abord le journal. En dessous, un second bloc donne la commande complète. Copiez-la telle quelle : rien n'est à modifier.
 
 ```bash
 sudo bash /opt/high-fortress-user/bin/aide-refresh-db.sh
 ```
 
-Le calcul peut prendre plusieurs minutes. Laissez-le se terminer. La commande affiche `Base de référence AIDE enregistrée.` lorsqu'elle a réussi.
+La commande recalcule la base de référence à partir du disque actuel. Le calcul peut prendre plusieurs minutes. Elle affiche `Base de référence AIDE enregistrée.` lorsqu'elle a réussi.
 
-Si le journal mentionne un fichier que vous n'avez pas modifié, ne lancez pas cette commande. Conservez le courriel et relisez le chemin indiqué.
+Si une ligne du journal vous est inconnue, ne lancez pas cette commande. Conservez l'e-mail et relisez le chemin indiqué.
 
-Le courriel de fin d'installation est un essai d'envoi. Son objet indique que l'installation s'est terminée. Il ne contient pas ce second bloc.
+L'e-mail de fin d'installation est un essai d'envoi. Son objet indique que l'installation s'est terminée. Il ne contient pas ce second bloc.
 
-## Courriel chkrootkit
+## E-mail chkrootkit
 
-chkrootkit cherche des signes connus de compromission au démarrage. Une ligne qui n'est pas déjà dans la liste d'exclusion produit un courriel.
+chkrootkit cherche des signes connus de compromission au démarrage. Une ligne qui n'est pas déjà dans la liste d'exclusion produit un e-mail.
 
-Le courriel contient d'abord le journal. En dessous, un second bloc donne la commande complète, avec le nom réel du journal de cette alerte. Copiez-la telle quelle : rien n'est à modifier.
+L'e-mail contient d'abord le journal. En dessous, un second bloc donne la commande complète, avec le nom réel du journal de cette alerte. Copiez-la telle quelle : rien n'est à modifier.
 
-La commande affiche le nombre de détections enregistrées. Le contrôle suivant ne signale plus ces lignes exactes. Une ligne différente, par exemple un autre numéro de processus, produit un nouveau courriel.
+La commande enregistre ces détections dans `/opt/high-fortress-user/cron/chkrootkit.local.ignore`. Une réinstallation du poste conserve ce fichier. Le contrôle suivant ne signale plus ces lignes exactes. Une ligne différente, par exemple un autre numéro de processus, produit un nouvel e-mail.
 
-Les exclusions ajoutées ainsi sont dans `/opt/high-fortress-user/cron/chkrootkit.local.ignore`. Une réinstallation du poste conserve ce fichier.
-
-Si une ligne du journal vous est inconnue, ne lancez pas cette commande. Conservez le courriel et relisez le chemin indiqué.
+Si une ligne du journal vous est inconnue, ne lancez pas cette commande. Conservez l'e-mail et relisez le chemin indiqué.
 
 ## Après l'installation
 
@@ -189,7 +187,7 @@ sudo bash /opt/high-fortress-user/src/lynis.sh
 | Ubuntu Pro n'attache pas la machine | Vérifier le jeton et la connexion, puis relancer `sudo bash run.sh` |
 | Le système n'est pas Ubuntu 26.04 | Le programme ne continue pas |
 | L'empreinte de la clé Mozilla est inattendue | Vérifier la connexion, puis relancer `sudo bash run.sh` |
-| Le courriel de test ne part pas | Vérifier l'adresse Gmail, le mot de passe d'application sans espaces, et le serveur `[smtp.gmail.com]:587` |
+| L'e-mail de test ne part pas | Vérifier l'adresse Gmail, le mot de passe d'application sans espaces, et le serveur `[smtp.gmail.com]:587` |
 | La base AIDE n'est pas générée | Lire `/var/log/high-fortress-user/aide-init.log`, puis relancer `sudo bash /opt/high-fortress-user/bin/aide-refresh-db.sh` une fois le message d'erreur compris |
 
 Les journaux de l'installation sont dans `/var/log/high-fortress-user/`.

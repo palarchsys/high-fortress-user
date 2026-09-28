@@ -6,7 +6,7 @@
 #
 # Rôle
 #   Appelé par ClamAV dès qu'une signature reconnaît un fichier surveillé.
-#   Écrit le journal et envoie le courriel d'alerte.
+#   Écrit le journal et envoie l'e-mail d'alerte.
 # =============================================================================
 
 set -euo pipefail

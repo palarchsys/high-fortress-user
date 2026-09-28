@@ -12,7 +12,7 @@
 # interfaces réseau cachées). Le passage a lieu à chaque démarrage.
 # Les faux positifs d'une installation fraîche sont listés dans
 # service/cron/watchdogs/chkrootkit.ignore. Les lignes acceptées
-# ensuite depuis un courriel vont dans cron/chkrootkit.local.ignore.
+# ensuite depuis un e-mail vont dans cron/chkrootkit.local.ignore.
 # =============================================================================
 DIR_INSTALL_PATH="${1}"
 export DIR_INSTALL_PATH

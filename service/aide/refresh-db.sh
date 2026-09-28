@@ -9,7 +9,7 @@
 # =============================================================================
 
 # Copié vers /opt/high-fortress-user/bin/aide-refresh-db.sh.
-# Le courriel d'alerte AIDE indique cette commande lorsque le journal
+# L'e-mail d'alerte AIDE indique cette commande lorsque le journal
 # ne montre que des changements attendus.
 # =============================================================================
 

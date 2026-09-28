@@ -9,7 +9,7 @@
 # =============================================================================
 
 # Copié vers /opt/high-fortress-user/bin/chkrootkit-ignore-log.sh.
-# Le courriel d'alerte indique cette commande, avec le journal joint.
+# L'e-mail d'alerte indique cette commande, avec le journal joint.
 # Les lignes sont ajoutées à cron/chkrootkit.local.ignore. Ce fichier
 # reste en place quand l'installateur recopie les contrôles.
 # Une ligne est comparée telle quelle : une détection différente
@@ -23,7 +23,7 @@ if [[ "${EUID}" -ne 0 ]]; then
     exit 1
 fi
 if [[ $# -ne 1 || ! -f "$1" ]]; then
-    printf 'Indiquez le journal chkrootkit cité dans le courriel.\n' >&2
+    printf 'Indiquez le journal chkrootkit cité dans l'\''e-mail.\n' >&2
     printf 'Exemple : sudo bash %s/bin/chkrootkit-ignore-log.sh %s/cron/security_logs/chkrootkit-DATE.log\n' \
         "${HFU_BASE}" "${HFU_BASE}" >&2
     exit 1
@@ -97,7 +97,7 @@ if not added:
     sys.exit(0)
 
 local.parent.mkdir(parents=True, exist_ok=True)
-block = ["", "# Détections acceptées depuis un courriel chkrootkit."]
+block = ["", "# Détections acceptées depuis un e-mail chkrootkit."]
 block.extend(added)
 existing = local.read_text(errors="replace") if local.is_file() else (
     "# Faux positifs ajoutés par l'administrateur du poste.\n"

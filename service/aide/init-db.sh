@@ -8,7 +8,7 @@
 #   Enregistre la base de référence AIDE.
 # =============================================================================
 
-# run.sh appelle ce script après la recette, juste avant le courriel
+# run.sh appelle ce script après la recette, juste avant l'e-mail
 # de fin. Les paquets, la configuration et les programmes du poste
 # sont déjà écrits. La base décrit ce disque : un contrôle ultérieur
 # ne signale que ce qui change après l'installation.

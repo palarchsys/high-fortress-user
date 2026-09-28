@@ -213,7 +213,7 @@ hfu_prompt UBUNTU_PRO_TOKEN \
 hfu_lesson 'Question 2 sur 5 — Adresse Gmail qui envoie' << 'EOF'
 À quoi elle sert.
   Les contrôles du poste (fichiers modifiés, antivirus, etc.) envoient
-  un courriel quand quelque chose mérite votre attention. Cette adresse
+  un e-mail quand quelque chose mérite votre attention. Cette adresse
   est l’expéditeur : Gmail doit la reconnaître comme la vôtre.
 
 Ce qu’il faut écrire.
@@ -253,7 +253,7 @@ hfu_prompt POSTFIX_MAIL_PASS \
 
 hfu_lesson 'Question 4 sur 5 — Serveur d’envoi' << 'EOF'
 À quoi il sert.
-  C’est l’adresse du serveur de Gmail qui accepte le courriel.
+  C’est l’adresse du serveur de Gmail qui accepte l’e-mail.
 
 Dans cette version une seule valeur est acceptée :
   [smtp.gmail.com]:587
@@ -270,7 +270,7 @@ hfu_prompt POSTFIX_MAIL_SMTP \
 
 hfu_lesson 'Question 5 sur 5 — Adresse Gmail qui reçoit' << 'EOF'
 À quoi elle sert.
-  C’est la boîte dans laquelle vous lirez les alertes et le courriel
+  C’est la boîte dans laquelle vous lirez les alertes et l’e-mail
   de test envoyé à la fin de l’installation.
 
 Elle doit aussi être une adresse Gmail. Ce peut être la même que

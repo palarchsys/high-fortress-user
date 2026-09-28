@@ -21,7 +21,7 @@ LOG_FILE="${LOG_DIR}/chkrootkit-${STAMP}.log"
 ALERT_FILE="${ALERT_DIR}/chkrootkit-${STAMP}.txt"
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 IGNORE="${HERE}/chkrootkit.ignore"
-# Exclusions ajoutées depuis un courriel. Hors de cron/bin : une
+# Exclusions ajoutées depuis un e-mail. Hors de cron/bin : une
 # réinstallation recopie les scripts sans effacer cette liste.
 LOCAL_IGNORE="${HFU_BASE}/cron/chkrootkit.local.ignore"
 if ! command -v chkrootkit >/dev/null; then
