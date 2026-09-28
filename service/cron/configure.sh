@@ -51,10 +51,8 @@ sed "s|\${CONFIG_BASE_DIR}|${CONFIG_BASE_DIR}|g" "${DIR_SCRIPT_PATH}/hfu.cron" \
 chown root:root "/etc/cron.d/${PROJECT_SLUG}"
 chmod 600 "/etc/cron.d/${PROJECT_SLUG}"
 
-# 20 % de toute la machine : systemd compte le quota sur un seul cœur.
-# Quatre cœurs et une limite de 20 donnent donc CPUQuota=80%.
-cpus="$(nproc)"
-quota=$(( cpus * WATCHDOG_CPU_LIMIT ))
+# Les contrôles se suivent. Le plafond reste 20 % pour toute la passe,
+# sans le multiplier par le nombre de cœurs.
 install -d -m 755 /etc/systemd/system
 tee /etc/systemd/system/hfu-boot-scan.service > /dev/null << EOF
 [Unit]
@@ -66,7 +64,7 @@ DefaultDependencies=no
 Type=oneshot
 Nice=${WATCHDOG_LIMIT_NICE}
 IOSchedulingClass=idle
-CPUQuota=${quota}%
+CPUQuota=${WATCHDOG_CPU_LIMIT}%
 ExecStart=${CONFIG_BASE_DIR}/cron/bin/boot-scan.sh
 EOF
 tee /etc/systemd/system/hfu-boot-scan.timer > /dev/null << 'EOF'
@@ -87,7 +85,7 @@ run_silent systemctl daemon-reload
 # enable sans démarrage immédiat : la passe part au prochain démarrage,
 # deux minutes après l'arrivée du système, sans bloquer l'ouverture de session.
 run_silent systemctl enable hfu-boot-scan.timer
-success "Passe au démarrage plafonnée à ${WATCHDOG_CPU_LIMIT} % du processeur (CPUQuota=${quota}%)"
+success "Passe au démarrage plafonnée à ${WATCHDOG_CPU_LIMIT} % du processeur (CPUQuota=${WATCHDOG_CPU_LIMIT}%)"
 
 info "crontab utilisateur : non touché (pas de cron.allow)."
 success "Watchdogs installés dans ${CONFIG_BASE_DIR}/cron/bin"

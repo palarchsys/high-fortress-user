@@ -26,22 +26,16 @@ sudo apt-get install curl -y
 curl -fsSL https://raw.githubusercontent.com/palarchsys/high-fortress-user/main/install.sh | sudo bash
 ```
 
-Les questions portent sur le jeton Ubuntu Pro et le mot de passe d'envoi. La saisie des secrets est masquée. Une confirmation `o` enregistre les fichiers. Quand elles sont terminées, lancez l'installation :
+Les cinq questions portent sur le jeton Ubuntu Pro et l'e-mail Gmail. La saisie des secrets est masquée. Entrée conserve une valeur déjà enregistrée. L'installation démarre dès que les réponses sont acceptées.
 
-```bash
-sudo bash /opt/high-fortress-user/src/run.sh
-```
-
-`run.sh` ne repose pas les questions. Pour recontrôler les fichiers avant : `sudo bash /opt/high-fortress-user/src/configure.sh --check`. Il affiche `Configuration conforme` lorsqu'ils sont acceptés.
+Pour recontrôler les fichiers sans relancer l'installation : `sudo bash /opt/high-fortress-user/src/configure.sh --check`.
 
 Si vous avez déjà cloné le dossier vous-même :
 
 ```bash
 git clone https://github.com/palarchsys/high-fortress-user.git
 cd high-fortress-user
-bash configure.sh
-bash configure.sh --check
-sudo bash run.sh
+sudo bash configure.sh
 ```
 
 `secrets.conf` contient le jeton et le mot de passe d'envoi. Il reste sur la machine, lisible par root seulement. Ne le copiez pas dans un message, un ticket ou un dépôt public.

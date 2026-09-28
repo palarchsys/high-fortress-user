@@ -9,8 +9,8 @@
 # =============================================================================
 
 # Politique workstation :
-#   incoming deny, outgoing ALLOW, routed ACCEPT si libvirt
-# Ne pas ufw --force reset : ça casse les chaînes libvirt/docker.
+#   incoming deny, outgoing ALLOW, routed ACCEPT
+# Ne pas ufw --force reset : ça casse les chaînes docker.
 # =============================================================================
 
 DIR_INSTALL_PATH="${1}"
@@ -27,7 +27,7 @@ title "Configuration UFW (desktop-safe)"
 backup_file_once /etc/default/ufw
 backup_file_once /etc/ufw/before.rules
 
-info "Politique : deny incoming, ALLOW outgoing, routed ACCEPT (NAT libvirt)..."
+info "Politique : deny incoming, ALLOW outgoing, routed ACCEPT..."
 run_silent ufw default deny incoming
 run_silent ufw default allow outgoing
 
@@ -41,7 +41,7 @@ else
 fi
 run_silent ufw default allow routed
 
-# Pont libvirt : charger bridge avant les sysctl UFW, puis désactiver
+# Charger bridge avant les sysctl UFW, puis désactiver
 # netfilter sur le pont (ufw-framework NOTES, manpage resolute).
 if grep -q '^IPT_MODULES=' /etc/default/ufw; then
     if ! awk -F= '/^IPT_MODULES=/{print}' /etc/default/ufw | grep -q bridge; then
@@ -58,7 +58,7 @@ fi
 if [[ -f /etc/ufw/sysctl.conf ]] && ! grep -q 'bridge-nf-call-iptables' /etc/ufw/sysctl.conf; then
     cat >> /etc/ufw/sysctl.conf << 'EOF'
 
-# High-Fortress User — libvirt / pont (ufw-framework, Ubuntu 26.04)
+# High-Fortress User — pont (ufw-framework, Ubuntu 26.04)
 net.bridge.bridge-nf-call-ip6tables = 0
 net.bridge.bridge-nf-call-iptables = 0
 net.bridge.bridge-nf-call-arptables = 0
@@ -82,22 +82,6 @@ run_silent ufw allow in on lo
 run_silent ufw allow out on lo
 
 # KDE Connect / avahi / cups : on n'ouvre pas le WAN ; LAN facultatif non touché.
-
-info "Interfaces libvirt (virbr0 même s'il n'existe pas encore)..."
-for iface in $(ip -o link show | awk -F': ' '{print $2}' | grep -E '^virbr|^vnet' || true); do
-    try_silent ufw allow in on "${iface}"
-    try_silent ufw allow out on "${iface}"
-done
-try_silent ufw allow in on virbr0
-try_silent ufw allow out on virbr0
-if virt_present; then
-    try_silent systemctl restart libvirtd.service
-    # Ubuntu 26.04 n'a pas d'unité virtnetworkd : le réseau est dans libvirtd.
-    if systemctl cat virtnetworkd.service >/dev/null 2>&1; then
-        try_silent systemctl restart virtnetworkd.service
-    fi
-fi
-success "Règles du pont virtuel posées"
 
 title "Activation UFW"
 run_silent ufw --force enable
