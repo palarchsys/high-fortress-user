@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================================
-# service/rkhunter/install.sh
+# Fichier    : service/rkhunter/install.sh
+# Créé le    : 2026-09-21
+# Créateur   : palarchsys
+#
+# Rôle
+#   service/rkhunter/install.sh
 # =============================================================================
+
 # rkhunter cherche des fichiers et des droits habituels d'un rootkit.
 # La référence est prise pendant configure.sh, puis revérifiée chaque semaine.
 # =============================================================================

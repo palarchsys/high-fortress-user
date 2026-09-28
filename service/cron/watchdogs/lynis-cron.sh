@@ -1,4 +1,13 @@
 #!/usr/bin/env bash
+# =============================================================================
+# Fichier    : service/cron/watchdogs/lynis-cron.sh
+# Créé le    : 2026-09-21
+# Créateur   : palarchsys
+#
+# Rôle
+#   Relance un audit Lynis planifié et conserve le rapport.
+# =============================================================================
+
 set -euo pipefail
 HFU_BASE="${HFU_BASE:-/opt/high-fortress-user}"
 # shellcheck disable=SC1091

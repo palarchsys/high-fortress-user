@@ -1,4 +1,13 @@
 #!/usr/bin/env bash
+# =============================================================================
+# Fichier    : service/cron/watchdogs/rkhunter.sh
+# Créé le    : 2026-09-21
+# Créateur   : palarchsys
+#
+# Rôle
+#   Compare le système à la référence rkhunter. Un écart déclenche une alerte.
+# =============================================================================
+
 set -euo pipefail
 HFU_BASE="${HFU_BASE:-/opt/high-fortress-user}"
 # shellcheck disable=SC1091

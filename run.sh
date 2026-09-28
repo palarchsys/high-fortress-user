@@ -1,14 +1,26 @@
 #!/usr/bin/env bash
 # =============================================================================
-# run.sh — installation du poste Ubuntu 26.04
+# Fichier    : run.sh
+# Créé le    : 2026-09-21
+# Créateur   : palarchsys
+#
+# Rôle
+#   run.sh — installation du poste Ubuntu 26.04
 # =============================================================================
+
 # Point d'entrée root. Les questions sont posées par configure.sh.
 # Ce script refuse de démarrer si global.conf et secrets.conf ne sont
 # pas conformes (bash configure.sh --check).
 #
-# Il ne modifie pas les comptes créés par l'installateur Ubuntu.
-# Il conserve les dépôts APT déjà présents et laisse utilisables
-# Firefox, Brave, Thunderbird, Steam, Discord, Telegram, KeePassXC et QEMU.
+# Ordre :
+#   1. Snaps Firefox et Thunderbird seulement ; snapd reste
+#   2. Réglages du poste, Postfix, SSH
+#   3. Pile de sécurité, dont ClamAV en continu
+#   4. Logiciels du bureau, puis leurs profils AppArmor
+#   5. Purge des paquets résiduels, recette, base AIDE, courriel
+#
+# Les comptes créés par l'installateur Ubuntu et les dépôts APT déjà
+# présents ne sont pas modifiés.
 # =============================================================================
 
 # shellcheck disable=SC2155
@@ -49,13 +61,16 @@ echo "   Port SSH détecté    : ${SSH_PORT}"
 echo "   OS                  : ${OS_PRETTY}"
 echo ""
 echo "   • Comptes humains (uid, groupes, home, shell, mot de passe) : inchangés."
-echo "   • Firefox, Brave, Thunderbird, Steam, Discord, Telegram : préservés."
-echo "   • Dépôts APT existants intacts. i386 activé sur amd64 (Steam)."
-echo "   • UFW : deny incoming, ALLOW outgoing, forward ouvert pour libvirt."
+echo "   • Snaps Firefox et Thunderbird retirés. snapd reste installé."
+echo "   • Postfix et SSH, puis la pile de sécurité."
+echo "   • Ensuite : Brave, Thunderbird (Mozilla), KeePassXC,"
+echo "     Discord et Vencord, puis les profils AppArmor de ces programmes."
+echo "   • Steam et KeePassXC restent utilisables. Dépôts APT existants intacts."
+echo "   • i386 activé sur amd64 (Steam)."
+echo "   • UFW : deny incoming, ALLOW outgoing."
 echo "   • SSH : drop-in, PasswordAuthentication conservé, PermitRootLogin no."
 echo "   • Ubuntu Pro : ESM infra, ESM apps et Livepatch."
-echo "   • En fin de parcours : Brave, Telegram, Discord, Vencord,"
-echo "     Thunderbird, KeePassXC et QEMU (dépôt Ubuntu)."
+echo "   • AIDE : base de référence prise tout à la fin, sur le disque terminé."
 echo ""
 
 init_install_log
@@ -68,7 +83,6 @@ trap collect_install_logs EXIT
 
 STEP_SYSTEM_INSTALL=(
     "system/install.sh"
-    "service/libvirt/install.sh"
 )
 STEP_SYSTEM_CONFIGURE=("system/configure.sh")
 STEP_SYSTEM_PURGE=("system/purge.sh")
@@ -81,6 +95,7 @@ STEP_SECURITY_INSTALL=(
     "service/rkhunter/install.sh"
     "service/chkrootkit/install.sh"
     "service/clamav/install.sh"
+    "service/crowdsec/install.sh"
     "service/debsums/install.sh"
     "service/apparmor/install.sh"
     "service/aide/install.sh"
@@ -93,26 +108,48 @@ STEP_SECURITY_CONFIGURE=(
     "service/auditd/configure.sh"
     "service/rkhunter/configure.sh"
     "service/clamav/configure.sh"
+    "service/crowdsec/configure.sh"
     "service/apparmor/configure.sh"
     "service/aide/configure.sh"
     "service/unattended-upgrades/configure.sh"
     "service/cron/configure.sh"
 )
 
+# 1. Firefox et Thunderbird quittent Snap. snapd et les autres snaps restent.
+run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "system/snap-remove.sh"
+# 2. Base du poste, avant la surveillance continue.
 run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "${STEP_SYSTEM_INSTALL[@]}"
 run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "${STEP_SYSTEM_CONFIGURE[@]}"
 run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "service/postfix/install.sh"
 run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "service/postfix/configure.sh"
 run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "${STEP_SSH_CONFIGURE[@]}"
+# 3. Pile de sécurité. ClamAV surveille /tmp à partir d'ici.
 run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "${STEP_SECURITY_INSTALL[@]}"
 run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "${STEP_SECURITY_CONFIGURE[@]}"
+# 4. Logiciels du bureau. Les profils userns visent ces binaires.
 run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "service/desktop/install.sh"
 run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "service/apparmor/userns.sh"
 run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "${STEP_SYSTEM_PURGE[@]}"
 
 try_silent sysctl --system
 
+# Lynis retire 25 points (PKGS-7392) tant qu'apt-check voit un
+# correctif de sécurité. On les installe avant l'audit, y compris
+# ceux encore en déploiement progressif.
+title "Correctifs de sécurité"
+export DEBIAN_FRONTEND=noninteractive
+export NEEDRESTART_MODE=a
+run_silent_apt update
+run_silent_apt -o APT::Get::Always-Include-Phased-Updates=true upgrade -y --with-new-pkgs
+success "Correctifs de sécurité installés"
+
 run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "verify/workstation.sh"
+
+# Dernière écriture de l'installation. Brave, Thunderbird,
+# les profils AppArmor, les scripts de contrôle et la purge sont
+# déjà sur le disque. La recette n'écrit que des journaux dans
+# /var/log, hors du périmètre AIDE. Le courriel de test part ensuite.
+run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "service/aide/init-db.sh"
 
 title "Courriel de test"
 if [[ -z "${WATCHDOG_MAIL:-}" ]]; then

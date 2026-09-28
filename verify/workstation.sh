@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================================
-# verify/workstation.sh
+# Fichier    : verify/workstation.sh
+# Créé le    : 2026-09-21
+# Créateur   : palarchsys
+#
+# Rôle
+#   verify/workstation.sh
 # =============================================================================
+
 # Recette : durcissement en place, mots de passe intacts, applis préservées.
 # =============================================================================
 
@@ -70,7 +76,7 @@ else
     printf '%s\n' "${drift}" >> "${REPORT}"
 fi
 
-for bin in firefox brave-browser thunderbird steam discord keepassxc virt-manager virsh qemu-system-x86_64; do
+for bin in brave-browser thunderbird steam discord keepassxc; do
     if command -v "${bin}" >/dev/null 2>&1; then
         mode="$(stat -c '%a' "$(command -v "${bin}")" 2>/dev/null || echo '?')"
         if [[ "${mode}" == "700" || "${mode}" == "750" ]]; then
@@ -97,15 +103,16 @@ done
 
 title "SSH / UFW / services"
 
-if sshd -T 2>/dev/null | grep -qiE '^permitrootlogin no$'; then
+root_login="$(sshd -T 2>/dev/null | awk '/^permitrootlogin /{print $2; exit}')"
+if [[ "${root_login}" == "no" ]]; then
     ok "PermitRootLogin no"
 else
-    ko "PermitRootLogin n'est pas no"
+    ko "PermitRootLogin n'est pas no (valeur effective : ${root_login:-inconnue})"
 fi
 if sshd -T 2>/dev/null | grep -qiE '^passwordauthentication yes$'; then
-    ok "PasswordAuthentication yes (desktop)"
+    ok "PasswordAuthentication yes (le mot de passe du compte est accepté en SSH)"
 else
-    wn "PasswordAuthentication n'est pas yes — vérifier que des clés existent pour ${CURRENT_USER}"
+    ok "PasswordAuthentication n'est pas yes (SSH n'accepte qu'une clé pour ${CURRENT_USER})"
 fi
 if sshd -t 2>/dev/null; then
     ok "sshd -t"
@@ -137,9 +144,9 @@ else
 fi
 
 if [[ "$(sysctl -n net.ipv4.ip_forward 2>/dev/null || echo 0)" == "1" ]]; then
-    ok "ip_forward=1 (NAT libvirt)"
+    ok "ip_forward=1"
 else
-    ko "ip_forward n'est pas 1 — le NAT QEMU est cassé"
+    ko "ip_forward n'est pas 1"
 fi
 if [[ "$(sysctl -n kernel.yama.ptrace_scope 2>/dev/null || echo missing)" == "1" ]]; then
     ok "ptrace_scope=1"
@@ -179,24 +186,7 @@ fi
 if grep -q '^DEFAULT_FORWARD_POLICY="ACCEPT"' /etc/default/ufw 2>/dev/null; then
     ok "UFW DEFAULT_FORWARD_POLICY=ACCEPT"
 else
-    ko "UFW forward policy n'est pas ACCEPT (NAT libvirt)"
-fi
-# libvirtd.service s'arrête tout seul après une période sans client
-# (option --timeout). Le socket reste actif et le relance à la demande.
-if systemctl is-enabled libvirtd.service >/dev/null 2>&1 \
-    && { systemctl is-active --quiet libvirtd.service || systemctl is-active --quiet libvirtd.socket; }; then
-    ok "libvirtd activé (service ou socket)"
-else
-    ko "libvirtd.service inactif"
-fi
-if systemctl cat virtnetworkd.service >/dev/null 2>&1; then
-    if systemctl is-active --quiet virtnetworkd.service; then
-        ok "virtnetworkd.service actif"
-    else
-        ko "virtnetworkd.service inactif"
-    fi
-else
-    ok "réseau virtuel porté par libvirtd (pas d'unité virtnetworkd)"
+    ko "UFW forward policy n'est pas ACCEPT"
 fi
 if systemctl is-active --quiet postfix; then
     ok "Postfix actif"
@@ -213,16 +203,9 @@ case "${postfix_listen}" in
         ;;
 esac
 
-if [[ -e /dev/kvm ]]; then
-    ok "/dev/kvm présent"
-    if lsmod | grep -qE '^kvm'; then
-        ok "module kvm chargé"
-    else
-        wn "module kvm non chargé (OK si pas de VM en cours)"
-    fi
-else
-    info "/dev/kvm absent (pas de virt matériel) — skip"
-fi
+# Les paquets installés ensuite ont pu modifier une unité. On recharge
+# systemd avant de lire l'état, sinon systemctl signale « changed on disk ».
+systemctl daemon-reload >/dev/null 2>&1 || true
 
 for svc in apparmor fail2ban auditd clamav-daemon clamav-freshclam unattended-upgrades; do
     if systemctl is-enabled --quiet "${svc}" 2>/dev/null || systemctl is-active --quiet "${svc}" 2>/dev/null; then
@@ -232,10 +215,22 @@ for svc in apparmor fail2ban auditd clamav-daemon clamav-freshclam unattended-up
     fi
 done
 
-if systemctl is-enabled --quiet clamonacc 2>/dev/null || systemctl is-active --quiet clamonacc 2>/dev/null; then
-    ko "clamonacc actif (OnAccess desktop interdit)"
+if systemctl is-active --quiet clamav-clamonacc.service 2>/dev/null \
+    || systemctl is-active --quiet clamonacc.service 2>/dev/null; then
+    ok "ClamAV surveille les dossiers à risque en continu"
 else
-    ok "clamonacc inactif/masqué"
+    ko "clamonacc inactif ($(systemctl is-active clamav-clamonacc.service 2>/dev/null || systemctl is-active clamonacc.service 2>/dev/null || echo absent))"
+fi
+if systemctl is-enabled --quiet hfu-boot-scan.timer 2>/dev/null; then
+    ok "passe AIDE/rkhunter/chkrootkit au démarrage"
+else
+    ko "timer de passe au démarrage absent"
+fi
+if systemctl is-active --quiet crowdsec 2>/dev/null \
+    && systemctl is-active --quiet crowdsec-firewall-bouncer 2>/dev/null; then
+    ok "CrowdSec et bouncer actifs"
+else
+    ko "CrowdSec inactif"
 fi
 
 title "Ubuntu Pro"
@@ -245,10 +240,19 @@ if ! command -v pro >/dev/null 2>&1; then
 elif ubuntu_pro_attached; then
     ok "Ubuntu Pro attaché"
     # Le texte de « pro status » change selon la langue. Le JSON est stable.
-    while IFS='=' read -r svc_name svc_status; do
+    # « warning » signifie que le service est allumé mais qu'un redémarrage
+    # est encore nécessaire (cas habituel de Livepatch juste après l'activation).
+    while IFS=$'\t' read -r svc_name svc_status svc_detail; do
         case "${svc_status}" in
-            enabled|active) ok "${svc_name} activé" ;;
-            *) ko "${svc_name} non activé (état : ${svc_status:-inconnu})" ;;
+            enabled|active)
+                ok "${svc_name} activé"
+                ;;
+            warning)
+                ok "${svc_name} activé, redémarrage encore utile${svc_detail:+ : ${svc_detail}}"
+                ;;
+            *)
+                ko "${svc_name} non activé (état : ${svc_status:-inconnu}${svc_detail:+ : ${svc_detail}})"
+                ;;
         esac
     done < <(pro status --format json 2>/dev/null | python3 -c '
 import json, sys
@@ -256,8 +260,14 @@ data = json.load(sys.stdin)
 wanted = ("esm-infra", "esm-apps", "livepatch")
 for svc in data.get("services") or []:
     name = svc.get("name")
-    if name in wanted:
-        print("%s=%s" % (name, svc.get("status") or ""))
+    if name not in wanted:
+        continue
+    detail = svc.get("status_details") or ""
+    warning = svc.get("warning") or {}
+    if isinstance(warning, dict) and warning.get("message"):
+        detail = warning["message"]
+    detail = detail.replace("\t", " ").replace("\n", " ")
+    print("%s\t%s\t%s" % (name, svc.get("status") or "", detail))
 ')
 else
     ko "Ubuntu Pro non attaché (obligatoire)"
@@ -281,6 +291,7 @@ if command -v lynis >/dev/null 2>&1; then
             ok "Lynis ${score} ≥ ${LYNIS_MIN_SCORE}"
         else
             wn "Lynis ${score} < ${LYNIS_MIN_SCORE} (exceptions desktop dans custom.prf)"
+            awk -F= '/^warning\[\]=/{print "   [INFO]  Lynis " $2}' /var/log/lynis-report.dat 2>/dev/null | head -20 || true
         fi
     else
         wn "score Lynis illisible"
@@ -297,11 +308,6 @@ if command -v brave-browser >/dev/null 2>&1 || [[ -x /opt/brave.com/brave/brave 
 else
     ko "Brave absent"
 fi
-if snap list telegram-desktop >/dev/null 2>&1; then
-    ok "Telegram (snap) installé"
-else
-    ko "Telegram snap absent"
-fi
 if dpkg-query -W -f '${Status}' discord 2>/dev/null | grep -q 'install ok'; then
     ok "Discord installé"
 else
@@ -316,23 +322,34 @@ if [[ -d "${CURRENT_HOME}/.config/Vencord" || -n "${vencord_marker}" ]]; then
 else
     ko "Vencord absent"
 fi
+tb_ver="$(dpkg-query -W -f '${Version}' thunderbird 2>/dev/null || true)"
 if dpkg-query -W -f '${Status}' thunderbird 2>/dev/null | grep -q 'install ok' \
-    || snap list thunderbird >/dev/null 2>&1; then
-    ok "Thunderbird installé"
+    && [[ -n "${tb_ver}" && "${tb_ver}" != *snap* ]]; then
+    ok "Thunderbird (dépôt Mozilla) installé"
 else
     ko "Thunderbird absent"
 fi
-if dpkg-query -W -f '${Status}' keepassxc 2>/dev/null | grep -q 'install ok'; then
+if dpkg-query -W -f '${Status}' snapd 2>/dev/null | grep -q 'install ok'; then
+    ok "snapd conservé"
+else
+    ko "snapd absent"
+fi
+if command -v snap >/dev/null 2>&1 && snap list firefox >/dev/null 2>&1; then
+    ko "snap Firefox encore installé"
+else
+    ok "snap Firefox absent"
+fi
+if command -v snap >/dev/null 2>&1 && snap list thunderbird >/dev/null 2>&1; then
+    ko "snap Thunderbird encore installé"
+else
+    ok "snap Thunderbird absent"
+fi
+if dpkg-query -W -f '${Status}' keepassxc 2>/dev/null | grep -q 'install ok' \
+    || command -v keepassxc >/dev/null 2>&1; then
     ok "KeePassXC installé"
 else
     ko "KeePassXC absent"
 fi
-if dpkg-query -W -f '${Status}' qemu-system-x86 2>/dev/null | grep -q 'install ok'; then
-    ok "QEMU (qemu-system-x86, dépôt Ubuntu) installé"
-else
-    ko "QEMU qemu-system-x86 absent"
-fi
-
 title "Sources APT"
 if [[ -f /etc/apt/sources.list ]]; then
     if grep -q 'high-fortress' /etc/apt/sources.list; then
@@ -352,10 +369,15 @@ ok "dépôt Lynis CISOfy ajouté uniquement (lynis.list)"
     echo "- FAIL : ${FAIL}"
 } >> "${REPORT}"
 
+chmod 644 "${REPORT}" 2>/dev/null || true
 step_off "Recette : ${PASS} OK / ${WARNN} WARN / ${FAIL} FAIL"
 info "Rapport : ${REPORT}"
 
 if [[ "${FAIL}" -gt 0 ]]; then
+    echo "" >&2
+    grep '^- FAIL' "${REPORT}" | while IFS= read -r line; do
+        red "${line}"
+    done
     error "Recette : ${FAIL} échec(s)"
 fi
 success "Recette workstation OK"

@@ -1,9 +1,17 @@
 #!/usr/bin/env bash
 # =============================================================================
-# service/chkrootkit/install.sh
+# Fichier    : service/chkrootkit/install.sh
+# Créé le    : 2026-09-21
+# Créateur   : palarchsys
+#
+# Rôle
+#   service/chkrootkit/install.sh
 # =============================================================================
+
 # chkrootkit cherche des signes connus de compromission (binaires remplacés,
-# interfaces réseau cachées). Le passage est planifié par le cron.
+# interfaces réseau cachées). Le passage a lieu à chaque démarrage.
+# Les faux positifs d'une installation fraîche sont listés dans
+# service/cron/watchdogs/chkrootkit.ignore.
 # =============================================================================
 DIR_INSTALL_PATH="${1}"
 export DIR_INSTALL_PATH

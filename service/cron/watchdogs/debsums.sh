@@ -1,4 +1,13 @@
 #!/usr/bin/env bash
+# =============================================================================
+# Fichier    : service/cron/watchdogs/debsums.sh
+# Créé le    : 2026-09-21
+# Créateur   : palarchsys
+#
+# Rôle
+#   Vérifie les sommes des paquets Ubuntu. Un fichier modifié déclenche une alerte.
+# =============================================================================
+
 set -euo pipefail
 HFU_BASE="${HFU_BASE:-/opt/high-fortress-user}"
 # shellcheck disable=SC1091

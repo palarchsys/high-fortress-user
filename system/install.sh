@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================================
-# system/install.sh
+# Fichier    : system/install.sh
+# Créé le    : 2026-09-21
+# Créateur   : palarchsys
+#
+# Rôle
+#   system/install.sh
 # =============================================================================
+
 # Rôle       : Arborescence, outils de base, dépôt Lynis CISOfy, Ubuntu Pro
 #              obligatoire, paquets Lynis (acct, sysstat, pam, rng).
 #              Ne réécrit PAS les sources APT existantes.

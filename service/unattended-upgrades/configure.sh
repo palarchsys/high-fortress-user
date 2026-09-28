@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
 # =============================================================================
-# service/unattended-upgrades/configure.sh
+# Fichier    : service/unattended-upgrades/configure.sh
+# Créé le    : 2026-09-21
+# Créateur   : palarchsys
+#
+# Rôle
+#   service/unattended-upgrades/configure.sh
 # =============================================================================
-# Sécurité Ubuntu + ESM seulement — pas -updates (peut changer Mesa / Proton en session).
-# Les dépôts Brave, Steam, Discord, Telegram ne sont pas dans ces origines :
-# leurs mises à jour restent celles de leur propre dépôt, non réécrit ici.
+
+# Sécurité Ubuntu + ESM, et le dépôt Mozilla de Thunderbird.
+# Pas -updates (peut changer Mesa / Proton en session).
+# Brave, Steam et Discord ne sont pas dans ces origines.
 # =============================================================================
 
 DIR_INSTALL_PATH="${1}"
@@ -32,10 +38,10 @@ Unattended-Upgrade::Allowed-Origins {
         "${distro_id}:${distro_codename}-security";
         "${distro_id}ESMApps:${distro_codename}-apps-security";
         "${distro_id}ESM:${distro_codename}-infra-security";
+        "thunderbird-deb:thunderbird-deb";
 };
-# Pas de blacklist : Firefox, Thunderbird, QEMU et libvirt reçoivent
-# les correctifs de sécurité Ubuntu. Les clients tiers ne sont pas
-# dans ces origines.
+# Thunderbird est mis à jour depuis le dépôt Mozilla. Les autres
+# clients tiers ne sont pas dans ces origines.
 Unattended-Upgrade::Package-Blacklist {
 };
 Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";

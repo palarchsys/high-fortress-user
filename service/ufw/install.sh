@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================================
-# service/ufw/install.sh — pare-feu UFW
+# Fichier    : service/ufw/install.sh
+# Créé le    : 2026-09-21
+# Créateur   : palarchsys
+#
+# Rôle
+#   service/ufw/install.sh — pare-feu UFW
 # =============================================================================
+
 # Installe le pare-feu et active le service. Les règles (entrées refusées,
 # sorties autorisées, réseau des machines virtuelles) sont dans configure.sh.
 # =============================================================================

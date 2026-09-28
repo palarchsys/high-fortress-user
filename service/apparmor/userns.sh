@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================================
-# service/apparmor/userns.sh
+# Fichier    : service/apparmor/userns.sh
+# Créé le    : 2026-09-28
+# Créateur   : palarchsys
+#
+# Rôle
+#   service/apparmor/userns.sh
 # =============================================================================
+
 # Ubuntu n'autorise un programme à créer un user namespace que s'il possède
 # un profil AppArmor qui contient la règle « userns ». Brave, Discord,
 # Thunderbird et Steam s'en servent pour leur bac à sable interne.
@@ -12,7 +18,7 @@
 #
 # Si le paquet a déjà déposé un profil pour le même binaire, on n'en ajoute
 # pas un second : deux profils sur le même chemin font échouer le parseur.
-# Le snap Telegram et le snap Thunderbird ont le profil fourni par snapd.
+# Thunderbird est le paquet Mozilla.
 # =============================================================================
 
 DIR_INSTALL_PATH="${1}"
@@ -81,24 +87,13 @@ profile hfu-discord /usr/share/{discord/Discord,discord-canary/DiscordCanary,dis
 }
 EOF
 
-install_userns_profile hfu-telegram "/opt/Telegram/Telegram" << 'EOF'
-# Telegram : binaire du tarball officiel (/opt/Telegram ou ~/Telegram).
-# Le paquet snap telegram-desktop est couvert par le profil snapd.
-abi <abi/4.0>,
-include <tunables/global>
-
-profile hfu-telegram /opt/Telegram/Telegram flags=(unconfined) {
-  userns,
-
-  include if exists <local/hfu-telegram>
-}
-
-profile hfu-telegram-home @{HOME}/Telegram/Telegram flags=(unconfined) {
-  userns,
-
-  include if exists <local/hfu-telegram-home>
-}
-EOF
+if [[ -f /etc/apparmor.d/hfu-telegram ]]; then
+    try_silent apparmor_parser -R /etc/apparmor.d/hfu-telegram
+fi
+if [[ -f /etc/apparmor.d/hfu-telegram-home ]]; then
+    try_silent apparmor_parser -R /etc/apparmor.d/hfu-telegram-home
+fi
+rm -f /etc/apparmor.d/hfu-telegram /etc/apparmor.d/hfu-telegram-home
 
 if profile_covers "bin_steam.sh" "hfu-steam" \
     || profile_covers "/usr/games/steam" "hfu-steam" \
@@ -119,8 +114,7 @@ EOF
 fi
 
 install_userns_profile hfu-thunderbird "/usr/lib/thunderbird/thunderbird" << 'EOF'
-# Thunderbird installé hors snap, sous /usr/lib ou /opt.
-# Le paquet snap a son profil snap.thunderbird.
+# Thunderbird du dépôt Mozilla, sous /usr/lib ou /opt.
 abi <abi/4.0>,
 include <tunables/global>
 

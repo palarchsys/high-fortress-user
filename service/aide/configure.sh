@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # =============================================================================
-# service/aide/configure.sh
+# Fichier    : service/aide/configure.sh
+# Créé le    : 2026-09-21
+# Créateur   : palarchsys
+#
+# Rôle
+#   service/aide/configure.sh
 # =============================================================================
 
 DIR_INSTALL_PATH="${1}"
@@ -19,18 +24,7 @@ title "Configuration AIDE"
 ensure_dir /etc/aide 755
 ensure_dir /var/lib/aide 700
 sed "s|__HF_BASE__|${CONFIG_BASE_DIR}|g" "${DIR_SCRIPT_PATH}/aide.conf" > /etc/aide/aide.conf
+install -d -m 755 "${CONFIG_BASE_DIR}/bin"
+install -m 755 "${DIR_SCRIPT_PATH}/refresh-db.sh" "${CONFIG_BASE_DIR}/bin/aide-refresh-db.sh"
 success "aide.conf posé"
-
-title "Initialisation base AIDE (peut prendre plusieurs minutes)"
-info "aide --init ..."
-aide --config="/etc/aide/aide.conf" --init 2>&1 | tail -20 || true
-if [[ -f /var/lib/aide/aide.db.new.gz ]]; then
-    mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz
-    # AIDE 0.18 : database_in pointe parfois vers aide.db non gzip
-    ln -sfn /var/lib/aide/aide.db.gz /var/lib/aide/aide.db 2>/dev/null || true
-elif [[ -f /var/lib/aide/aide.db.new ]]; then
-    mv /var/lib/aide/aide.db.new /var/lib/aide/aide.db
-else
-    warn "Base AIDE non générée (aide.db.new introuvable). Commande : aide --config=/etc/aide/aide.conf --init"
-fi
-success "AIDE initialisé"
+info "La base de référence est calculée à la fin de l'installation, une fois tous les fichiers du poste en place."

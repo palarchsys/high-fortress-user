@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================================
-# system/configure.sh
+# Fichier    : system/configure.sh
+# Créé le    : 2026-09-21
+# Créateur   : palarchsys
+#
+# Rôle
+#   system/configure.sh
 # =============================================================================
+
 # Rôle       : PAM, sysctl, journald, modules et bandeaux.
 #              Les comptes humains (mot de passe, groupes, home, shell)
 #              ne sont pas modifiés. hostname, hosts, swap, USB,
@@ -129,15 +135,14 @@ run_silent systemctl restart systemd-journald
 success "Journald persistant"
 
 title "Sysctl workstation"
-info "Paramètres sûrs pour navigateurs / Steam / KVM — pas d'IPv6 off, pas d'userns off..."
+info "Paramètres sûrs pour navigateurs et Steam. IPv6 et les user namespaces restent actifs."
 
-# Forwarding toujours à 1. libvirt ne le fige pas : NetworkManager et notre
-# unité sysctl (After=libvirtd) réappliquent ce fichier. À 0, le NAT virbr0
-# tombe dès qu'on installe QEMU après ce durcissement (wiki libvirt).
-# rp_filter=2 (loose) : le mode strict jette le trafic retour des invités.
+# Forwarding à 1 et rp_filter loose : un pont ou un NAT ajouté sur le poste
+# continue de faire passer le trafic retour. L'unité sysctl réapplique
+# ce fichier au démarrage.
 ip_forward=1
 rp_filter=2
-info "ip_forward=1 rp_filter=2 (NAT libvirt, que QEMU soit déjà présent ou non)"
+info "ip_forward=1 rp_filter=2"
 
 tee /etc/sysctl.d/90-high-fortress-user.conf > /dev/null << EOF
 # High-Fortress User — sysctl workstation Ubuntu 26.04
@@ -154,6 +159,8 @@ net.ipv4.conf.all.send_redirects = 0
 net.ipv4.conf.default.send_redirects = 0
 net.ipv4.conf.all.secure_redirects = 0
 net.ipv4.conf.default.secure_redirects = 0
+net.ipv4.conf.all.proxy_arp = 0
+net.ipv4.conf.default.proxy_arp = 0
 net.ipv4.icmp_echo_ignore_broadcasts = 1
 net.ipv4.icmp_ignore_bogus_error_responses = 1
 net.ipv4.tcp_syncookies = 1
@@ -171,7 +178,10 @@ net.ipv6.conf.default.accept_source_route = 0
 net.core.bpf_jit_harden = 2
 
 kernel.sysrq = 0
+kernel.ctrl-alt-del = 0
 kernel.unprivileged_bpf_disabled = 1
+kernel.perf_event_paranoid = 3
+kernel.randomize_va_space = 2
 kernel.core_uses_pid = 1
 kernel.kptr_restrict = 2
 kernel.dmesg_restrict = 1
@@ -187,25 +197,53 @@ EOF
 
 cp -f /etc/sysctl.d/90-high-fortress-user.conf /etc/sysctl.d/99-zzz-high-fortress-user.conf
 chmod 644 /etc/sysctl.d/90-high-fortress-user.conf /etc/sysctl.d/99-zzz-high-fortress-user.conf
+install -d -m 755 "${CONFIG_BASE_DIR}/cron/bin"
+install -m 755 "${DIR_SCRIPT_PATH}/hfu-sysctl-apply.sh" \
+    "${CONFIG_BASE_DIR}/cron/bin/hfu-sysctl-apply.sh"
 sed "s|__HF_BASE__|${CONFIG_BASE_DIR}|g" "${DIR_SCRIPT_PATH}/hfu-sysctl.service" \
     > /etc/systemd/system/high-fortress-user-sysctl.service
+# Anciens liens vers des unités que ce poste n'installe pas.
+rm -f /etc/systemd/system/docker.service.wants/high-fortress-user-sysctl.service
+rm -f /etc/systemd/system/libvirtd.service.wants/high-fortress-user-sysctl.service
 run_silent systemctl daemon-reload
 run_silent systemctl enable --now high-fortress-user-sysctl.service
 run_silent sysctl --system
 try_silent systemctl mask systemd-coredump.socket
 success "Sysctl appliqué"
 
-info "Permissions /etc/cron.d (Lynis FILE-7524)..."
-chmod 700 /etc/cron.d
+info "Permissions des fichiers lus par Lynis..."
+# Lynis compare le mode exact : cron en 700, crontab et sshd_config
+# en 600, sudoers.d en 750, cupsd.conf en 640. L'impression locale
+# continue de fonctionner : cupsd lit sa configuration en root.
+hfu_strict_mode() {
+    local mode="$1" owner="$2" group="$3" path="$4"
+    [[ -e "${path}" ]] || return 0
+    if dpkg-statoverride --list "${path}" >/dev/null 2>&1; then
+        dpkg-statoverride --remove "${path}" >/dev/null 2>&1 || true
+    fi
+    dpkg-statoverride --update --add "${owner}" "${group}" "${mode}" "${path}" >/dev/null
+}
+for cron_dir in /etc/cron.d /etc/cron.hourly /etc/cron.daily /etc/cron.weekly /etc/cron.monthly; do
+    hfu_strict_mode 700 root root "${cron_dir}"
+done
+hfu_strict_mode 600 root root /etc/crontab
+hfu_strict_mode 600 root root /etc/ssh/sshd_config
+hfu_strict_mode 750 root root /etc/sudoers.d
+hfu_strict_mode 640 root lp /etc/cups/cupsd.conf
 tee /etc/tmpfiles.d/high-fortress-user-cron.conf > /dev/null << 'EOF'
 z /etc/cron.d 0700 root root -
+z /etc/cron.hourly 0700 root root -
+z /etc/cron.daily 0700 root root -
+z /etc/cron.weekly 0700 root root -
+z /etc/cron.monthly 0700 root root -
 EOF
-success "/etc/cron.d mode 700"
+success "Permissions cron, sudoers, SSH et CUPS resserrées"
 
-info "Profil Lynis (exceptions desktop documentées)..."
+info "Profil Lynis (poste de travail, exceptions documentées)..."
 mkdir -p /etc/lynis
 tee /etc/lynis/custom.prf > /dev/null << 'EOF'
-# High-Fortress User — exceptions volontaires workstation
+# High-Fortress User — poste de travail, pas un serveur.
+machine-role=workstation
 # compilers : Proton / DXVK / gcc utilisateur
 skip-test=HRDN-7222
 # /tmp noexec : Electron, Steam, Firefox, Brave, Thunderbird
@@ -216,10 +254,11 @@ skip-test=FILE-6374
 skip-test=BOOT-5122
 # modules_disabled=1 : casserait kvm / nvidia / wifi après reboot
 skip-test=KRNL-6000:kernel.modules_disabled
-# forwarding : NAT libvirt (wiki : ip_forward figé à 1, même avant QEMU)
+# forwarding : laissé à 1 sur ce poste
 skip-test=KRNL-6000:net.ipv4.conf.all.forwarding
 skip-test=KRNL-6000:net.ipv4.ip_forward
 skip-test=KRNL-6000:net.ipv4.conf.all.rp_filter
+skip-test=KRNL-6000:net.ipv4.conf.default.rp_filter
 # user namespaces : sandbox Firefox / Brave / Thunderbird / Steam / Electron
 skip-test=KRNL-6000:kernel.unprivileged_userns_clone
 # USB storage : desktop
@@ -229,11 +268,14 @@ skip-test=AUTH-9282
 skip-test=AUTH-9286
 # PasswordAuthentication conservé (session desktop)
 skip-test=SSH-7408
+# Un seul poste : pas d'Ansible ni d'hôte de journal distant.
+skip-test=TOOL-5002
+skip-test=LOGG-2154
 EOF
 chmod 644 /etc/lynis/custom.prf
 success "custom.prf Lynis posé"
 
-title "Modules : protocoles et FS inutiles (on GARDE kvm, tun, overlay, usb)"
+title "Modules : protocoles et systèmes de fichiers inutiles"
 tee /etc/modprobe.d/disable-uncommon-protocols.conf > /dev/null << EOF
 blacklist dccp
 blacklist sctp
@@ -247,7 +289,7 @@ EOF
 success "dccp/sctp/rds/tipc blacklistés"
 
 tee /etc/modprobe.d/disable-unused-fs.conf > /dev/null << 'EOF'
-# Pas overlay/squashfs : snaps / flatpak / docker
+# overlay et squashfs restent disponibles (conteneurs, AppImage).
 # Pas usb-storage : desktop
 install cramfs /bin/true
 install freevxfs /bin/true
@@ -264,30 +306,7 @@ blacklist udf
 EOF
 success "FS inutiles blacklistés"
 
-title "KVM / QEMU — modules du processeur"
-info "On ne force au boot que les modules qui se chargent sur ce CPU."
-kvm_mods=()
-cpu_vendor="$(awk '/^vendor_id/{print $3; exit}' /proc/cpuinfo 2>/dev/null || true)"
-case "${cpu_vendor}" in
-    GenuineIntel) kvm_candidates=(kvm kvm_intel vhost_net tun virtio_net virtio_pci) ;;
-    AuthenticAMD|HygonGenuine) kvm_candidates=(kvm kvm_amd vhost_net tun virtio_net virtio_pci) ;;
-    *) kvm_candidates=(kvm vhost_net tun virtio_net virtio_pci) ;;
-esac
-for m in "${kvm_candidates[@]}"; do
-    if modprobe "${m}" 2>/dev/null; then
-        kvm_mods+=("${m}")
-    else
-        info "module ${m} non chargeable sur cette machine"
-    fi
-done
-if [[ ${#kvm_mods[@]} -gt 0 && " ${kvm_mods[*]} " == *" kvm "* ]]; then
-    printf '%s\n' "${kvm_mods[@]}" > /etc/modules-load.d/kvm.conf
-    chmod 644 /etc/modules-load.d/kvm.conf
-    success "Modules KVM au boot : ${kvm_mods[*]}"
-else
-    rm -f /etc/modules-load.d/kvm.conf
-    info "Pas de KVM matériel — aucun module KVM forcé au boot"
-fi
+rm -f /etc/modules-load.d/kvm.conf
 
 title "Core dumps désactivés"
 tee /etc/security/limits.d/90-disable-core.conf > /dev/null << EOF

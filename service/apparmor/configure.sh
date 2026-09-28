@@ -1,9 +1,15 @@
 #!/usr/bin/env bash
 # =============================================================================
-# service/apparmor/configure.sh
+# Fichier    : service/apparmor/configure.sh
+# Créé le    : 2026-09-21
+# Créateur   : palarchsys
+#
+# Rôle
+#   service/apparmor/configure.sh
 # =============================================================================
+
 # Active le service AppArmor livré par Ubuntu.
-# Les profils déjà installés (Firefox, Thunderbird snap, Steam) restent
+# Les profils déjà installés (navigateur, Thunderbird, Steam) restent
 # ceux de la distribution : ce script ne lance pas aa-enforce sur l'ensemble
 # des profils et n'installe pas le paquet apparmor-profiles-extra.
 #
@@ -23,4 +29,5 @@ require_root
 title "Activation AppArmor"
 run_silent systemctl enable --now apparmor
 success "AppArmor actif"
-info "Les profils Ubuntu restent en l'état. La restriction des user namespaces reste celle du système."
+info "Les profils Ubuntu restent en l'état."
+info "La restriction des user namespaces reste celle du système."

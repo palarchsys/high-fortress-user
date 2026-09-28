@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Envoi d'une alerte HTML via la commande mail (Postfix local).
-# Variables : DIR ou chemin du script, MODULE_NAME, CONTENT, TITLE,
-#             WATCHDOG_MAIL, PROJECT_NAME.
-# Un corps vide n'est pas envoyé.
+# Fichier    : service/cron/watchdogs/send.sh
+# Créé le    : 2026-09-28
+# Créateur   : palarchsys
+#
+# Rôle
+#   Envoi d'une alerte HTML via la commande mail (Postfix local).
+#   Variables : DIR ou chemin du script, MODULE_NAME, CONTENT, TITLE,
+#   WATCHDOG_MAIL, PROJECT_NAME.
+#   Un corps vide n'est pas envoyé.
 # =============================================================================
 
 set -euo pipefail
@@ -28,14 +33,23 @@ fi
 export TITLE PROJECT_NAME HOSTNAME DATE MODULE_NAME
 CONTENT="${detail}"
 export CONTENT
+export NOTE="${NOTE:-}"
+export NOTE_CMD="${NOTE_CMD:-}"
 
 MAIL_CONTENT="$(python3 - << PY
-import html, os
+import html, os, re
 from pathlib import Path
 tpl = Path(${SCRIPT_DIR@Q}, "mail.html").read_text(encoding="utf-8")
 for key in ("TITLE", "PROJECT_NAME", "HOSTNAME", "DATE", "MODULE_NAME"):
     tpl = tpl.replace("\${" + key + "}", html.escape(os.environ.get(key, ""), quote=False))
 tpl = tpl.replace("\${CONTENT}", html.escape(os.environ.get("CONTENT", ""), quote=False))
+note = os.environ.get("NOTE", "").strip()
+note_cmd = os.environ.get("NOTE_CMD", "").strip()
+if note and note_cmd:
+    tpl = tpl.replace("\${NOTE}", html.escape(note, quote=False))
+    tpl = tpl.replace("\${NOTE_CMD}", html.escape(note_cmd, quote=False))
+else:
+    tpl = re.sub(r"<!--NOTE_START-->.*?<!--NOTE_END-->", "", tpl, count=1, flags=re.S)
 print(tpl, end="")
 PY
 )"

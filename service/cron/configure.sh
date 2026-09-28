@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================================
-# service/cron/configure.sh
+# Fichier    : service/cron/configure.sh
+# Créé le    : 2026-09-21
+# Créateur   : palarchsys
+#
+# Rôle
+#   service/cron/configure.sh
 # =============================================================================
+
 # Watchdogs en root via /etc/cron.d. PAS de cron.allow restrictif
 # (l'utilisateur desktop garde crontab). PAS d'utilisateur cronexecutor.
 # =============================================================================
@@ -44,6 +50,44 @@ sed "s|\${CONFIG_BASE_DIR}|${CONFIG_BASE_DIR}|g" "${DIR_SCRIPT_PATH}/hfu.cron" \
     > "/etc/cron.d/${PROJECT_SLUG}"
 chown root:root "/etc/cron.d/${PROJECT_SLUG}"
 chmod 600 "/etc/cron.d/${PROJECT_SLUG}"
+
+# 20 % de toute la machine : systemd compte le quota sur un seul cœur.
+# Quatre cœurs et une limite de 20 donnent donc CPUQuota=80%.
+cpus="$(nproc)"
+quota=$(( cpus * WATCHDOG_CPU_LIMIT ))
+install -d -m 755 /etc/systemd/system
+tee /etc/systemd/system/hfu-boot-scan.service > /dev/null << EOF
+[Unit]
+Description=Passe AIDE, rkhunter, chkrootkit et ClamAV après le démarrage
+After=local-fs.target multi-user.target
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+Nice=${WATCHDOG_LIMIT_NICE}
+IOSchedulingClass=idle
+CPUQuota=${quota}%
+ExecStart=${CONFIG_BASE_DIR}/cron/bin/boot-scan.sh
+EOF
+tee /etc/systemd/system/hfu-boot-scan.timer > /dev/null << 'EOF'
+[Unit]
+Description=Lance la passe de sécurité à chaque démarrage
+
+[Timer]
+OnBootSec=2min
+AccuracySec=30s
+Persistent=false
+Unit=hfu-boot-scan.service
+
+[Install]
+WantedBy=timers.target
+EOF
+chmod 644 /etc/systemd/system/hfu-boot-scan.service /etc/systemd/system/hfu-boot-scan.timer
+run_silent systemctl daemon-reload
+# enable sans démarrage immédiat : la passe part au prochain démarrage,
+# deux minutes après l'arrivée du système, sans bloquer l'ouverture de session.
+run_silent systemctl enable hfu-boot-scan.timer
+success "Passe au démarrage plafonnée à ${WATCHDOG_CPU_LIMIT} % du processeur (CPUQuota=${quota}%)"
 
 info "crontab utilisateur : non touché (pas de cron.allow)."
 success "Watchdogs installés dans ${CONFIG_BASE_DIR}/cron/bin"

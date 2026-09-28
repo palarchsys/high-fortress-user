@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================================
-# configure.sh — écrit global.conf et secrets.conf
+# Fichier    : configure.sh
+# Créé le    : 2026-09-28
+# Créateur   : palarchsys
+#
+# Rôle
+#   configure.sh — écrit global.conf et secrets.conf
 # =============================================================================
+
 # À lancer avant run.sh. run.sh ne pose aucune question : si ces deux
 # fichiers manquent ou ne passent pas le contrôle, il s'arrête.
 #
@@ -39,43 +45,60 @@ Ensuite :
 EOF
 }
 
+# Affiche un encadré d'explication avant une question.
+# $1 titre, le reste du texte est lu sur l'entrée standard.
+hfu_lesson() {
+    local title="$1"
+    printf '\n────────────────────────────────────────────────────────────────\n'
+    printf ' %s\n' "${title}"
+    printf '────────────────────────────────────────────────────────────────\n'
+    cat
+    printf '\n'
+}
+
 # __kind : pro_token | gmail | secret | smtp
-# gmail : adresse @gmail.com ou @googlemail.com, obligatoire dans cette version.
-# Un secret est confirmé deux fois. Entrée reprend la valeur déjà connue.
+# Un secret est masqué et confirmé deux fois. Entrée reprend la valeur déjà connue.
+# $6 : phrase affichée quand le format est refusé, pour dire comment corriger.
 hfu_prompt() {
-    local __var="$1" __label="$2" __example="$3" __default="$4" __kind="$5"
+    local __var="$1" __label="$2" __example="$3" __default="$4" __kind="$5" __hint="$6"
     local value="" confirm="" attempt current=""
     current="${!__var:-}"
     [[ -n "${current}" ]] && __default="${current}"
     for attempt in 1 2 3; do
-        printf '\n   %s\n' "${__label}"
-        printf '   exemple : %s\n' "${__example}"
+        printf '   %s\n' "${__label}"
+        printf '   Exemple : %s\n' "${__example}"
         if [[ "${__kind}" == "pro_token" || "${__kind}" == "secret" ]]; then
+            printf '   La saisie reste invisible.\n'
             if [[ -n "${__default}" ]]; then
-                printf '   ➤ (déjà défini — Entrée pour conserver) : '
+                printf '   Une valeur est déjà enregistrée. Entrée la conserve sans la montrer.\n'
+                printf '   ➤ '
             else
-                printf '   ➤ : '
+                printf '   ➤ '
             fi
             IFS= read -r -s value || { printf 'entrée interrompue\n' >&2; exit 1; }
             printf '\n'
+            # Google affiche le mot de passe d'application par groupes de 4.
             value="${value// /}"
             if [[ -z "${value}" && -n "${__default}" ]]; then
                 value="${__default}"
+                printf '   Valeur déjà enregistrée conservée.\n'
             else
-                printf '   ➤ confirmation : '
+                printf '   Retapez la même valeur pour confirmer.\n'
+                printf '   ➤ '
                 IFS= read -r -s confirm || { printf 'entrée interrompue\n' >&2; exit 1; }
                 printf '\n'
                 confirm="${confirm// /}"
                 if [[ "${value}" != "${confirm}" ]]; then
-                    printf '   les deux saisies diffèrent.\n'
+                    printf '   Les deux saisies sont différentes. Recommencez cette question.\n\n'
                     continue
                 fi
             fi
         else
             if [[ -n "${__default}" ]]; then
-                printf '   ➤ [%s] : ' "${__default}"
+                printf '   Entrée conserve la valeur entre crochets.\n'
+                printf '   ➤ [%s] ' "${__default}"
             else
-                printf '   ➤ : '
+                printf '   ➤ '
             fi
             IFS= read -r value || { printf 'entrée interrompue\n' >&2; exit 1; }
             [[ -z "${value}" ]] && value="${__default}"
@@ -90,11 +113,14 @@ hfu_prompt() {
         esac
         if [[ "${ok}" == "1" ]]; then
             printf -v "${__var}" '%s' "${value}"
+            printf '   Enregistré pour cette étape.\n'
             return 0
         fi
-        printf '   format refusé.\n'
+        printf '   Cette réponse ne convient pas. %s\n' "${__hint}"
+        printf '   Tentative %s sur 3.\n\n' "${attempt}"
     done
-    printf 'ERREUR: %s — trop de tentatives. exemple : %s\n' "${__label}" "${__example}" >&2
+    printf 'ERREUR: %s — trois essais sans réponse acceptée.\n' "${__label}" >&2
+    printf 'Exemple attendu : %s\n' "${__example}" >&2
     exit 1
 }
 
@@ -145,18 +171,129 @@ if [[ -f "${DIR_SCRIPT}/secrets.conf" ]]; then
     set -u
 fi
 
-printf '\nPréparation de global.conf et secrets.conf\n'
-printf 'Le jeton active Ubuntu Pro : mises à jour de sécurité ESM et Livepatch.\n'
-printf 'Postfix envoie les alertes des contrôles (AIDE, ClamAV, etc.) vers Gmail.\n'
-printf 'Aucun mot de passe du compte Ubuntu n’est demandé.\n'
+printf '\n════════════════════════════════════════════════════════════════\n'
+printf ' Configuration du poste — 5 questions\n'
+printf '════════════════════════════════════════════════════════════════\n'
+printf '\n'
+printf 'Rien n’est écrit sur le disque tant que vous n’avez pas répondu « o »\n'
+printf 'à la dernière question. Le mot de passe de votre compte Ubuntu\n'
+printf 'n’est jamais demandé.\n'
+printf '\n'
+printf 'Préparez deux pages dans le navigateur :\n'
+printf '  1. https://ubuntu.com/pro/dashboard\n'
+printf '     Créez un compte Ubuntu gratuit si besoin, puis copiez le jeton.\n'
+printf '  2. https://myaccount.google.com/apppasswords\n'
+printf '     Cette version n’accepte qu’une adresse Gmail. Le mot de passe\n'
+printf '     habituel de Gmail est refusé : il faut un mot de passe d’application.\n'
+printf '     La validation en deux étapes doit être activée avant cette page :\n'
+printf '     https://myaccount.google.com/signinoptions/two-step-verification\n'
 
-hfu_prompt UBUNTU_PRO_TOKEN "Jeton Ubuntu Pro" "le jeton du tableau de bord ubuntu.com/pro" "" pro_token
-hfu_prompt POSTFIX_MAIL_ADDRESS "Adresse Gmail qui envoie les alertes (obligatoire)" "prenom.nom@gmail.com" "" gmail
-hfu_prompt POSTFIX_MAIL_PASS "Mot de passe d'application Gmail (16 caractères, sans espaces)" "abcdefghijklmnop" "" secret
-hfu_prompt POSTFIX_MAIL_SMTP "Serveur SMTP Gmail" "[smtp.gmail.com]:587" "[smtp.gmail.com]:587" smtp
-hfu_prompt WATCHDOG_MAIL "Adresse Gmail qui reçoit les alertes (obligatoire)" "alertes@gmail.com" "${POSTFIX_MAIL_ADDRESS}" gmail
+hfu_lesson 'Question 1 sur 5 — Jeton Ubuntu Pro' << 'EOF'
+À quoi il sert.
+  Il rattache cet ordinateur à Ubuntu Pro. Le poste reçoit alors les
+  correctifs de sécurité étendus (ESM) et certains correctifs du noyau
+  sans redémarrage (Livepatch).
 
-printf '\nÉcrire global.conf et secrets.conf dans %s ? [o/N] ' "${DIR_SCRIPT}"
+Où le copier.
+  1. Ouvrez https://ubuntu.com/pro/dashboard
+  2. Connectez-vous, ou créez un compte Ubuntu.
+  3. Le jeton est affiché sur le tableau de bord. Copiez-le.
+  4. Collez-le ici. Lettres et chiffres seulement, sans espace.
+
+Collez le jeton du tableau de bord. Le mot de passe du compte Ubuntu
+et le mot de passe Gmail du navigateur ne se saisissent pas ici.
+EOF
+hfu_prompt UBUNTU_PRO_TOKEN \
+    "Collez le jeton Ubuntu Pro" \
+    "C1abcdefghij1234567890" \
+    "" \
+    pro_token \
+    "Utilisez uniquement des lettres et des chiffres, entre 6 et 100, sans espace ni tiret."
+
+hfu_lesson 'Question 2 sur 5 — Adresse Gmail qui envoie' << 'EOF'
+À quoi elle sert.
+  Les contrôles du poste (fichiers modifiés, antivirus, etc.) envoient
+  un courriel quand quelque chose mérite votre attention. Cette adresse
+  est l’expéditeur : Gmail doit la reconnaître comme la vôtre.
+
+Ce qu’il faut écrire.
+  L’adresse complète, par exemple prenom.nom@gmail.com.
+  @gmail.com et @googlemail.com sont acceptés. Outlook, Orange, ou une
+  adresse d’entreprise sont refusés dans cette version.
+EOF
+hfu_prompt POSTFIX_MAIL_ADDRESS \
+    "Adresse Gmail qui envoie les alertes" \
+    "prenom.nom@gmail.com" \
+    "" \
+    gmail \
+    "L’adresse doit se terminer par @gmail.com ou @googlemail.com."
+
+hfu_lesson 'Question 3 sur 5 — Mot de passe d’application Gmail' << 'EOF'
+À quoi il sert.
+  Gmail refuse le mot de passe avec lequel vous ouvrez la boîte dans
+  le navigateur. Il fournit à la place un mot de passe réservé à cette
+  application : 16 lettres.
+
+Comment l’obtenir.
+  1. Activez la validation en deux étapes :
+     https://myaccount.google.com/signinoptions/two-step-verification
+  2. Ouvrez https://myaccount.google.com/apppasswords
+  3. Nommez l’application « High-Fortress User », puis créez le mot de passe.
+  4. Google l’affiche en quatre groupes. Vous pouvez le coller avec
+     les espaces : ils sont retirés ici.
+
+Guide Google : https://support.google.com/accounts/answer/185833
+EOF
+hfu_prompt POSTFIX_MAIL_PASS \
+    "Mot de passe d’application Gmail" \
+    "abcdefghijklmnop" \
+    "" \
+    secret \
+    "Il faut au moins 16 caractères, sans espace. Copiez les 16 lettres affichées par Google."
+
+hfu_lesson 'Question 4 sur 5 — Serveur d’envoi' << 'EOF'
+À quoi il sert.
+  C’est l’adresse du serveur de Gmail qui accepte le courriel.
+
+Dans cette version une seule valeur est acceptée :
+  [smtp.gmail.com]:587
+
+Les crochets et le :587 font partie de la réponse. Appuyez sur Entrée
+pour garder la valeur proposée.
+EOF
+hfu_prompt POSTFIX_MAIL_SMTP \
+    "Serveur SMTP Gmail" \
+    "[smtp.gmail.com]:587" \
+    "[smtp.gmail.com]:587" \
+    smtp \
+    "Laissez exactement [smtp.gmail.com]:587, ou appuyez sur Entrée."
+
+hfu_lesson 'Question 5 sur 5 — Adresse Gmail qui reçoit' << 'EOF'
+À quoi elle sert.
+  C’est la boîte dans laquelle vous lirez les alertes et le courriel
+  de test envoyé à la fin de l’installation.
+
+Elle doit aussi être une adresse Gmail. Ce peut être la même que
+  l’adresse qui envoie. Dans ce cas, appuyez sur Entrée.
+EOF
+hfu_prompt WATCHDOG_MAIL \
+    "Adresse Gmail qui reçoit les alertes" \
+    "alertes@gmail.com" \
+    "${POSTFIX_MAIL_ADDRESS}" \
+    gmail \
+    "L’adresse doit se terminer par @gmail.com ou @googlemail.com. Entrée reprend l’adresse qui envoie."
+
+hfu_lesson 'Écriture des fichiers' << EOF
+Deux fichiers vont être créés dans ${DIR_SCRIPT} :
+
+  global.conf    les réglages du poste, sans secret
+  secrets.conf   le jeton et le courrier, lisibles seulement par vous
+                 si vous lancez cette commande, ou par root ensuite
+
+Répondez o pour écrire. Toute autre réponse annule et laisse les
+fichiers déjà présents tels quels.
+EOF
+printf 'Écrire ces fichiers ? [o/N] '
 IFS= read -r confirm || { printf 'entrée interrompue\n' >&2; exit 1; }
 if [[ "${confirm}" != "o" && "${confirm}" != "O" && "${confirm}" != "oui" ]]; then
     printf 'ERREUR: écriture annulée. Les fichiers n’ont pas été modifiés.\n' >&2

@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================================
-# service/fail2ban/install.sh
+# Fichier    : service/fail2ban/install.sh
+# Créé le    : 2026-09-21
+# Créateur   : palarchsys
+#
+# Rôle
+#   service/fail2ban/install.sh
 # =============================================================================
+
 # Fail2Ban lit le journal d'authentification et demande à UFW de bloquer
 # une adresse qui échoue plusieurs fois à SSH. python3-systemd permet
 # à Fail2Ban de lire le journal via journald.

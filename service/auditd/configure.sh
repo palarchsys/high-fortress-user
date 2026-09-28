@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # =============================================================================
-# service/auditd/configure.sh
+# Fichier    : service/auditd/configure.sh
+# Créé le    : 2026-09-21
+# Créateur   : palarchsys
+#
+# Rôle
+#   service/auditd/configure.sh
 # =============================================================================
 
 DIR_INSTALL_PATH="${1}"
@@ -13,38 +18,53 @@ source "${DIR_INSTALL_PATH}/global.conf"
 require_root
 
 title "Configuration auditd"
-tee /etc/audit/rules.d/"${PROJECT_SLUG}".rules > /dev/null << EOF
-# High-Fortress User — règles ciblées (pas de flood Steam/home)
+# Trois fichiers, dans l'ordre de lecture :
+#   00  efface les règles précédentes, tampon, et ignore une ligne
+#       que ce noyau refuse (sinon le chargement s'arrête et vide tout)
+#   50  surveillance des fichiers sensibles, forme syscall
+#       (la forme -w affiche « Old style watch rules are slower »)
+#   99  active l'audit, une seule fois
+install -d -m 750 /etc/audit/rules.d
+rm -f /etc/audit/rules.d/"${PROJECT_SLUG}".rules
+hfu_audit_watch() {
+    local path="$1" key="$2" field="dir"
+    [[ -d "${path}" ]] || field="path"
+    printf '%s\n' "-a always,exit -F arch=b64 -F ${field}=${path} -F perm=wa -F key=${key}"
+}
+cat > /etc/audit/rules.d/00-high-fortress-user.rules << 'EOF'
 -D
 -b 8192
 -f 1
-
--w /etc/ssh -p wa -k ssh-config
--w /etc/sudoers -p wa -k sudoers
--w /etc/sudoers.d -p wa -k sudoers
--w /etc/passwd -p wa -k identity
--w /etc/group -p wa -k identity
--w /etc/shadow -p wa -k identity
--w /etc/gshadow -p wa -k identity
--w /etc/apparmor.d -p wa -k apparmor
--w ${CONFIG_BASE_DIR} -p wa -k hfu-config
--w /etc/ufw -p wa -k ufw-config
--w /root -p wa -k root-activity
-
--a always,exit -F arch=b64 -S adjtimex,settimeofday -k time-change
--a always,exit -F arch=b32 -S adjtimex,settimeofday,stime -k time-change
--w /etc/localtime -p wa -k time-change
+-i
 EOF
+{
+    hfu_audit_watch /etc/ssh ssh-config
+    hfu_audit_watch /etc/sudoers sudoers
+    hfu_audit_watch /etc/sudoers.d sudoers
+    hfu_audit_watch /etc/passwd identity
+    hfu_audit_watch /etc/group identity
+    hfu_audit_watch /etc/shadow identity
+    hfu_audit_watch /etc/gshadow identity
+    hfu_audit_watch /etc/apparmor.d apparmor
+    hfu_audit_watch "${CONFIG_BASE_DIR}" hfu-config
+    hfu_audit_watch /etc/ufw ufw-config
+    hfu_audit_watch /root root-activity
+    hfu_audit_watch /etc/localtime time-change
+    if virt_present; then
+        hfu_audit_watch /etc/libvirt libvirt-config
+    fi
+    printf '%s\n' '-a always,exit -F arch=b64 -S adjtimex -S settimeofday -F key=time-change'
+} > /etc/audit/rules.d/50-high-fortress-user.rules
+printf '%s\n' '-e 1' > /etc/audit/rules.d/99-high-fortress-user.rules
+chmod 640 /etc/audit/rules.d/00-high-fortress-user.rules \
+    /etc/audit/rules.d/50-high-fortress-user.rules \
+    /etc/audit/rules.d/99-high-fortress-user.rules
 
-if virt_present; then
-    cat >> /etc/audit/rules.d/"${PROJECT_SLUG}".rules << EOF
--w /etc/libvirt -p wa -k libvirt-config
-EOF
+run_silent systemctl enable auditd
+if ! systemctl is-active --quiet auditd; then
+    run_silent systemctl start auditd
 fi
-
-echo "-e 1" >> /etc/audit/rules.d/"${PROJECT_SLUG}".rules
-
-run_silent systemctl enable --now auditd
-try_silent augenrules --load
-try_silent systemctl restart auditd
+# Un seul chargement. enable --now puis augenrules puis restart
+# rejouait les mêmes règles : « Rule exists », puis plus aucune règle.
+run_silent augenrules --load
 success "auditd actif"

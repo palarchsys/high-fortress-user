@@ -1,4 +1,13 @@
 #!/usr/bin/env bash
+# =============================================================================
+# Fichier    : service/cron/watchdogs/aide.sh
+# Créé le    : 2026-09-21
+# Créateur   : palarchsys
+#
+# Rôle
+#   Compare la base AIDE au disque. Un écart déclenche une alerte et un courriel.
+# =============================================================================
+
 set -euo pipefail
 HFU_BASE="${HFU_BASE:-/opt/high-fortress-user}"
 # shellcheck disable=SC1091
@@ -13,13 +22,16 @@ set +e
 aide --config=/etc/aide/aide.conf --check > "${LOG_FILE}" 2>&1
 rc=$?
 set -e
-# 0 = ok, 1 = new/removed/changed (alerte), 2+ = erreur
+# AIDE additionne ses trouvailles : 1 fichier ajouté, 2 retiré, 4 modifié.
+# 7 signifie donc les trois à la fois. Ce n'est pas une panne.
+# Un code à partir de 8 signale une erreur du programme.
 if [[ "${rc}" -eq 0 ]]; then
     log_ok "AIDE: aucun changement"
-elif [[ "${rc}" -eq 1 ]]; then
-    log_alert "AIDE: changements détectés (voir ${LOG_FILE})"
+elif [[ "${rc}" -ge 1 && "${rc}" -le 7 ]]; then
+    HFU_AIDE_REFRESH=1 \
+        log_alert "AIDE: changements détectés (code ${rc}, détail ${LOG_FILE})"
 else
-    log_alert "AIDE: erreur rc=${rc}"
+    log_alert "AIDE: erreur rc=${rc} (détail ${LOG_FILE})"
 fi
 find "${LOG_DIR}" -name 'aide-*.log' -mtime +30 -delete 2>/dev/null || true
 exit 0

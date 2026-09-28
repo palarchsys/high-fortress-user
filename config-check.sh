@@ -1,21 +1,15 @@
 #!/usr/bin/env bash
 # =============================================================================
-# config-check.sh — contrôle de global.conf et de secrets.conf
-# =============================================================================
-# Ce fichier ne s'exécute pas seul. configure.sh et run.sh le chargent
-# avec « source ».
+# Fichier    : config-check.sh
+# Créé le    : 2026-09-28
+# Créateur   : palarchsys
 #
-# Un fichier est conforme quand :
-#   - sa syntaxe shell est valide ;
-#   - il ne contient pas de substitution de commande (` ou $()) ;
-#   - chaque valeur a le format attendu (chemin, entier, jeton) ;
-#   - secrets.conf est en mode 600 et porte HF_SECRETS_PREPARED=1 ;
-#   - global.conf porte HF_PREPARED=1.
-#
-# HF_PREPARED=1 signifie que configure.sh a écrit le fichier.
-# Le modèle livré dans le dépôt reste à 0 : run.sh s'arrête tant que
-# configure.sh n'a pas été exécuté.
-# =============================================================================
+# Rôle
+#   Contrôle global.conf et secrets.conf avant l'installation.
+#   Ce fichier ne s'exécute pas seul : configure.sh et run.sh le chargent.
+# Un fichier est conforme quand sa syntaxe est valide, qu'il ne contient pas
+# de substitution de commande, et que chaque valeur a le format attendu.
+# secrets.conf doit être en mode 600. global.conf doit porter HF_PREPARED=1.
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
     printf 'Utilisez : bash configure.sh [--check]\n' >&2
@@ -136,8 +130,13 @@ hfu_write_global_conf() {
     local dest="$1"
     cat > "${dest}" << EOF
 # =============================================================================
-# Configuration du poste. Aucun secret dans ce fichier.
-# configure.sh met HF_PREPARED à 1. Contrôle : bash configure.sh --check
+# Fichier    : global.conf
+# Créé le    : 2026-09-21
+# Créateur   : palarchsys
+#
+# Rôle
+#   Réglages du poste, sans secret. configure.sh met HF_PREPARED à 1.
+#   Le contrôle se fait avec : bash configure.sh --check
 # =============================================================================
 
 HF_PREPARED=1

@@ -1,15 +1,13 @@
 [Unit]
-Description=High-Fortress User sysctl (après Docker / libvirt / apport)
+Description=High-Fortress User sysctl
 Documentation=file://__HF_BASE__
-After=systemd-sysctl.service docker.service libvirtd.service apport.service network-online.target
+After=systemd-sysctl.service network-online.target
 Wants=systemd-sysctl.service
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/sbin/sysctl -p /etc/sysctl.d/99-zzz-high-fortress-user.conf
+ExecStart=__HF_BASE__/cron/bin/hfu-sysctl-apply.sh
 
 [Install]
 WantedBy=multi-user.target
-WantedBy=docker.service
-WantedBy=libvirtd.service

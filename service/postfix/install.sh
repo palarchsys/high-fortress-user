@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================================
-# service/postfix/install.sh
+# Fichier    : service/postfix/install.sh
+# Créé le    : 2026-09-28
+# Créateur   : palarchsys
+#
+# Rôle
+#   service/postfix/install.sh
 # =============================================================================
+
 # Postfix est un relais sortant : il n'accepte pas le courrier du réseau.
 # mailutils fournit la commande mail utilisée par les alertes.
 # =============================================================================

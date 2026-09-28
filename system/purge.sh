@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================================
-# system/purge.sh
+# Fichier    : system/purge.sh
+# Créé le    : 2026-09-21
+# Créateur   : palarchsys
+#
+# Rôle
+#   system/purge.sh
 # =============================================================================
+
 # Rôle       : Réduit la surface (paquets rc uniquement).
 #              NE PURGE PAS CUPS / bluetooth / avahi.
 #              NE RESTREINT PAS les compilateurs.

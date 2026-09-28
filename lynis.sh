@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================================
-# lynis.sh — contrôle Lynis à la demande
+# Fichier    : lynis.sh
+# Créé le    : 2026-09-21
+# Créateur   : palarchsys
+#
+# Rôle
+#   lynis.sh — contrôle Lynis à la demande
 # =============================================================================
+
 # Lynis parcourt la configuration et écrit un indice de durcissement.
 # Le rapport est copié dans logs/ à côté de ce script.
 # Lancer : sudo bash lynis.sh

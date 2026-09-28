@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================================
-# service/postfix/configure.sh
+# Fichier    : service/postfix/configure.sh
+# Créé le    : 2026-09-28
+# Créateur   : palarchsys
+#
+# Rôle
+#   service/postfix/configure.sh
 # =============================================================================
+
 # Relais SMTP authentifié (Gmail en TLS), écoute limitée à la machine.
 # Tous les expéditeurs locaux sont réécrits vers POSTFIX_MAIL_ADDRESS,
 # sinon Gmail refuse le message.

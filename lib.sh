@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================================
-# lib.sh — fonctions communes
+# Fichier    : lib.sh
+# Créé le    : 2026-09-21
+# Créateur   : palarchsys
+#
+# Rôle
+#   lib.sh — fonctions communes
 # =============================================================================
+
 # Chargé par run.sh et par chaque étape. « set -euo pipefail » s'applique
 # aussi au script qui le charge : une commande en échec arrête l'étape.
 #
@@ -24,7 +30,9 @@ require_root() {
 }
 
 step_on (){
-  echo ""
+  # Le bandeau et la ligne vide partent sur la même sortie que les
+  # messages [SUCCESS], sinon le titre et le premier message se collent.
+  echo "" >&2
   violet "═════════════════════════════════════════════════════════════════════════════════"
   violet " # $*"
   violet "═══ ↓ ↓ ═════════════════════════════════════════════════════════════════ ↓ ↓ ═══"
@@ -92,7 +100,9 @@ run_silent_apt() {
     sleep 1
 
     while [[ $attempt -lt $max_attempts ]]; do
-        cmd_output=$(DEBIAN_FRONTEND=noninteractive apt-get "$@" 2>&1) || exit_code=$?
+        # stdin fermé : une question debconf ou needrestart ne peut pas
+        # bloquer l'installation sans texte visible.
+        cmd_output=$(DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt-get "$@" </dev/null 2>&1) || exit_code=$?
 
         if [[ $exit_code -eq 0 ]]; then
             return 0
@@ -244,17 +254,30 @@ detect_os() {
     if [[ "${OS_ID}" != "ubuntu" || "${OS_VERSION_ID}" != "26.04" ]]; then
         error "Ubuntu 26.04 requis (installation fraîche). Détecté : ${OS_PRETTY:-inconnu}."
     fi
-    success "OS : ${OS_PRETTY}"
 }
 
-# Empreinte des comptes humains (uid 1000–65533) créés par l'installateur Ubuntu.
+# Vrai pour un compte ouvert par l'installateur Ubuntu.
+# Un compte de service peut avoir un uid élevé : libvirt-qemu est en 64055,
+# avec le dossier /nonexistent et le shell nologin. Il n'entre pas dans
+# la comparaison, sinon son apparition en cours d'installation est un échec.
+hfu_is_desktop_account() {
+    local uid="$1" home="$2" shell="$3"
+    [[ "${uid}" -ge 1000 && "${uid}" -lt 60000 ]] || return 1
+    [[ "${home}" == /home/* ]] || return 1
+    case "${shell}" in
+        */nologin|*/false) return 1 ;;
+    esac
+    return 0
+}
+
+# Empreinte des comptes du bureau.
 # Comparée en fin de script : uid, gid, gecos, home, shell, groupes, hash shadow, chage.
 write_human_account_table() {
     local dest="$1"
     local name uid gid gecos home shell groups shadow_fp maxdays
     : > "${dest}.tmp"
     while IFS=: read -r name _ uid gid gecos home shell; do
-        if [[ "${uid}" -lt 1000 || "${uid}" -ge 65534 || "${name}" == "nobody" ]]; then
+        if ! hfu_is_desktop_account "${uid}" "${home}" "${shell}"; then
             continue
         fi
         groups="$(id -nG "${name}" | tr ' ' '\n' | LC_ALL=C sort | paste -sd, -)"
@@ -283,7 +306,7 @@ snapshot_human_accounts() {
     local n
     n="$(wc -l < "${HFU_ACCOUNT_SNAPSHOT}" | tr -d ' ')"
     if [[ "${n}" -lt 1 ]]; then
-        error "Aucun compte humain (uid ≥ 1000) : l'installateur Ubuntu doit avoir créé les utilisateurs."
+        error "Aucun compte de bureau sous /home : l'installateur Ubuntu doit avoir créé les utilisateurs."
     fi
     success "Empreinte de ${n} compte(s) humain(s) enregistrée (non modifiés ensuite)"
 }
@@ -354,7 +377,6 @@ app_present() {
     local name="$1"
     command -v "$name" >/dev/null 2>&1 && return 0
     dpkg-query -W -f '${Status}\n' "$name" 2>/dev/null | grep -q 'install ok' && return 0
-    snap list "$name" >/dev/null 2>&1 && return 0
     flatpak info "$name" >/dev/null 2>&1 && return 0
     return 1
 }
@@ -380,6 +402,9 @@ init_install_log() {
 
     HF_LOG_SYS="/var/log/${PROJECT_SLUG:-high-fortress-user}/${name}"
     mkdir -p "${HF_LOG_SYS}/steps" "${HF_LOG_SYS}/snapshot"
+    # Le dossier de journal reste lisible par le compte du poste,
+    # pour pouvoir relire le rapport sans être root.
+    chmod 755 "/var/log/${PROJECT_SLUG:-high-fortress-user}" "${HF_LOG_SYS}" "${HF_LOG_SYS}/steps" "${HF_LOG_SYS}/snapshot" 2>/dev/null || true
 
     if [[ "${DEBUG_INSTALL_LOGS:-0}" = "1" ]]; then
         HF_LOG_DIR="${root}/logs/${name}"

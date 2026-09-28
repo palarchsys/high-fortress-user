@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================================
-# service/auditd/install.sh
+# Fichier    : service/auditd/install.sh
+# Créé le    : 2026-09-21
+# Créateur   : palarchsys
+#
+# Rôle
+#   service/auditd/install.sh
 # =============================================================================
+
 # auditd enregistre qui modifie les fichiers sensibles (comptes, sudo, SSH).
 # Les règles précises sont écrites par configure.sh.
 # =============================================================================

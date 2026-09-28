@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================================
-# service/ufw/configure.sh
+# Fichier    : service/ufw/configure.sh
+# Créé le    : 2026-09-21
+# Créateur   : palarchsys
+#
+# Rôle
+#   service/ufw/configure.sh
 # =============================================================================
+
 # Politique workstation :
 #   incoming deny, outgoing ALLOW, routed ACCEPT si libvirt
 # Ne pas ufw --force reset : ça casse les chaînes libvirt/docker.
@@ -25,9 +31,9 @@ info "Politique : deny incoming, ALLOW outgoing, routed ACCEPT (NAT libvirt)..."
 run_silent ufw default deny incoming
 run_silent ufw default allow outgoing
 
-# Ubuntu 26.04 ufw-framework : le défaut DROP sur FORWARD bloque le NAT virbr0.
-# On le pose tout de suite : QEMU n'est pas encore installé sur une machine fraîche,
-# et un ufw reload ultérieur ne doit pas remettre DROP.
+# Ubuntu 26.04 ufw-framework : le défaut DROP sur FORWARD bloque un pont
+# déjà présent. La politique est posée tout de suite : un rechargement
+# ultérieur ne la remet pas à DROP.
 if grep -q '^DEFAULT_FORWARD_POLICY=' /etc/default/ufw; then
     sed -i 's/^DEFAULT_FORWARD_POLICY=.*/DEFAULT_FORWARD_POLICY="ACCEPT"/' /etc/default/ufw
 else
@@ -86,13 +92,16 @@ try_silent ufw allow in on virbr0
 try_silent ufw allow out on virbr0
 if virt_present; then
     try_silent systemctl restart libvirtd.service
-    try_silent systemctl restart virtnetworkd.service
+    # Ubuntu 26.04 n'a pas d'unité virtnetworkd : le réseau est dans libvirtd.
+    if systemctl cat virtnetworkd.service >/dev/null 2>&1; then
+        try_silent systemctl restart virtnetworkd.service
+    fi
 fi
-success "Règles libvirt posées (NAT prêt pour une installation QEMU ultérieure)"
+success "Règles du pont virtuel posées"
 
 title "Activation UFW"
 run_silent ufw --force enable
 if ! LANG=C LC_ALL=C ufw status | grep -qw "Status: active"; then
     error "UFW n'est pas actif après enable : $(LANG=C LC_ALL=C ufw status)"
 fi
-success "UFW actif (outgoing ALLOW — Steam/Discord/Telegram/apt/Brave OK)"
+success "UFW actif (outgoing ALLOW — Steam/Discord/apt/Brave OK)"

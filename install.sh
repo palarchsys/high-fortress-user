@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================================
-# install.sh — télécharge le dépôt public et lance run.sh
+# Fichier    : install.sh
+# Créé le    : 2026-09-21
+# Créateur   : palarchsys
+#
+# Rôle
+#   install.sh — télécharge le dépôt public et lance run.sh
 # =============================================================================
+
 # Commande :
 #   curl -fsSL https://raw.githubusercontent.com/palarchsys/high-fortress-user/main/install.sh | sudo bash
 #

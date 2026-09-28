@@ -1,9 +1,16 @@
 #!/usr/bin/env bash
 # =============================================================================
-# service/aide/install.sh
+# Fichier    : service/aide/install.sh
+# Créé le    : 2026-09-21
+# Créateur   : palarchsys
+#
+# Rôle
+#   service/aide/install.sh
 # =============================================================================
-# AIDE construit une base d'empreintes des binaires et de /etc.
-# Une modification inattendue de ces fichiers apparaît au contrôle suivant.
+
+# AIDE compare les binaires et /etc à une base d'empreintes.
+# Le paquet est installé ici. La base de référence est créée à la fin
+# de run.sh, quand tous les fichiers du poste sont déjà en place.
 # =============================================================================
 DIR_INSTALL_PATH="${1}"
 export DIR_INSTALL_PATH

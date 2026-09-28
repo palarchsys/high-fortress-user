@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================================
-# service/fail2ban/configure.sh
+# Fichier    : service/fail2ban/configure.sh
+# Créé le    : 2026-09-21
+# Créateur   : palarchsys
+#
+# Rôle
+#   service/fail2ban/configure.sh
 # =============================================================================
+
 # Jails dans jail.local (pas fail2ban.local) — piège P.fail2ban.local
 # =============================================================================
 
