@@ -132,7 +132,7 @@ Les dépôts APT déjà configurés sur la machine ne sont pas remplacés. Trois
 
 ## E-mail AIDE
 
-AIDE photographie les fichiers importants à la fin de l'installation. Au démarrage suivant, il compare le disque à cette photo. Un fichier ajouté, retiré ou modifié produit un e-mail.
+Au démarrage, AIDE compare le disque à la photo prise à la fin de l'installation. Un fichier ajouté, retiré ou modifié produit un e-mail.
 
 L'e-mail contient d'abord le journal. En dessous, un second bloc donne la commande complète. Copiez-la telle quelle : rien n'est à modifier.
 
@@ -140,7 +140,7 @@ L'e-mail contient d'abord le journal. En dessous, un second bloc donne la comman
 sudo bash /opt/high-fortress-user/bin/aide-refresh-db.sh
 ```
 
-La commande recalcule la base de référence à partir du disque actuel. Le calcul peut prendre plusieurs minutes. Elle affiche `Base de référence AIDE enregistrée.` lorsqu'elle a réussi.
+La commande recalcule la photo à partir du disque actuel. Le calcul peut prendre plusieurs minutes. Elle affiche `Base de référence AIDE enregistrée.` lorsqu'elle a réussi. Le démarrage suivant ne signale plus ces changements.
 
 Si une ligne du journal vous est inconnue, ne lancez pas cette commande. Conservez l'e-mail et relisez le chemin indiqué.
 
@@ -148,11 +148,11 @@ L'e-mail de fin d'installation est un essai d'envoi. Son objet indique que l'ins
 
 ## E-mail chkrootkit
 
-chkrootkit cherche des signes connus de compromission au démarrage. Une ligne qui n'est pas déjà dans la liste d'exclusion produit un e-mail.
+Au démarrage, chkrootkit cherche des signes connus de compromission. Une ligne absente de la liste d'exclusion produit un e-mail.
 
 L'e-mail contient d'abord le journal. En dessous, un second bloc donne la commande complète, avec le nom réel du journal de cette alerte. Copiez-la telle quelle : rien n'est à modifier.
 
-La commande enregistre ces détections dans `/opt/high-fortress-user/cron/chkrootkit.local.ignore`. Une réinstallation du poste conserve ce fichier. Le contrôle suivant ne signale plus ces lignes exactes. Une ligne différente, par exemple un autre numéro de processus, produit un nouvel e-mail.
+La commande enregistre ces lignes dans `/opt/high-fortress-user/cron/chkrootkit.local.ignore`. Elle affiche le nombre de détections enregistrées. Le démarrage suivant ne signale plus ces lignes exactes. Une ligne différente, par exemple un autre numéro de processus, produit un nouvel e-mail. Une réinstallation du poste conserve ce fichier.
 
 Si une ligne du journal vous est inconnue, ne lancez pas cette commande. Conservez l'e-mail et relisez le chemin indiqué.
 
