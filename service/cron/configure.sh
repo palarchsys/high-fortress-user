@@ -58,7 +58,7 @@ quota=$(( cpus * WATCHDOG_CPU_LIMIT ))
 install -d -m 755 /etc/systemd/system
 tee /etc/systemd/system/hfu-boot-scan.service > /dev/null << EOF
 [Unit]
-Description=Passe AIDE, rkhunter, chkrootkit et ClamAV après le démarrage
+Description=Passe AIDE, rkhunter, chkrootkit, ClamAV et debsums après le démarrage
 After=local-fs.target multi-user.target
 DefaultDependencies=no
 

@@ -222,7 +222,7 @@ else
     ko "clamonacc inactif ($(systemctl is-active clamav-clamonacc.service 2>/dev/null || systemctl is-active clamonacc.service 2>/dev/null || echo absent))"
 fi
 if systemctl is-enabled --quiet hfu-boot-scan.timer 2>/dev/null; then
-    ok "passe AIDE/rkhunter/chkrootkit au démarrage"
+    ok "passe AIDE/rkhunter/chkrootkit/debsums au démarrage"
 else
     ko "timer de passe au démarrage absent"
 fi
@@ -282,21 +282,6 @@ if command -v lynis >/dev/null 2>&1; then
     else
         wn "custom.prf manquant"
     fi
-    info "Audit Lynis (quick)..."
-    lynis audit system --quick --no-colors --auditor high-fortress-user-verify > "${HF_LOG_DIR:-/tmp}/lynis-verify.txt" 2>&1 || true
-    score="$(awk -F= '/hardening_index=/{print $2}' /var/log/lynis-report.dat 2>/dev/null | tail -1)"
-    if [[ -n "${score}" ]]; then
-        echo "- Lynis hardening_index=${score}" >> "${REPORT}"
-        if [[ "${score}" -ge "${LYNIS_MIN_SCORE}" ]]; then
-            ok "Lynis ${score} ≥ ${LYNIS_MIN_SCORE}"
-        else
-            wn "Lynis ${score} < ${LYNIS_MIN_SCORE} (exceptions desktop dans custom.prf)"
-            awk -F= '/^warning\[\]=/{print "   [INFO]  Lynis " $2}' /var/log/lynis-report.dat 2>/dev/null | head -20 || true
-        fi
-    else
-        wn "score Lynis illisible"
-    fi
-    chmod 640 /var/log/lynis.log /var/log/lynis-report.dat 2>/dev/null || true
 else
     ko "lynis absent"
 fi

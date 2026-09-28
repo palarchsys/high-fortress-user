@@ -20,14 +20,16 @@ source "${DIR_INSTALL_PATH}/global.conf"
 require_root
 title "Installation debsums"
 run_silent_apt install -y debsums
-# Lynis ne voit que cette variable, pas le fichier /etc/cron.d.
-# weekly lance le script fourni par le paquet. Le contrôle du mardi
-# dans cron.d envoie en plus le résultat par courriel.
+# Le paquet lance son propre cron si CRON_CHECK vaut daily, weekly
+# ou monthly. La passe de démarrage s'en charge. Cette valeur
+# laisse les scripts du paquet sans effet.
 if [[ -f /etc/default/debsums ]]; then
     if grep -q '^CRON_CHECK=' /etc/default/debsums; then
-        sed -i 's/^CRON_CHECK=.*/CRON_CHECK=weekly/' /etc/default/debsums
+        sed -i 's/^CRON_CHECK=.*/CRON_CHECK=no/' /etc/default/debsums
     else
-        printf '%s\n' 'CRON_CHECK=weekly' >> /etc/default/debsums
+        printf '%s\n' 'CRON_CHECK=no' >> /etc/default/debsums
     fi
+else
+    printf '%s\n' 'CRON_CHECK=no' > /etc/default/debsums
 fi
 success "debsums installé"

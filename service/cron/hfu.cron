@@ -4,13 +4,13 @@
 # Créateur   : palarchsys
 #
 # Rôle
-#   Planifie les contrôles qui ne font pas partie de la passe de démarrage.
-#   AIDE, rkhunter, chkrootkit et ClamAV partent avec hfu-boot-scan.timer.
+#   Aucun contrôle planifié ici.
+#   AIDE, rkhunter, chkrootkit, ClamAV et debsums partent
+#   avec hfu-boot-scan.timer, deux minutes après le démarrage.
+#   Lynis n'est lancé que par l'utilisateur, avec lynis.sh.
+#   Ce fichier remplace l'ancienne planification du mardi et du mercredi.
 # =============================================================================
 
-# High-Fortress User — timers (root). cron.allow NON restreint (desktop).
+# High-Fortress User — cron.allow NON restreint (desktop).
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-
-50  4    * * 2   root    nice -n 19 ionice -c3 ${CONFIG_BASE_DIR}/cron/bin/debsums.sh
-20  5    * * 3   root    nice -n 19 ionice -c3 ${CONFIG_BASE_DIR}/cron/bin/lynis-cron.sh

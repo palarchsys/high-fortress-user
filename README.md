@@ -124,8 +124,8 @@ Les dépôts APT déjà configurés sur la machine ne sont pas remplacés. Trois
 | Noyau | Les paquets réseau douteux sont filtrés, les vidages mémoire des programmes sont désactivés, les adresses du noyau sont masquées. IPv6 reste actif. |
 | AppArmor | Le réglage d'Ubuntu est conservé. Un profil est ajouté seulement lorsqu'un logiciel en a besoin pour son bac à sable et qu'il n'en a pas déjà un. |
 | ClamAV | En continu sur les dossiers Téléchargements et Bureau, jusqu'à 25 Mo par fichier. Une installation lancée par l'administrateur n'est pas retenue. À chaque démarrage, un parcours complémentaire couvre le reste de `/tmp`, `/home` et `/opt`, en dehors de ces deux dossiers. |
-| Contrôles au démarrage | AIDE, rkhunter, chkrootkit et le parcours ClamAV. Ils utilisent au plus 20 % du processeur et une priorité basse, deux minutes après le démarrage. |
-| Autres contrôles | debsums le mardi, Lynis le mercredi. |
+| Contrôles au démarrage | AIDE, rkhunter, chkrootkit, le parcours ClamAV et debsums. Ils utilisent au plus 20 % du processeur et une priorité basse, deux minutes après le démarrage. |
+| Lynis | N'est jamais lancé tout seul. La commande est plus bas, à lancer quand vous le décidez. |
 | CrowdSec | Lit les journaux SSH et système, et bloque l'adresse attaquante dans le pare-feu pendant 24 heures. |
 | Courriel | Chaque alerte part vers l'adresse Gmail indiquée dans `configure.sh`. |
 | Journaux | `/var/log/high-fortress-user/` et `/opt/high-fortress-user/cron/`. |
@@ -174,7 +174,7 @@ Après un redémarrage, ce script relit les services et les journaux du démarra
 sudo bash /opt/high-fortress-user/src/verify/boot.sh
 ```
 
-Le contrôle Lynis, plus long, s'obtient avec :
+Lynis ne fait partie d'aucune passe automatique. Pour le lancer vous-même :
 
 ```bash
 sudo bash /opt/high-fortress-user/src/lynis.sh
