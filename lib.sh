@@ -288,21 +288,42 @@ snapshot_human_accounts() {
     success "Empreinte de ${n} compte(s) humain(s) enregistrée (non modifiés ensuite)"
 }
 
+# Retire les groupes libvirt et kvm de la colonne des groupes.
+# Le paquet libvirt-daemon-system les ajoute aux membres de sudo :
+# uid, home, shell et mot de passe restent comparés tels quels.
+hfu_strip_virt_groups() {
+    awk -F '\t' 'BEGIN { OFS = "\t" } {
+        n = split($7, g, ",")
+        out = ""
+        for (i = 1; i <= n; i++) {
+            if (g[i] != "libvirt" && g[i] != "kvm") {
+                out = out (out ? "," : "") g[i]
+            }
+        }
+        $7 = out
+        print
+    }'
+}
+
 # Affiche un diff et retourne 1 si un compte humain a changé.
 human_accounts_drift() {
-    local current baseline="${HFU_ACCOUNT_SNAPSHOT}"
+    local current baseline="${HFU_ACCOUNT_SNAPSHOT}" norm_base norm_now
     [[ -f "${baseline}" ]] || {
         echo "snapshot des comptes absent (${baseline})"
         return 1
     }
     current="$(mktemp)"
+    norm_base="$(mktemp)"
+    norm_now="$(mktemp)"
     write_human_account_table "${current}"
-    if cmp -s "${baseline}" "${current}"; then
-        rm -f "${current}"
+    hfu_strip_virt_groups < "${baseline}" > "${norm_base}"
+    hfu_strip_virt_groups < "${current}" > "${norm_now}"
+    if cmp -s "${norm_base}" "${norm_now}"; then
+        rm -f "${current}" "${norm_base}" "${norm_now}"
         return 0
     fi
     diff -u "${baseline}" "${current}" || true
-    rm -f "${current}"
+    rm -f "${current}" "${norm_base}" "${norm_now}"
     return 1
 }
 

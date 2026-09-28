@@ -9,6 +9,8 @@
 #   Vencord     installeur officiel, qui modifie le Discord .deb
 #   Thunderbird paquet Ubuntu (dépôt de la distribution)
 #   KeePassXC   paquet Ubuntu (dépôt de la distribution)
+#   QEMU        paquet Ubuntu qemu-system-x86, installé avec libvirt
+#               dans service/libvirt/install.sh
 #
 # Vencord ne prend pas en charge le Discord snap : le .deb officiel est
 # donc le format installé. Le snap Telegram est indépendant de Discord.
@@ -25,6 +27,29 @@ source "${DIR_INSTALL_PATH}/lib.sh"
 source "${DIR_INSTALL_PATH}/global.conf"
 require_root
 detect_current_user
+
+title "Retrait de Firefox"
+# Le navigateur du poste est Brave. Le paquet Ubuntu « firefox » est un
+# paquet de transition qui réinstalle le snap. On retire les deux, puis
+# on bloque le paquet pour qu'une mise à jour du bureau ne le ramène pas.
+if snap list firefox >/dev/null 2>&1; then
+    run_silent snap remove --purge firefox
+    success "Snap Firefox retiré"
+else
+    info "Snap Firefox absent"
+fi
+if dpkg-query -W -f '${Status}' firefox 2>/dev/null | grep -q 'install ok'; then
+    run_silent_apt purge -y firefox
+    success "Paquet Firefox retiré"
+else
+    info "Paquet Firefox absent"
+fi
+if apt-mark showhold 2>/dev/null | grep -qx firefox; then
+    info "Paquet firefox déjà bloqué"
+else
+    apt-mark hold firefox >/dev/null
+    success "Paquet firefox bloqué (le bureau ne le réinstalle pas)"
+fi
 
 title "Dépôt apt Brave"
 # Fichiers ajoutés à côté des sources Ubuntu. Les fichiers déjà présents
@@ -74,19 +99,34 @@ rm -f "${discord_deb}"
 success "Discord installé ($(dpkg-query -W -f '${Version}' discord 2>/dev/null || echo version inconnue))"
 
 title "Vencord"
-# L'installeur officiel refuse de tourner en root sans SUDO_USER : il
-# s'en sert pour retrouver le compte du poste. --branch stable évite
-# le menu interactif et cible le Discord qui vient d'être installé.
+# Le .deb officiel ne contient pas l'application : /usr/bin/discord
+# télécharge le client dans ~/.config/discord/app-<version>/.
+# Vencord ne reconnaît que ce dossier (resources/app.asar), pas le
+# lanceur de /usr/share/discord. D'où « Discord stable not found »
+# tant que le téléchargement n'a pas eu lieu.
+info "Téléchargement du client Discord dans ${CURRENT_HOME}/.config/discord ..."
+install -d -m 755 -o "${CURRENT_USER}" -g "${CURRENT_USER}" "${CURRENT_HOME}/.config/discord"
+if ! sudo -u "${CURRENT_USER}" -H \
+    /usr/share/discord/updater_bootstrap --no-zenity \
+    "${CURRENT_HOME}/.config/discord" stable "https://updates.discord.com/"; then
+    error "Le téléchargeur Discord n'a pas déposé le client dans ${CURRENT_HOME}/.config/discord."
+fi
+discord_app="$(find "${CURRENT_HOME}/.config/discord" -mindepth 1 -maxdepth 1 -type d -name 'app-*' -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-)"
+if [[ -z "${discord_app}" || ! -d "${discord_app}/resources" ]]; then
+    error "Client Discord introuvable sous ${CURRENT_HOME}/.config/discord/app-*/resources."
+fi
+info "Client Discord : ${discord_app}"
 vencord_cli="$(mktemp)"
 curl -fL --retry 3 -o "${vencord_cli}" \
     "https://github.com/Vencord/Installer/releases/latest/download/VencordInstallerCli-linux"
 chmod 755 "${vencord_cli}"
+# --location vise le dossier app-* . --branch est incompatible avec --location.
 export SUDO_USER="${CURRENT_USER}"
-if ! "${vencord_cli}" --install --branch stable; then
+if ! "${vencord_cli}" --install --location "${discord_app}"; then
     rm -f "${vencord_cli}"
     error "L'installation de Vencord a échoué. Aide : https://vencord.dev/support"
 fi
 rm -f "${vencord_cli}"
-success "Vencord installé sur Discord stable"
+success "Vencord installé sur ${discord_app}"
 
 success "Logiciels du poste installés"

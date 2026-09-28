@@ -5,7 +5,7 @@ Durcissement d'un poste Ubuntu 26.04. Le flux est `configure.sh`, puis `config-c
 ## Interdits
 
 - Ubuntu Pro est obligatoire (jeton dans `secrets.conf`). ESM infra, ESM apps et Livepatch : un échec arrête l'installation.
-- Ne pas modifier les comptes humains créés par l'installateur Ubuntu : pas de `chpasswd`, `passwd`, `usermod`, expiration `chage`, ni changement de groupes, home ou shell.
+- Ne pas modifier les comptes humains créés par l'installateur Ubuntu : pas de `chpasswd`, `passwd`, `usermod` manuel, expiration `chage`, ni changement de home ou de shell. Le paquet `libvirt-daemon-system` peut ajouter le groupe `libvirt` (et `kvm`) aux membres de `sudo`.
 - Ne pas casser Firefox, Brave, Thunderbird, Steam, Discord, Telegram, KeePassXC, les dépôts APT, KVM, QEMU/libvirt.
 - Ne pas `chmod 700` les compilateurs.
 - Ne pas monter `/tmp` en `noexec`.

@@ -8,9 +8,10 @@
 #   bash configure.sh           pose les questions et écrit les fichiers
 #   bash configure.sh --check   contrôle les fichiers, code 0 si conformes
 #
-# La seule donnée secrète est le jeton Ubuntu Pro. Il active les mises à
-# jour de sécurité étendues (ESM) et le correctif de noyau Livepatch.
+# Deux secrets : le jeton Ubuntu Pro, et le mot de passe d'application
+# Gmail utilisé par Postfix pour envoyer les alertes.
 # Le jeton se copie depuis https://ubuntu.com/pro/dashboard
+# Le mot de passe d'application se crée sur https://myaccount.google.com/apppasswords
 # =============================================================================
 
 set -euo pipefail
@@ -25,9 +26,12 @@ Usage :
   bash configure.sh           écrit global.conf et secrets.conf
   bash configure.sh --check   vérifie les deux fichiers, code 0 si conformes
 
+Cette version exige une adresse Gmail (@gmail.com ou @googlemail.com).
 Le jeton Ubuntu Pro se trouve sur https://ubuntu.com/pro/dashboard
-Entrée conserve un jeton déjà enregistré, sans le réafficher.
-Les deux saisies du jeton doivent être identiques.
+Le mot de passe SMTP est un mot de passe d'application Gmail :
+  https://myaccount.google.com/apppasswords
+Entrée conserve une valeur déjà enregistrée, sans réafficher un secret.
+Les deux saisies d'un secret doivent être identiques.
 
 Ensuite :
   bash configure.sh --check
@@ -35,38 +39,62 @@ Ensuite :
 EOF
 }
 
-# kind = pro_token : saisie masquée, confirmée deux fois.
-# Une valeur déjà présente est conservée si l'utilisateur appuie sur Entrée.
-hfu_prompt_token() {
-    local value="" confirm="" attempt
+# __kind : pro_token | gmail | secret | smtp
+# gmail : adresse @gmail.com ou @googlemail.com, obligatoire dans cette version.
+# Un secret est confirmé deux fois. Entrée reprend la valeur déjà connue.
+hfu_prompt() {
+    local __var="$1" __label="$2" __example="$3" __default="$4" __kind="$5"
+    local value="" confirm="" attempt current=""
+    current="${!__var:-}"
+    [[ -n "${current}" ]] && __default="${current}"
     for attempt in 1 2 3; do
-        printf '\n   Jeton Ubuntu Pro\n'
-        printf '   exemple : le jeton affiché sur https://ubuntu.com/pro/dashboard\n'
-        if [[ -n "${UBUNTU_PRO_TOKEN:-}" ]]; then
-            printf '   ➤ (déjà défini — Entrée pour conserver) : '
-        else
-            printf '   ➤ : '
-        fi
-        IFS= read -r -s value || { printf 'entrée interrompue\n' >&2; exit 1; }
-        printf '\n'
-        if [[ -z "${value}" && -n "${UBUNTU_PRO_TOKEN:-}" ]]; then
-            value="${UBUNTU_PRO_TOKEN}"
-        else
-            printf '   ➤ confirmation : '
-            IFS= read -r -s confirm || { printf 'entrée interrompue\n' >&2; exit 1; }
-            printf '\n'
-            if [[ "${value}" != "${confirm}" ]]; then
-                printf '   les deux saisies diffèrent.\n'
-                continue
+        printf '\n   %s\n' "${__label}"
+        printf '   exemple : %s\n' "${__example}"
+        if [[ "${__kind}" == "pro_token" || "${__kind}" == "secret" ]]; then
+            if [[ -n "${__default}" ]]; then
+                printf '   ➤ (déjà défini — Entrée pour conserver) : '
+            else
+                printf '   ➤ : '
             fi
+            IFS= read -r -s value || { printf 'entrée interrompue\n' >&2; exit 1; }
+            printf '\n'
+            value="${value// /}"
+            if [[ -z "${value}" && -n "${__default}" ]]; then
+                value="${__default}"
+            else
+                printf '   ➤ confirmation : '
+                IFS= read -r -s confirm || { printf 'entrée interrompue\n' >&2; exit 1; }
+                printf '\n'
+                confirm="${confirm// /}"
+                if [[ "${value}" != "${confirm}" ]]; then
+                    printf '   les deux saisies diffèrent.\n'
+                    continue
+                fi
+            fi
+        else
+            if [[ -n "${__default}" ]]; then
+                printf '   ➤ [%s] : ' "${__default}"
+            else
+                printf '   ➤ : '
+            fi
+            IFS= read -r value || { printf 'entrée interrompue\n' >&2; exit 1; }
+            [[ -z "${value}" ]] && value="${__default}"
         fi
-        if hfu_is_pro_token "${value}"; then
-            UBUNTU_PRO_TOKEN="${value}"
+        local ok=0
+        case "${__kind}" in
+            pro_token) hfu_is_pro_token "${value}" && ok=1 ;;
+            email) hfu_is_email "${value}" && ok=1 ;;
+            gmail) hfu_is_gmail "${value}" && ok=1 ;;
+            secret) hfu_is_secret "${value}" && ok=1 ;;
+            smtp) hfu_is_smtp "${value}" && ok=1 ;;
+        esac
+        if [[ "${ok}" == "1" ]]; then
+            printf -v "${__var}" '%s' "${value}"
             return 0
         fi
-        printf '   format refusé : lettres et chiffres, 6 à 100 caractères.\n'
+        printf '   format refusé.\n'
     done
-    printf 'ERREUR: jeton Ubuntu Pro — trop de tentatives.\n' >&2
+    printf 'ERREUR: %s — trop de tentatives. exemple : %s\n' "${__label}" "${__example}" >&2
     exit 1
 }
 
@@ -119,9 +147,14 @@ fi
 
 printf '\nPréparation de global.conf et secrets.conf\n'
 printf 'Le jeton active Ubuntu Pro : mises à jour de sécurité ESM et Livepatch.\n'
-printf 'Aucun mot de passe du poste n’est demandé.\n'
+printf 'Postfix envoie les alertes des contrôles (AIDE, ClamAV, etc.) vers Gmail.\n'
+printf 'Aucun mot de passe du compte Ubuntu n’est demandé.\n'
 
-hfu_prompt_token
+hfu_prompt UBUNTU_PRO_TOKEN "Jeton Ubuntu Pro" "le jeton du tableau de bord ubuntu.com/pro" "" pro_token
+hfu_prompt POSTFIX_MAIL_ADDRESS "Adresse Gmail qui envoie les alertes (obligatoire)" "prenom.nom@gmail.com" "" gmail
+hfu_prompt POSTFIX_MAIL_PASS "Mot de passe d'application Gmail (16 caractères, sans espaces)" "abcdefghijklmnop" "" secret
+hfu_prompt POSTFIX_MAIL_SMTP "Serveur SMTP Gmail" "[smtp.gmail.com]:587" "[smtp.gmail.com]:587" smtp
+hfu_prompt WATCHDOG_MAIL "Adresse Gmail qui reçoit les alertes (obligatoire)" "alertes@gmail.com" "${POSTFIX_MAIL_ADDRESS}" gmail
 
 printf '\nÉcrire global.conf et secrets.conf dans %s ? [o/N] ' "${DIR_SCRIPT}"
 IFS= read -r confirm || { printf 'entrée interrompue\n' >&2; exit 1; }

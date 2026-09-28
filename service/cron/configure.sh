@@ -27,6 +27,15 @@ ensure_dir "${CONFIG_BASE_DIR}/cron/alerts" 750
 
 cp -a "${DIR_SCRIPT_PATH}/watchdogs/." "${CONFIG_BASE_DIR}/cron/bin/"
 chmod 750 "${CONFIG_BASE_DIR}/cron/bin/"*.sh
+chmod 644 "${CONFIG_BASE_DIR}/cron/bin/mail.html"
+# Destinataire des alertes, sans le mot de passe SMTP.
+umask 077
+cat > "${CONFIG_BASE_DIR}/cron/mail.conf" << EOF
+WATCHDOG_MAIL="${WATCHDOG_MAIL}"
+PROJECT_NAME="${PROJECT_NAME}"
+EOF
+umask 022
+chmod 600 "${CONFIG_BASE_DIR}/cron/mail.conf"
 chown -R root:root "${CONFIG_BASE_DIR}/cron"
 
 export PROJECT_SLUG CONFIG_BASE_DIR

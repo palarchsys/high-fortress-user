@@ -44,9 +44,8 @@ root_hash="$(awk -F: '$1=="root"{print $2}' /etc/shadow)"
 user_hash="$(awk -F: -v u="${CURRENT_USER}" '$1==u{print $2}' /etc/shadow)"
 if [[ -z "${root_hash}" ]]; then
     ko "shadow root vide"
-elif [[ "${root_hash}" == "*" || "${root_hash}" == "!" || "${root_hash}" == "!!" ]]; then
-    wn "root verrouillé (état distro, pas un chpasswd HFU) — OK si voulu"
-    ok "root : pas de mot de passe HFU imposé"
+elif [[ "${root_hash}" == "*" || "${root_hash}" == "!" || "${root_hash}" == "!!" || "${root_hash}" == "!*" ]]; then
+    ok "compte root verrouillé par Ubuntu (ce programme ne pose pas de mot de passe root)"
 else
     ok "root : hash présent, non réécrit par HFU"
 fi
@@ -182,6 +181,37 @@ if grep -q '^DEFAULT_FORWARD_POLICY="ACCEPT"' /etc/default/ufw 2>/dev/null; then
 else
     ko "UFW forward policy n'est pas ACCEPT (NAT libvirt)"
 fi
+# libvirtd.service s'arrête tout seul après une période sans client
+# (option --timeout). Le socket reste actif et le relance à la demande.
+if systemctl is-enabled libvirtd.service >/dev/null 2>&1 \
+    && { systemctl is-active --quiet libvirtd.service || systemctl is-active --quiet libvirtd.socket; }; then
+    ok "libvirtd activé (service ou socket)"
+else
+    ko "libvirtd.service inactif"
+fi
+if systemctl cat virtnetworkd.service >/dev/null 2>&1; then
+    if systemctl is-active --quiet virtnetworkd.service; then
+        ok "virtnetworkd.service actif"
+    else
+        ko "virtnetworkd.service inactif"
+    fi
+else
+    ok "réseau virtuel porté par libvirtd (pas d'unité virtnetworkd)"
+fi
+if systemctl is-active --quiet postfix; then
+    ok "Postfix actif"
+else
+    ko "Postfix inactif"
+fi
+postfix_listen="$(postconf -h inet_interfaces 2>/dev/null | tr -d '[:space:]' || true)"
+case "${postfix_listen}" in
+    loopback-only|localhost|127.0.0.1|"[::1]")
+        ok "Postfix écoute seulement localhost"
+        ;;
+    *)
+        ko "Postfix n'est pas limité à localhost (${postfix_listen:-inconnu})"
+        ;;
+esac
 
 if [[ -e /dev/kvm ]]; then
     ok "/dev/kvm présent"
@@ -214,10 +244,21 @@ if ! command -v pro >/dev/null 2>&1; then
     ko "ubuntu-pro-client absent"
 elif ubuntu_pro_attached; then
     ok "Ubuntu Pro attaché"
-    pro_txt="$(pro status 2>/dev/null || true)"
-    echo "${pro_txt}" | grep -qiE 'esm-infra.*enabled|esm-infra.*activ' && ok "esm-infra enabled" || ko "esm-infra non activé"
-    echo "${pro_txt}" | grep -qiE 'esm-apps.*enabled|esm-apps.*activ' && ok "esm-apps enabled" || ko "esm-apps non activé"
-    echo "${pro_txt}" | grep -qiE 'livepatch.*enabled|livepatch.*activ' && ok "livepatch enabled" || ko "livepatch non activé"
+    # Le texte de « pro status » change selon la langue. Le JSON est stable.
+    while IFS='=' read -r svc_name svc_status; do
+        case "${svc_status}" in
+            enabled|active) ok "${svc_name} activé" ;;
+            *) ko "${svc_name} non activé (état : ${svc_status:-inconnu})" ;;
+        esac
+    done < <(pro status --format json 2>/dev/null | python3 -c '
+import json, sys
+data = json.load(sys.stdin)
+wanted = ("esm-infra", "esm-apps", "livepatch")
+for svc in data.get("services") or []:
+    name = svc.get("name")
+    if name in wanted:
+        print("%s=%s" % (name, svc.get("status") or ""))
+')
 else
     ko "Ubuntu Pro non attaché (obligatoire)"
 fi
@@ -266,8 +307,11 @@ if dpkg-query -W -f '${Status}' discord 2>/dev/null | grep -q 'install ok'; then
 else
     ko "Discord absent"
 fi
-vencord_hit="$(find /usr/share/discord -iname '*vencord*' -print -quit 2>/dev/null || true)"
-if [[ -n "${vencord_hit}" || -d "${CURRENT_HOME}/.config/Vencord" ]]; then
+# Vencord écrit son réglage dans ~/.config/Vencord et remplace le
+# client téléchargé dans ~/.config/discord/app-*/resources (fichier _app.asar).
+# Il n'y a rien à chercher dans /usr/share/discord : ce dossier n'a que le lanceur.
+vencord_marker="$(find "${CURRENT_HOME}/.config/discord" -path '*/resources/_app.asar' -print -quit 2>/dev/null || true)"
+if [[ -d "${CURRENT_HOME}/.config/Vencord" || -n "${vencord_marker}" ]]; then
     ok "Vencord présent"
 else
     ko "Vencord absent"
@@ -282,6 +326,11 @@ if dpkg-query -W -f '${Status}' keepassxc 2>/dev/null | grep -q 'install ok'; th
     ok "KeePassXC installé"
 else
     ko "KeePassXC absent"
+fi
+if dpkg-query -W -f '${Status}' qemu-system-x86 2>/dev/null | grep -q 'install ok'; then
+    ok "QEMU (qemu-system-x86, dépôt Ubuntu) installé"
+else
+    ko "QEMU qemu-system-x86 absent"
 fi
 
 title "Sources APT"

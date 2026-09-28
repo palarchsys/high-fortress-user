@@ -95,4 +95,4 @@ run_silent ufw --force enable
 if ! LANG=C LC_ALL=C ufw status | grep -qw "Status: active"; then
     error "UFW n'est pas actif après enable : $(LANG=C LC_ALL=C ufw status)"
 fi
-success "UFW actif (outgoing ALLOW — Steam/Discord/Telegram/apt/Firefox OK)"
+success "UFW actif (outgoing ALLOW — Steam/Discord/Telegram/apt/Brave OK)"

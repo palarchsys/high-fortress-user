@@ -61,6 +61,24 @@ hfu_is_email() {
     [[ "$1" =~ ^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$ ]]
 }
 
+# Cette version n'envoie le courrier que par Gmail.
+hfu_is_gmail() {
+    local mail="${1,,}"
+    hfu_is_email "${mail}" || return 1
+    [[ "${mail}" =~ @(gmail\.com|googlemail\.com)$ ]]
+}
+
+# Mot de passe d'application : assez long, sans espace, sans caractère
+# qui casserait une ligne CLE="valeur".
+hfu_is_secret() {
+    [[ "$1" =~ ^[A-Za-z0-9@#%+=:./_-]{16,128}$ ]]
+}
+
+# Cette version ne relaye que vers le SMTP de Gmail, port 587.
+hfu_is_smtp() {
+    [[ "$1" == "[smtp.gmail.com]:587" ]]
+}
+
 # Jeton Ubuntu Pro : lettres et chiffres, assez long pour ne pas être un mot de passe court.
 hfu_is_pro_token() {
     [[ "$1" =~ ^[A-Za-z0-9]{6,100}$ ]]
@@ -90,6 +108,10 @@ hfu_config_set_builtin_defaults() {
     : "${WATCHDOG_LIMIT_NICE:=19}"
     : "${WATCHDOG_LIMIT_IONICE:=3}"
     : "${UBUNTU_PRO_TOKEN:=}"
+    : "${POSTFIX_MAIL_ADDRESS:=}"
+    : "${POSTFIX_MAIL_PASS:=}"
+    : "${POSTFIX_MAIL_SMTP:=[smtp.gmail.com]:587}"
+    : "${WATCHDOG_MAIL:=}"
     if [[ -z "${BANNER_MESSAGE:-}" ]]; then
         BANNER_MESSAGE="***********************************************************************
 *                                                                     *
@@ -185,6 +207,10 @@ hfu_write_secrets_conf() {
 
 HF_SECRETS_PREPARED=1
 UBUNTU_PRO_TOKEN="${UBUNTU_PRO_TOKEN}"
+POSTFIX_MAIL_ADDRESS="${POSTFIX_MAIL_ADDRESS}"
+POSTFIX_MAIL_PASS="${POSTFIX_MAIL_PASS}"
+POSTFIX_MAIL_SMTP="${POSTFIX_MAIL_SMTP}"
+WATCHDOG_MAIL="${WATCHDOG_MAIL}"
 EOF
     chmod 600 "${dest}"
     umask "${old_umask}"
@@ -241,6 +267,10 @@ hfu_validate_values() {
 
     [[ "${HF_SECRETS_PREPARED:-}" == "1" ]] || hfu_config_err "${label_s} : HF_SECRETS_PREPARED doit valoir 1. exemple : bash configure.sh"
     hfu_is_pro_token "${UBUNTU_PRO_TOKEN:-}" || hfu_config_err "${label_s} : UBUNTU_PRO_TOKEN invalide. exemple : le jeton alphanumérique du tableau de bord Ubuntu Pro (https://ubuntu.com/pro/dashboard)"
+    hfu_is_gmail "${POSTFIX_MAIL_ADDRESS:-}" || hfu_config_err "${label_s} : POSTFIX_MAIL_ADDRESS doit être une adresse Gmail (« ${POSTFIX_MAIL_ADDRESS:-} »). exemple : prenom.nom@gmail.com"
+    hfu_is_secret "${POSTFIX_MAIL_PASS:-}" || hfu_config_err "${label_s} : POSTFIX_MAIL_PASS invalide. exemple : les 16 caractères du mot de passe d'application Gmail, sans espaces"
+    hfu_is_smtp "${POSTFIX_MAIL_SMTP:-}" || hfu_config_err "${label_s} : POSTFIX_MAIL_SMTP doit être le serveur Gmail (« ${POSTFIX_MAIL_SMTP:-} »). exemple : [smtp.gmail.com]:587"
+    hfu_is_gmail "${WATCHDOG_MAIL:-}" || hfu_config_err "${label_s} : WATCHDOG_MAIL doit être une adresse Gmail (« ${WATCHDOG_MAIL:-} »). exemple : alertes@gmail.com"
 }
 
 # Point d'entrée utilisé par configure.sh --check et par run.sh.

@@ -55,7 +55,7 @@ echo "   • UFW : deny incoming, ALLOW outgoing, forward ouvert pour libvirt."
 echo "   • SSH : drop-in, PasswordAuthentication conservé, PermitRootLogin no."
 echo "   • Ubuntu Pro : ESM infra, ESM apps et Livepatch."
 echo "   • En fin de parcours : Brave, Telegram, Discord, Vencord,"
-echo "     Thunderbird et KeePassXC."
+echo "     Thunderbird, KeePassXC et QEMU (dépôt Ubuntu)."
 echo ""
 
 init_install_log
@@ -66,7 +66,10 @@ trap collect_install_logs EXIT
 # Étapes
 # -----------------------------------------------------------------------------
 
-STEP_SYSTEM_INSTALL=("system/install.sh")
+STEP_SYSTEM_INSTALL=(
+    "system/install.sh"
+    "service/libvirt/install.sh"
+)
 STEP_SYSTEM_CONFIGURE=("system/configure.sh")
 STEP_SYSTEM_PURGE=("system/purge.sh")
 STEP_SSH_CONFIGURE=("service/ssh/configure.sh")
@@ -98,6 +101,8 @@ STEP_SECURITY_CONFIGURE=(
 
 run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "${STEP_SYSTEM_INSTALL[@]}"
 run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "${STEP_SYSTEM_CONFIGURE[@]}"
+run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "service/postfix/install.sh"
+run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "service/postfix/configure.sh"
 run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "${STEP_SSH_CONFIGURE[@]}"
 run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "${STEP_SECURITY_INSTALL[@]}"
 run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "${STEP_SECURITY_CONFIGURE[@]}"
@@ -108,6 +113,23 @@ run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "${STEP_SYSTEM_PURGE[@]}"
 try_silent sysctl --system
 
 run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "verify/workstation.sh"
+
+title "Courriel de test"
+if [[ -z "${WATCHDOG_MAIL:-}" ]]; then
+    error "WATCHDOG_MAIL est vide : le courriel de fin d'installation ne peut pas partir."
+fi
+export TITLE="Installation terminée"
+export MODULE_NAME="Installation"
+export PROJECT_NAME
+export WATCHDOG_MAIL
+export CONTENT="Ceci est un message de test.
+
+L'installation de ${PROJECT_NAME} s'est terminée correctement.
+Ce courriel vérifie que Postfix peut joindre ${WATCHDOG_MAIL}."
+if ! bash "${DIR_INSTALL_PATH}/service/cron/watchdogs/send.sh"; then
+    error "Le courriel de test vers ${WATCHDOG_MAIL} n'a pas été accepté par Postfix."
+fi
+success "Courriel de test envoyé à ${WATCHDOG_MAIL}"
 
 step_off "Installation terminée"
 
