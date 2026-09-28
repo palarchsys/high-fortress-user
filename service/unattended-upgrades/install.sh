@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+# =============================================================================
+# service/unattended-upgrades/install.sh
+# =============================================================================
+# Installe le mécanisme qui applique les mises à jour sans intervention.
+# configure.sh le limite aux correctifs de sécurité Ubuntu et Ubuntu Pro.
+# apt-listchanges affiche le résumé de ces correctifs dans le journal.
+# =============================================================================
 DIR_INSTALL_PATH="${1}"
 export DIR_INSTALL_PATH
 SERVER_TYPE="${2}"

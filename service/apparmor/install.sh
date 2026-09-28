@@ -7,5 +7,7 @@ source "${DIR_INSTALL_PATH}/lib.sh"
 source "${DIR_INSTALL_PATH}/global.conf"
 require_root
 title "Installation AppArmor"
-run_silent_apt install -y apparmor apparmor-utils apparmor-profiles apparmor-profiles-extra
-success "AppArmor installé"
+# Pas de apparmor-profiles / apparmor-profiles-extra : profils expérimentaux
+# qui entrent en conflit avec ceux d'Ubuntu (Steam, Firefox, Thunderbird, snaps).
+run_silent_apt install -y apparmor apparmor-utils
+success "AppArmor installé (profils de la distribution uniquement)"

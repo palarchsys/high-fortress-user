@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
-# Audit Lynis → logs/ du dépôt (emplacement relatif).
+# =============================================================================
+# lynis.sh — contrôle Lynis à la demande
+# =============================================================================
+# Lynis parcourt la configuration et écrit un indice de durcissement.
+# Le rapport est copié dans logs/ à côté de ce script.
+# Lancer : sudo bash lynis.sh
+# =============================================================================
 set -euo pipefail
 DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 STAMP="$(date +%Y%m%d-%H%M%S)"

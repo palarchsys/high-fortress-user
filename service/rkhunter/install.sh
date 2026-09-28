@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+# =============================================================================
+# service/rkhunter/install.sh
+# =============================================================================
+# rkhunter cherche des fichiers et des droits habituels d'un rootkit.
+# La référence est prise pendant configure.sh, puis revérifiée chaque semaine.
+# =============================================================================
 DIR_INSTALL_PATH="${1}"
 export DIR_INSTALL_PATH
 SERVER_TYPE="${2}"

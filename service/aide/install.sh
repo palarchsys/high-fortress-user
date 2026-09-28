@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+# =============================================================================
+# service/aide/install.sh
+# =============================================================================
+# AIDE construit une base d'empreintes des binaires et de /etc.
+# Une modification inattendue de ces fichiers apparaît au contrôle suivant.
+# =============================================================================
 DIR_INSTALL_PATH="${1}"
 export DIR_INSTALL_PATH
 SERVER_TYPE="${2}"

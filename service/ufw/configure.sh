@@ -21,20 +21,42 @@ title "Configuration UFW (desktop-safe)"
 backup_file_once /etc/default/ufw
 backup_file_once /etc/ufw/before.rules
 
-info "Politique : deny incoming, ALLOW outgoing..."
+info "Politique : deny incoming, ALLOW outgoing, routed ACCEPT (NAT libvirt)..."
 run_silent ufw default deny incoming
 run_silent ufw default allow outgoing
 
-if virt_present; then
-    info "libvirt/KVM : DEFAULT_FORWARD_POLICY=ACCEPT (NAT virbr)..."
-    if grep -q '^DEFAULT_FORWARD_POLICY=' /etc/default/ufw; then
-        sed -i 's/^DEFAULT_FORWARD_POLICY=.*/DEFAULT_FORWARD_POLICY="ACCEPT"/' /etc/default/ufw
-    else
-        echo 'DEFAULT_FORWARD_POLICY="ACCEPT"' >> /etc/default/ufw
-    fi
-    run_silent ufw default allow routed
+# Ubuntu 26.04 ufw-framework : le défaut DROP sur FORWARD bloque le NAT virbr0.
+# On le pose tout de suite : QEMU n'est pas encore installé sur une machine fraîche,
+# et un ufw reload ultérieur ne doit pas remettre DROP.
+if grep -q '^DEFAULT_FORWARD_POLICY=' /etc/default/ufw; then
+    sed -i 's/^DEFAULT_FORWARD_POLICY=.*/DEFAULT_FORWARD_POLICY="ACCEPT"/' /etc/default/ufw
 else
-    run_silent ufw default deny routed
+    echo 'DEFAULT_FORWARD_POLICY="ACCEPT"' >> /etc/default/ufw
+fi
+run_silent ufw default allow routed
+
+# Pont libvirt : charger bridge avant les sysctl UFW, puis désactiver
+# netfilter sur le pont (ufw-framework NOTES, manpage resolute).
+if grep -q '^IPT_MODULES=' /etc/default/ufw; then
+    if ! awk -F= '/^IPT_MODULES=/{print}' /etc/default/ufw | grep -q bridge; then
+        ipt_val="$(awk -F= '/^IPT_MODULES=/{print substr($0, index($0,"=")+1)}' /etc/default/ufw)"
+        ipt_val="${ipt_val#\"}"
+        ipt_val="${ipt_val%\"}"
+        ipt_val="${ipt_val#\'}"
+        ipt_val="${ipt_val%\'}"
+        sed -i "s|^IPT_MODULES=.*|IPT_MODULES=\"${ipt_val} bridge\"|" /etc/default/ufw
+    fi
+else
+    echo 'IPT_MODULES="bridge"' >> /etc/default/ufw
+fi
+if [[ -f /etc/ufw/sysctl.conf ]] && ! grep -q 'bridge-nf-call-iptables' /etc/ufw/sysctl.conf; then
+    cat >> /etc/ufw/sysctl.conf << 'EOF'
+
+# High-Fortress User — libvirt / pont (ufw-framework, Ubuntu 26.04)
+net.bridge.bridge-nf-call-ip6tables = 0
+net.bridge.bridge-nf-call-iptables = 0
+net.bridge.bridge-nf-call-arptables = 0
+EOF
 fi
 
 # IPv6 ON (Steam / Discord / Ubuntu 26.04)
@@ -55,19 +77,18 @@ run_silent ufw allow out on lo
 
 # KDE Connect / avahi / cups : on n'ouvre pas le WAN ; LAN facultatif non touché.
 
+info "Interfaces libvirt (virbr0 même s'il n'existe pas encore)..."
+for iface in $(ip -o link show | awk -F': ' '{print $2}' | grep -E '^virbr|^vnet' || true); do
+    try_silent ufw allow in on "${iface}"
+    try_silent ufw allow out on "${iface}"
+done
+try_silent ufw allow in on virbr0
+try_silent ufw allow out on virbr0
 if virt_present; then
-    info "Interfaces libvirt (virbr*, virbr*-nic)..."
-    for iface in $(ip -o link show | awk -F': ' '{print $2}' | grep -E '^virbr|^vnet'); do
-        try_silent ufw allow in on "${iface}"
-        try_silent ufw allow out on "${iface}"
-    done
-    # Même si virbr0 n'existe pas encore
-    try_silent ufw allow in on virbr0
-    try_silent ufw allow out on virbr0
     try_silent systemctl restart libvirtd.service
     try_silent systemctl restart virtnetworkd.service
-    success "Règles libvirt posées"
 fi
+success "Règles libvirt posées (NAT prêt pour une installation QEMU ultérieure)"
 
 title "Activation UFW"
 run_silent ufw --force enable

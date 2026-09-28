@@ -55,14 +55,17 @@ EOF
 chmod 644 "${LYNIS_LIST}"
 success "Dépôt Lynis configuré (sources Ubuntu non modifiées)"
 
-title "Ubuntu Pro (obligatoire)"
+title "Ubuntu Pro"
+# Le jeton rattache la machine au compte Ubuntu Pro. esm-infra et esm-apps
+# ajoutent les dépôts de correctifs de sécurité. livepatch applique certains
+# correctifs noyau sans redémarrage. unattended-upgrades les installe ensuite.
 run_silent_apt install -y ubuntu-pro-client
 
 if ubuntu_pro_attached; then
     success "Ubuntu Pro : déjà attachée"
 else
-    if [[ -z "${UBUNTU_PRO_TOKEN// /}" || "${UBUNTU_PRO_TOKEN}" == "already-attached" ]]; then
-        error "Ubuntu Pro obligatoire : jeton manquant. Compte : https://ubuntu.com/pro/dashboard"
+    if [[ -z "${UBUNTU_PRO_TOKEN// /}" ]]; then
+        error "Ubuntu Pro : jeton manquant dans secrets.conf. Relancer : bash ${DIR_INSTALL_PATH}/configure.sh"
     fi
     attach_out=$(pro attach "${UBUNTU_PRO_TOKEN}" 2>&1) && attach_rc=0 || attach_rc=$?
     if [[ "${attach_rc}" -eq 0 ]]; then
@@ -95,6 +98,21 @@ else
 fi
 success "Ubuntu Pro installé (attaché + ESM + livepatch)"
 
+title "Multiarch i386 (Steam)"
+# Steam Runtime exige les ABI x86_64-linux-gnu et i386-linux-gnu.
+# Le paquet officiel steam_latest.deb fait le même add-architecture ;
+# sur une installation fraîche on le prépare sans toucher aux sources APT.
+if [[ "$(dpkg --print-architecture)" == "amd64" ]]; then
+    if dpkg --print-foreign-architectures | grep -qx 'i386'; then
+        success "Architecture i386 déjà activée"
+    else
+        run_silent dpkg --add-architecture i386
+        success "Architecture i386 activée (bibliothèques Steam / Proton)"
+    fi
+else
+    info "Architecture $(dpkg --print-architecture) — i386 non requis hors amd64"
+fi
+
 title "Mise à jour système"
 info "apt-get update + upgrade (dépôts existants conservés)..."
 run_silent_apt update
@@ -102,13 +120,15 @@ run_silent_apt upgrade -y
 success "Mise à jour terminée"
 
 title "Comptabilité et PAM (Lynis ACCT / AUTH)"
-run_silent_apt install -y acct sysstat libpam-tmpdir libpam-pwquality
+# Pas de libpam-tmpdir : TMPDIR privé casse update-initramfs (LP #2053153)
+# et des outils qui attendent /tmp (Electron, Steam, construction de paquets).
+run_silent_apt install -y acct sysstat libpam-pwquality
 if [[ -f /etc/default/sysstat ]]; then
     sed -i 's/ENABLED="false"/ENABLED="true"/' /etc/default/sysstat
 fi
 try_silent systemctl enable --now sysstat
 try_silent systemctl enable --now acct
-success "acct, sysstat, libpam-tmpdir, libpam-pwquality"
+success "acct, sysstat, libpam-pwquality"
 
 title "Entropie (haveged + rng-tools-debian)"
 run_silent_apt install -y rng-tools-debian haveged

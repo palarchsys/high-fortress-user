@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+# =============================================================================
+# service/chkrootkit/install.sh
+# =============================================================================
+# chkrootkit cherche des signes connus de compromission (binaires remplacés,
+# interfaces réseau cachées). Le passage est planifié par le cron.
+# =============================================================================
 DIR_INSTALL_PATH="${1}"
 export DIR_INSTALL_PATH
 SERVER_TYPE="${2}"

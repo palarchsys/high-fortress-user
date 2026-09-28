@@ -2,8 +2,13 @@
 # =============================================================================
 # service/apparmor/configure.sh
 # =============================================================================
-# Service enabled. PAS d'aa-enforce global (piège P.apparmor.enforce).
-# Les profils distro Firefox / snaps restent tels quels.
+# Active le service AppArmor livré par Ubuntu.
+# Les profils déjà installés (Firefox, Thunderbird snap, Steam) restent
+# ceux de la distribution : ce script ne lance pas aa-enforce sur l'ensemble
+# des profils et n'installe pas le paquet apparmor-profiles-extra.
+#
+# service/apparmor/userns.sh pose les profils userns une fois les paquets
+# installés, afin de conserver le profil livré par le paquet s'il existe.
 # =============================================================================
 
 DIR_INSTALL_PATH="${1}"
@@ -18,7 +23,4 @@ require_root
 title "Activation AppArmor"
 run_silent systemctl enable --now apparmor
 success "AppArmor actif"
-
-info "Aucun aa-enforce global — profils Ubuntu / snap / Firefox intacts."
-try_silent systemctl reload apparmor
-success "AppArmor : distro only"
+info "Les profils Ubuntu restent en l'état. La restriction des user namespaces reste celle du système."

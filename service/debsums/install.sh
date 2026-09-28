@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+# =============================================================================
+# service/debsums/install.sh
+# =============================================================================
+# debsums recalcule les empreintes des fichiers des paquets Ubuntu et
+# signale ceux qui ne correspondent plus au paquet installé.
+# =============================================================================
 DIR_INSTALL_PATH="${1}"
 export DIR_INSTALL_PATH
 SERVER_TYPE="${2}"

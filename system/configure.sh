@@ -2,9 +2,10 @@
 # =============================================================================
 # system/configure.sh
 # =============================================================================
-# Rôle       : Durcit le système (PAM futurs mots de passe, sysctl, journald,
-#              modules, banners). NE CHANGE PAS les mots de passe existants.
-#              Ne touche pas hostname, hosts, swap, USB, compilateurs, /tmp.
+# Rôle       : PAM, sysctl, journald, modules et bandeaux.
+#              Les comptes humains (mot de passe, groupes, home, shell)
+#              ne sont pas modifiés. hostname, hosts, swap, USB,
+#              compilateurs et /tmp non plus.
 # =============================================================================
 
 DIR_INSTALL_PATH="${1}"
@@ -21,7 +22,7 @@ source "${DIR_INSTALL_PATH}/global.conf"
 require_root
 detect_current_user
 
-title "Hash mots de passe (Lynis AUTH-9229) — futurs mots de passe seulement"
+title "Algorithme des mots de passe (Lynis AUTH-9229)"
 info "ENCRYPT_METHOD YESCRYPT (aucun chpasswd / chage)..."
 if grep -q "^ENCRYPT_METHOD" /etc/login.defs; then
     sed -i 's/^ENCRYPT_METHOD.*/ENCRYPT_METHOD YESCRYPT/' /etc/login.defs
@@ -36,7 +37,7 @@ printf '%s\n' "${BANNER_MESSAGE}" > /etc/issue
 cp -f /etc/issue /etc/issue.net
 success "Bannières /etc/issue et /etc/issue.net"
 
-title "Qualité des mots de passe (futurs changements uniquement)"
+title "Qualité exigée lors d'un changement de mot de passe"
 tee /etc/security/pwquality.conf > /dev/null << EOF
 minlen = ${PWQUALITY_MINLEN}
 minclass = 3
@@ -98,6 +99,22 @@ EOF
 chmod 644 /etc/profile.d/hardening.sh
 success "UMASK 027"
 
+info "sudo garde umask 0022 (apt/dpkg ne doivent pas créer des bibliothèques en 640)..."
+# Sans umask_override, sudo unionne l'umask 027 de la session : les .so
+# installées ensuite ne sont plus lisibles par libvirt-qemu ni par les jeux.
+install -d -m 755 /etc/sudoers.d
+cat > /etc/sudoers.d/high-fortress-user-umask << 'EOF'
+# High-Fortress User — les paquets restent 644/755 malgré UMASK 027.
+Defaults umask=0022
+Defaults umask_override
+EOF
+chmod 440 /etc/sudoers.d/high-fortress-user-umask
+if ! visudo -cf /etc/sudoers.d/high-fortress-user-umask >/dev/null; then
+    rm -f /etc/sudoers.d/high-fortress-user-umask
+    error "sudoers umask invalide — fichier retiré"
+fi
+success "sudoers : umask 0022 pour apt et les outils root"
+
 title "journald persistant (Lynis LOG-*)"
 ensure_dir /etc/systemd/journald.conf.d 755
 tee /etc/systemd/journald.conf.d/persistent.conf > /dev/null << EOF
@@ -112,20 +129,20 @@ run_silent systemctl restart systemd-journald
 success "Journald persistant"
 
 title "Sysctl workstation"
-info "Paramètres sûrs pour Firefox / Steam / KVM — pas d'IPv6 off, pas d'userns off..."
+info "Paramètres sûrs pour navigateurs / Steam / KVM — pas d'IPv6 off, pas d'userns off..."
 
-# Forwarding : 1 si libvirt/docker (NAT), sinon 0.
-ip_forward=0
-rp_filter=1
-if virt_present || command -v docker >/dev/null 2>&1 || [[ -d /sys/fs/cgroup/system.slice/docker.service ]]; then
-    ip_forward=1
-    rp_filter=2
-    info "libvirt/docker détecté : ip_forward=1 rp_filter=2 (NAT KVM)"
-fi
+# Forwarding toujours à 1. libvirt ne le fige pas : NetworkManager et notre
+# unité sysctl (After=libvirtd) réappliquent ce fichier. À 0, le NAT virbr0
+# tombe dès qu'on installe QEMU après ce durcissement (wiki libvirt).
+# rp_filter=2 (loose) : le mode strict jette le trafic retour des invités.
+ip_forward=1
+rp_filter=2
+info "ip_forward=1 rp_filter=2 (NAT libvirt, que QEMU soit déjà présent ou non)"
 
 tee /etc/sysctl.d/90-high-fortress-user.conf > /dev/null << EOF
 # High-Fortress User — sysctl workstation Ubuntu 26.04
-# Ne pas : disable IPv6, userns=0, ptrace_scope>1, ip_forward=0 si KVM.
+# Ne pas : disable IPv6, userns=0, ptrace_scope>1, ip_forward=0.
+# Ne pas écrire kernel.apparmor_restrict_unprivileged_userns (défaut Ubuntu).
 
 net.ipv4.conf.all.log_martians = 1
 net.ipv4.conf.default.log_martians = 1
@@ -191,7 +208,7 @@ tee /etc/lynis/custom.prf > /dev/null << 'EOF'
 # High-Fortress User — exceptions volontaires workstation
 # compilers : Proton / DXVK / gcc utilisateur
 skip-test=HRDN-7222
-# /tmp noexec : Electron, Steam, Firefox
+# /tmp noexec : Electron, Steam, Firefox, Brave, Thunderbird
 skip-test=FILE-6310
 skip-test=FILE-6372
 skip-test=FILE-6374
@@ -199,10 +216,12 @@ skip-test=FILE-6374
 skip-test=BOOT-5122
 # modules_disabled=1 : casserait kvm / nvidia / wifi après reboot
 skip-test=KRNL-6000:kernel.modules_disabled
-# forwarding : NAT libvirt / docker
+# forwarding : NAT libvirt (wiki : ip_forward figé à 1, même avant QEMU)
 skip-test=KRNL-6000:net.ipv4.conf.all.forwarding
 skip-test=KRNL-6000:net.ipv4.ip_forward
 skip-test=KRNL-6000:net.ipv4.conf.all.rp_filter
+# user namespaces : sandbox Firefox / Brave / Thunderbird / Steam / Electron
+skip-test=KRNL-6000:kernel.unprivileged_userns_clone
 # USB storage : desktop
 skip-test=USB-1000
 # expiration mots de passe : contrat — on ne change pas / n'expire pas les comptes
@@ -245,21 +264,29 @@ blacklist udf
 EOF
 success "FS inutiles blacklistés"
 
-if virt_present; then
-    title "KVM / QEMU — s'assurer que les modules restent chargeables"
-    tee /etc/modules-load.d/kvm.conf > /dev/null << EOF
-kvm
-kvm_intel
-kvm_amd
-vhost_net
-tun
-virtio_net
-virtio_pci
-EOF
-    for m in kvm kvm_intel kvm_amd vhost_net tun; do
-        try_silent modprobe "${m}"
-    done
-    success "Modules KVM préservés (blacklist USB/FS ne les touche pas)"
+title "KVM / QEMU — modules du processeur"
+info "On ne force au boot que les modules qui se chargent sur ce CPU."
+kvm_mods=()
+cpu_vendor="$(awk '/^vendor_id/{print $3; exit}' /proc/cpuinfo 2>/dev/null || true)"
+case "${cpu_vendor}" in
+    GenuineIntel) kvm_candidates=(kvm kvm_intel vhost_net tun virtio_net virtio_pci) ;;
+    AuthenticAMD|HygonGenuine) kvm_candidates=(kvm kvm_amd vhost_net tun virtio_net virtio_pci) ;;
+    *) kvm_candidates=(kvm vhost_net tun virtio_net virtio_pci) ;;
+esac
+for m in "${kvm_candidates[@]}"; do
+    if modprobe "${m}" 2>/dev/null; then
+        kvm_mods+=("${m}")
+    else
+        info "module ${m} non chargeable sur cette machine"
+    fi
+done
+if [[ ${#kvm_mods[@]} -gt 0 && " ${kvm_mods[*]} " == *" kvm "* ]]; then
+    printf '%s\n' "${kvm_mods[@]}" > /etc/modules-load.d/kvm.conf
+    chmod 644 /etc/modules-load.d/kvm.conf
+    success "Modules KVM au boot : ${kvm_mods[*]}"
+else
+    rm -f /etc/modules-load.d/kvm.conf
+    info "Pas de KVM matériel — aucun module KVM forcé au boot"
 fi
 
 title "Core dumps désactivés"

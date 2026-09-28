@@ -31,6 +31,6 @@ if [[ -f /var/lib/aide/aide.db.new.gz ]]; then
 elif [[ -f /var/lib/aide/aide.db.new ]]; then
     mv /var/lib/aide/aide.db.new /var/lib/aide/aide.db
 else
-    warn "Base AIDE non générée (aide.db.new introuvable) — relancer plus tard : aide --init"
+    warn "Base AIDE non générée (aide.db.new introuvable). Commande : aide --config=/etc/aide/aide.conf --init"
 fi
 success "AIDE initialisé"

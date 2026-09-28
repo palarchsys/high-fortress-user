@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+# =============================================================================
+# service/auditd/install.sh
+# =============================================================================
+# auditd enregistre qui modifie les fichiers sensibles (comptes, sudo, SSH).
+# Les règles précises sont écrites par configure.sh.
+# =============================================================================
 DIR_INSTALL_PATH="${1}"
 export DIR_INSTALL_PATH
 SERVER_TYPE="${2}"

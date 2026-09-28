@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+# =============================================================================
+# service/clamav/install.sh
+# =============================================================================
+# Moteur antivirus et téléchargement des signatures. Le scan à l'ouverture
+# des fichiers (OnAccess) n'est pas activé : il ralentit les jeux et le
+# dossier personnel. Un passage hebdomadaire est planifié par le cron.
+# =============================================================================
 DIR_INSTALL_PATH="${1}"
 export DIR_INSTALL_PATH
 SERVER_TYPE="${2}"

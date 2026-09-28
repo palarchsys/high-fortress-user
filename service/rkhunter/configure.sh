@@ -28,6 +28,9 @@ ALLOWHIDDENDIR=/home/${CURRENT_USER}/.steam
 ALLOWHIDDENDIR=/home/${CURRENT_USER}/.local/share/Steam
 ALLOWHIDDENDIR=/home/${CURRENT_USER}/.config/discord
 ALLOWHIDDENDIR=/home/${CURRENT_USER}/.config/telegramdesktop
+ALLOWHIDDENDIR=/home/${CURRENT_USER}/.config/BraveSoftware
+ALLOWHIDDENDIR=/home/${CURRENT_USER}/.thunderbird
+ALLOWHIDDENDIR=/home/${CURRENT_USER}/snap/thunderbird
 ALLOWHIDDENDIR=/snap
 EOF
 success "rkhunter.conf.local"

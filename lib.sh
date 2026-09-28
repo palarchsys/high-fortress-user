@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 # =============================================================================
-# lib.sh — fonctions communes High-Fortress User
+# lib.sh — fonctions communes
 # =============================================================================
-# Sourcé par run.sh et chaque étape (install/configure).
-# set -euo pipefail s'applique aussi au script appelant.
+# Chargé par run.sh et par chaque étape. « set -euo pipefail » s'applique
+# aussi au script qui le charge : une commande en échec arrête l'étape.
+#
+# Les questions et le jeton Ubuntu Pro sont traités par configure.sh.
+# Ce fichier ne demande rien à l'utilisateur.
 # =============================================================================
 
 set -euo pipefail
@@ -238,14 +241,69 @@ detect_os() {
     OS_VERSION_ID="${VERSION_ID:-}"
     OS_PRETTY="${PRETTY_NAME:-}"
     export OS_ID OS_VERSION_ID OS_PRETTY
-    if [[ "${OS_ID}" != "ubuntu" ]]; then
-        error "Système non supporté : ${OS_PRETTY} (Ubuntu 26.04 requis)."
+    if [[ "${OS_ID}" != "ubuntu" || "${OS_VERSION_ID}" != "26.04" ]]; then
+        error "Ubuntu 26.04 requis (installation fraîche). Détecté : ${OS_PRETTY:-inconnu}."
     fi
-    if [[ "${OS_VERSION_ID}" != "26.04" ]]; then
-        warn "Cible prévue : Ubuntu 26.04 — détecté ${OS_PRETTY}. Poursuite prudente."
-    else
-        success "OS : ${OS_PRETTY}"
+    success "OS : ${OS_PRETTY}"
+}
+
+# Empreinte des comptes humains (uid 1000–65533) créés par l'installateur Ubuntu.
+# Comparée en fin de script : uid, gid, gecos, home, shell, groupes, hash shadow, chage.
+write_human_account_table() {
+    local dest="$1"
+    local name uid gid gecos home shell groups shadow_fp maxdays
+    : > "${dest}.tmp"
+    while IFS=: read -r name _ uid gid gecos home shell; do
+        if [[ "${uid}" -lt 1000 || "${uid}" -ge 65534 || "${name}" == "nobody" ]]; then
+            continue
+        fi
+        groups="$(id -nG "${name}" | tr ' ' '\n' | LC_ALL=C sort | paste -sd, -)"
+        shadow_fp="$(awk -F: -v u="${name}" '$1==u { print $2 }' /etc/shadow | sha256sum | awk '{ print $1 }')"
+        maxdays="$(LANG=C LC_ALL=C chage -l "${name}" 2>/dev/null | awk -F: '/Maximum/ { gsub(/ /, "", $2); print $2 }')"
+        printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+            "${name}" "${uid}" "${gid}" "${gecos}" "${home}" "${shell}" \
+            "${groups}" "${shadow_fp}" "${maxdays}" >> "${dest}.tmp"
+    done < /etc/passwd
+    LC_ALL=C sort -o "${dest}" "${dest}.tmp"
+    rm -f "${dest}.tmp"
+    chmod 600 "${dest}"
+}
+
+HFU_ACCOUNT_SNAPSHOT="/var/lib/high-fortress-user/accounts/human.tsv"
+
+snapshot_human_accounts() {
+    mkdir -p /var/lib/high-fortress-user/accounts
+    chmod 700 /var/lib/high-fortress-user/accounts
+    write_human_account_table "${HFU_ACCOUNT_SNAPSHOT}"
+    if [[ -n "${HF_LOG_DIR:-}" ]]; then
+        mkdir -p "${HF_LOG_DIR}/accounts"
+        chmod 700 "${HF_LOG_DIR}/accounts"
+        cp -a "${HFU_ACCOUNT_SNAPSHOT}" "${HF_LOG_DIR}/accounts/human.tsv"
     fi
+    local n
+    n="$(wc -l < "${HFU_ACCOUNT_SNAPSHOT}" | tr -d ' ')"
+    if [[ "${n}" -lt 1 ]]; then
+        error "Aucun compte humain (uid ≥ 1000) : l'installateur Ubuntu doit avoir créé les utilisateurs."
+    fi
+    success "Empreinte de ${n} compte(s) humain(s) enregistrée (non modifiés ensuite)"
+}
+
+# Affiche un diff et retourne 1 si un compte humain a changé.
+human_accounts_drift() {
+    local current baseline="${HFU_ACCOUNT_SNAPSHOT}"
+    [[ -f "${baseline}" ]] || {
+        echo "snapshot des comptes absent (${baseline})"
+        return 1
+    }
+    current="$(mktemp)"
+    write_human_account_table "${current}"
+    if cmp -s "${baseline}" "${current}"; then
+        rm -f "${current}"
+        return 0
+    fi
+    diff -u "${baseline}" "${current}" || true
+    rm -f "${current}"
+    return 1
 }
 
 detect_ssh_port() {
@@ -386,6 +444,9 @@ collect_install_logs() {
     fi
 }
 
+# Vrai si « pro status » indique que la machine est déjà rattachée à Ubuntu Pro.
+# Le jeton reste obligatoire dans secrets.conf : ce test sert seulement à
+# ne pas rappeler pro attach quand le rattachement est déjà fait.
 ubuntu_pro_attached() {
     command -v pro >/dev/null 2>&1 || return 1
     local st
@@ -395,72 +456,4 @@ ubuntu_pro_attached() {
     fi
     pro status 2>/dev/null | grep -qiE 'This machine is attached|machine is attached to an Ubuntu Pro|est attachée|Attached:[[:space:]]*(yes|true)' && return 0
     return 1
-}
-
-ask_conf() {
-    local name="$1"
-    local label="$2"
-    local hidden="${3:-0}"
-    local current="${!name:-}"
-    local input=""
-
-    if [[ -n "$current" ]]; then
-        export "$name"
-        return 0
-    fi
-
-    if [[ "$hidden" = "1" ]]; then
-        read -r -s -p "   ➤ ${label} : " input
-        echo ""
-    else
-        read -r -p "   ➤ ${label} : " input
-    fi
-    if [[ -n "$input" ]]; then
-        printf -v "$name" '%s' "$input"
-    fi
-    export "$name"
-}
-
-prompt_and_save_secrets() {
-    title "Secrets d'exploitation"
-    echo "   Ubuntu Pro est obligatoire (ESM + livepatch)."
-    echo "   Aucun mot de passe utilisateur ne sera demandé ni modifié."
-    echo ""
-
-    local dest="${DIR_INSTALL_PATH}/secrets.conf"
-    if [[ -f "$dest" ]]; then
-        # shellcheck disable=SC1090
-        source "$dest"
-        info "secrets.conf présent — champs déjà remplis réutilisés."
-        echo ""
-    fi
-
-    if ubuntu_pro_attached; then
-        info "Ubuntu Pro : machine déjà attachée — jeton non redemandé."
-        UBUNTU_PRO_TOKEN="${UBUNTU_PRO_TOKEN:-already-attached}"
-        export UBUNTU_PRO_TOKEN
-    else
-        while [[ -z "${UBUNTU_PRO_TOKEN// /}" ]]; do
-            UBUNTU_PRO_TOKEN=""
-            ask_conf UBUNTU_PRO_TOKEN "Jeton Ubuntu Pro (obligatoire — ubuntu.com/pro)" 1
-            if [[ -z "${UBUNTU_PRO_TOKEN// /}" ]]; then
-                warn "Le jeton Ubuntu Pro est obligatoire. Relais : https://ubuntu.com/pro/dashboard"
-            fi
-        done
-    fi
-    ask_conf WATCHDOG_MAIL "E-mail d'alertes watchdogs (vide = journaux locaux seulement)"
-
-    local old_umask
-    old_umask="$(umask)"
-    umask 077
-    cat > "$dest" << EOF
-# =============================================================================
-# secrets.conf — généré par l'install $(date -Iseconds)
-# =============================================================================
-UBUNTU_PRO_TOKEN="${UBUNTU_PRO_TOKEN:-}"
-WATCHDOG_MAIL="${WATCHDOG_MAIL:-}"
-EOF
-    chmod 600 "$dest"
-    umask "${old_umask}"
-    success "Secrets enregistrés dans ${dest} (chmod 600)"
 }

@@ -21,6 +21,12 @@ EXCLUDE=(
     --exclude-dir="/dev"
     --exclude-dir="/var/lib/libvirt"
     --exclude-dir="/var/lib/docker"
+    --exclude-dir="/BraveSoftware"
+    --exclude-dir="/.config/discord"
+    --exclude-dir="/Telegram"
+    --exclude-dir="/.thunderbird"
+    --exclude-dir="/thunderbird"
+    --exclude-dir="/libvirt"
 )
 set +e
 clamscan -ri /home /opt /tmp "${EXCLUDE[@]}" >> "${LOG_FILE}" 2>&1

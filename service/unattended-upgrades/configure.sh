@@ -2,7 +2,9 @@
 # =============================================================================
 # service/unattended-upgrades/configure.sh
 # =============================================================================
-# Sécurité seulement — pas -updates (peut casser Steam mid-session).
+# Sécurité Ubuntu + ESM seulement — pas -updates (peut changer Mesa / Proton en session).
+# Les dépôts Brave, Steam, Discord, Telegram ne sont pas dans ces origines :
+# leurs mises à jour restent celles de leur propre dépôt, non réécrit ici.
 # =============================================================================
 
 DIR_INSTALL_PATH="${1}"
@@ -26,18 +28,15 @@ EOF
 
 tee /etc/apt/apt.conf.d/51high-fortress-user > /dev/null << 'EOF'
 Unattended-Upgrade::Allowed-Origins {
+        "${distro_id}:${distro_codename}";
         "${distro_id}:${distro_codename}-security";
         "${distro_id}ESMApps:${distro_codename}-apps-security";
         "${distro_id}ESM:${distro_codename}-infra-security";
 };
+# Pas de blacklist : Firefox, Thunderbird, QEMU et libvirt reçoivent
+# les correctifs de sécurité Ubuntu. Les clients tiers ne sont pas
+# dans ces origines.
 Unattended-Upgrade::Package-Blacklist {
-        "steam*";
-        "discord";
-        "telegram*";
-        "firefox*";
-        "qemu*";
-        "libvirt*";
-        "nvidia*";
 };
 Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
 Unattended-Upgrade::Remove-Unused-Dependencies "false";

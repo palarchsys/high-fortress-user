@@ -1,18 +1,35 @@
 #!/usr/bin/env bash
 # =============================================================================
-# run.sh — orchestrateur High-Fortress User (workstation Ubuntu 26.04)
+# run.sh — installation du poste Ubuntu 26.04
 # =============================================================================
-# Point d'entrée unique (root). Ne change jamais les mots de passe.
-# Ne casse pas Firefox, Steam, Discord, Telegram, APT, KVM/QEMU.
+# Point d'entrée root. Les questions sont posées par configure.sh.
+# Ce script refuse de démarrer si global.conf et secrets.conf ne sont
+# pas conformes (bash configure.sh --check).
+#
+# Il ne modifie pas les comptes créés par l'installateur Ubuntu.
+# Il conserve les dépôts APT déjà présents et laisse utilisables
+# Firefox, Brave, Thunderbird, Steam, Discord, Telegram, KeePassXC et QEMU.
 # =============================================================================
+
+# shellcheck disable=SC2155
+DIR_INSTALL_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+export DIR_INSTALL_PATH
+
+# shellcheck disable=SC1091
+source "${DIR_INSTALL_PATH}/config-check.sh"
+if ! hfu_require_prepared_config "${DIR_INSTALL_PATH}"; then
+    printf '\nInstallation refusée. Préparez les deux fichiers :\n' >&2
+    printf '  bash %s/configure.sh\n' "${DIR_INSTALL_PATH}" >&2
+    printf '  bash %s/configure.sh --check\n' "${DIR_INSTALL_PATH}" >&2
+    exit 1
+fi
+readonly DIR_INSTALL_PATH
 
 clear
 
-# shellcheck disable=SC2155
-readonly DIR_INSTALL_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
-export DIR_INSTALL_PATH
-
+# shellcheck disable=SC1091
 source "${DIR_INSTALL_PATH}/global.conf"
+# shellcheck disable=SC1091
 source "${DIR_INSTALL_PATH}/lib.sh"
 
 require_root
@@ -31,15 +48,18 @@ echo "   Utilisateur courant : ${CURRENT_USER}  (home ${CURRENT_HOME})"
 echo "   Port SSH détecté    : ${SSH_PORT}"
 echo "   OS                  : ${OS_PRETTY}"
 echo ""
-echo "   • Aucun mot de passe (root / ${CURRENT_USER}) ne sera modifié."
-echo "   • Firefox, Steam, Discord, Telegram, dépôts APT, KVM/QEMU : préservés."
-echo "   • UFW : deny incoming, ALLOW outgoing (Steam / Discord / Telegram / apt)."
+echo "   • Comptes humains (uid, groupes, home, shell, mot de passe) : inchangés."
+echo "   • Firefox, Brave, Thunderbird, Steam, Discord, Telegram : préservés."
+echo "   • Dépôts APT existants intacts. i386 activé sur amd64 (Steam)."
+echo "   • UFW : deny incoming, ALLOW outgoing, forward ouvert pour libvirt."
 echo "   • SSH : drop-in, PasswordAuthentication conservé, PermitRootLogin no."
-echo "   • Ubuntu Pro : obligatoire (ESM infra/apps + livepatch)."
+echo "   • Ubuntu Pro : ESM infra, ESM apps et Livepatch."
+echo "   • En fin de parcours : Brave, Telegram, Discord, Vencord,"
+echo "     Thunderbird et KeePassXC."
 echo ""
 
-prompt_and_save_secrets
 init_install_log
+snapshot_human_accounts
 trap collect_install_logs EXIT
 
 # -----------------------------------------------------------------------------
@@ -81,6 +101,8 @@ run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "${STEP_SYSTEM_CONFIGURE[@]}"
 run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "${STEP_SSH_CONFIGURE[@]}"
 run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "${STEP_SECURITY_INSTALL[@]}"
 run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "${STEP_SECURITY_CONFIGURE[@]}"
+run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "service/desktop/install.sh"
+run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "service/apparmor/userns.sh"
 run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "${STEP_SYSTEM_PURGE[@]}"
 
 try_silent sysctl --system

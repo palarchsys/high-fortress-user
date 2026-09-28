@@ -57,14 +57,21 @@ else
 fi
 
 # chage : MAXDAYS ne doit pas avoir été forcé à 90 par nous
-maxdays="$(chage -l "${CURRENT_USER}" 2>/dev/null | awk -F: '/Maximum/{gsub(/ /,"",$2); print $2}')"
+maxdays="$(LANG=C LC_ALL=C chage -l "${CURRENT_USER}" 2>/dev/null | awk -F: '/Maximum/{gsub(/ /,"",$2); print $2}')"
 if [[ "${maxdays}" == "90" ]]; then
     wn "chage MAXDAYS=90 sur ${CURRENT_USER} (n'a pas été posé par ce script ; état antérieur ?)"
 else
     ok "chage ${CURRENT_USER} non forcé à 90 jours"
 fi
 
-for bin in firefox steam discord telegram-desktop virt-manager virsh qemu-system-x86_64; do
+if drift="$(human_accounts_drift 2>&1)"; then
+    ok "comptes humains (uid, groupes, home, shell, hash) inchangés"
+else
+    ko "un compte créé à l'installation Ubuntu a été modifié"
+    printf '%s\n' "${drift}" >> "${REPORT}"
+fi
+
+for bin in firefox brave-browser thunderbird steam discord keepassxc virt-manager virsh qemu-system-x86_64; do
     if command -v "${bin}" >/dev/null 2>&1; then
         mode="$(stat -c '%a' "$(command -v "${bin}")" 2>/dev/null || echo '?')"
         if [[ "${mode}" == "700" || "${mode}" == "750" ]]; then
@@ -125,9 +132,55 @@ fi
 
 tmp_opts="$(findmnt -no OPTIONS /tmp 2>/dev/null || true)"
 if echo "${tmp_opts}" | grep -qw noexec; then
-    ko "/tmp est noexec (Electron/Steam/Firefox)"
+    ko "/tmp est noexec (Electron/Steam/Firefox/Brave)"
 else
     ok "/tmp sans noexec"
+fi
+
+if [[ "$(sysctl -n net.ipv4.ip_forward 2>/dev/null || echo 0)" == "1" ]]; then
+    ok "ip_forward=1 (NAT libvirt)"
+else
+    ko "ip_forward n'est pas 1 — le NAT QEMU est cassé"
+fi
+if [[ "$(sysctl -n kernel.yama.ptrace_scope 2>/dev/null || echo missing)" == "1" ]]; then
+    ok "ptrace_scope=1"
+else
+    ko "ptrace_scope n'est pas 1"
+fi
+if [[ "$(sysctl -n net.ipv6.conf.all.disable_ipv6 2>/dev/null || echo 0)" == "0" ]]; then
+    ok "IPv6 laissé actif"
+else
+    ko "IPv6 désactivé"
+fi
+if [[ -n "$(sysctl -n kernel.unprivileged_userns_clone 2>/dev/null || true)" \
+    && "$(sysctl -n kernel.unprivileged_userns_clone 2>/dev/null || echo 1)" == "0" ]]; then
+    ko "unprivileged_userns_clone=0 (sandbox navigateurs / Steam)"
+else
+    ok "user namespaces non désactivés par sysctl"
+fi
+if grep -RqsE 'apparmor_restrict_unprivileged_userns[[:space:]]*=[[:space:]]*0' /etc/sysctl.d /etc/sysctl.conf 2>/dev/null; then
+    ko "un fichier sysctl désactive la restriction userns AppArmor au lieu d'un profil"
+else
+    ok "restriction userns AppArmor non désactivée par HFU"
+fi
+if [[ "$(dpkg --print-architecture)" == "amd64" ]]; then
+    if dpkg --print-foreign-architectures | grep -qx i386; then
+        ok "architecture i386 activée (Steam)"
+    else
+        ko "i386 absent — Steam ne peut pas installer ses bibliothèques 32 bits"
+    fi
+fi
+if [[ -f /etc/sudoers.d/high-fortress-user-umask ]] \
+    && visudo -cf /etc/sudoers.d/high-fortress-user-umask >/dev/null \
+    && grep -q 'umask_override' /etc/sudoers.d/high-fortress-user-umask; then
+    ok "sudo umask 0022 (apt ne hérite pas de 027)"
+else
+    ko "sudoers umask absent ou invalide"
+fi
+if grep -q '^DEFAULT_FORWARD_POLICY="ACCEPT"' /etc/default/ufw 2>/dev/null; then
+    ok "UFW DEFAULT_FORWARD_POLICY=ACCEPT"
+else
+    ko "UFW forward policy n'est pas ACCEPT (NAT libvirt)"
 fi
 
 if [[ -e /dev/kvm ]]; then
@@ -194,6 +247,41 @@ if command -v lynis >/dev/null 2>&1; then
     chmod 640 /var/log/lynis.log /var/log/lynis-report.dat 2>/dev/null || true
 else
     ko "lynis absent"
+fi
+
+title "Logiciels du poste"
+
+if command -v brave-browser >/dev/null 2>&1 || [[ -x /opt/brave.com/brave/brave ]]; then
+    ok "Brave installé"
+else
+    ko "Brave absent"
+fi
+if snap list telegram-desktop >/dev/null 2>&1; then
+    ok "Telegram (snap) installé"
+else
+    ko "Telegram snap absent"
+fi
+if dpkg-query -W -f '${Status}' discord 2>/dev/null | grep -q 'install ok'; then
+    ok "Discord installé"
+else
+    ko "Discord absent"
+fi
+vencord_hit="$(find /usr/share/discord -iname '*vencord*' -print -quit 2>/dev/null || true)"
+if [[ -n "${vencord_hit}" || -d "${CURRENT_HOME}/.config/Vencord" ]]; then
+    ok "Vencord présent"
+else
+    ko "Vencord absent"
+fi
+if dpkg-query -W -f '${Status}' thunderbird 2>/dev/null | grep -q 'install ok' \
+    || snap list thunderbird >/dev/null 2>&1; then
+    ok "Thunderbird installé"
+else
+    ko "Thunderbird absent"
+fi
+if dpkg-query -W -f '${Status}' keepassxc 2>/dev/null | grep -q 'install ok'; then
+    ok "KeePassXC installé"
+else
+    ko "KeePassXC absent"
 fi
 
 title "Sources APT"
