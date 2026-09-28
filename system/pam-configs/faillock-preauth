@@ -1,0 +1,6 @@
+Name: Account lockout precheck
+Default: yes
+Priority: 512
+Auth-Type: Primary
+Auth:
+	required			pam_faillock.so preauth

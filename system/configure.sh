@@ -70,9 +70,12 @@ root_unlock_time = ${FAILLOCK_UNLOCK}
 EOF
 sed -i '/pam_faillock\.so/d' /etc/pam.d/common-auth /etc/pam.d/common-account 2>/dev/null || true
 install -m 644 "${DIR_SCRIPT_PATH}/pam-configs/faillock" /usr/share/pam-configs/faillock
+install -m 644 "${DIR_SCRIPT_PATH}/pam-configs/faillock-preauth" /usr/share/pam-configs/faillock-preauth
 export DEBIAN_FRONTEND=noninteractive
 pam-auth-update --force
-pam-auth-update --enable faillock --force
+# preauth est un profil à part : pam-auth-update n'applique le bloc
+# Initial que du premier module de la pile. Ici il doit passer avant pam_unix.
+pam-auth-update --enable faillock faillock-preauth --force
 success "pam_faillock configuré"
 
 info "login.defs (UMASK, FAILLOG — PAS d'expiration des comptes existants)..."

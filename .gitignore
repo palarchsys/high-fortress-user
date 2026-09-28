@@ -1,9 +1,22 @@
+# Jeton Ubuntu Pro et mot de passe d'application Gmail.
+# Écrit par configure.sh, en mode 600.
+secrets.conf
+
+# Rapports de lynis.sh, et copie de l'installation
+# lorsque DEBUG_INSTALL_LOGS=1 dans global.conf.
+logs/
+
+# Recette de verify/workstation.sh lorsqu'elle est lancée
+# depuis le dossier des sources, sans journal d'installation.
 verify-report-*.md
+
+# Anciennes recettes texte, si un dossier en contient encore.
 verify-report-*.txt
 verify-report-*.tsv
-secrets.conf
+
+# Éditeurs et environnements locaux.
 .idea/
+.vscode/
 .venv/
-logs/
 *.swp
 *~
