@@ -8,7 +8,7 @@
 #   verify/workstation.sh
 # =============================================================================
 
-# Recette : durcissement en place, mots de passe intacts, applis préservées.
+# Check : durcissement en place, mots de passe intacts, applis préservées.
 # =============================================================================
 
 DIR_INSTALL_PATH="${1}"
@@ -34,7 +34,7 @@ wn()   { WARNN=$((WARNN+1)); warn "WARN  $*";   echo "- WARN  $*" >> "${REPORT}"
 
 mkdir -p "$(dirname "${REPORT}")"
 {
-    echo "# High-Fortress User — recette workstation"
+    echo "# High-Fortress User — check workstation"
     echo
     echo "- date : $(date -Iseconds)"
     echo "- user : ${CURRENT_USER}"
@@ -282,6 +282,21 @@ if command -v lynis >/dev/null 2>&1; then
     else
         wn "custom.prf manquant"
     fi
+    info "Audit Lynis (quick)..."
+    lynis audit system --quick --no-colors --auditor high-fortress-user-verify > "${HF_LOG_DIR:-/tmp}/lynis-verify.txt" 2>&1 || true
+    score="$(awk -F= '/hardening_index=/{print $2}' /var/log/lynis-report.dat 2>/dev/null | tail -1)"
+    if [[ "${score}" =~ ^[0-9]+$ ]]; then
+        echo "- Lynis hardening_index=${score}" >> "${REPORT}"
+        if [[ "${score}" -ge "${LYNIS_MIN_SCORE}" ]]; then
+            ok "Lynis ${score} ≥ ${LYNIS_MIN_SCORE}"
+        else
+            ko "Lynis ${score} < ${LYNIS_MIN_SCORE}"
+            awk -F= '/^warning\[\]=/{print "   [INFO]  Lynis " $2}' /var/log/lynis-report.dat 2>/dev/null | head -20 || true
+        fi
+    else
+        ko "score Lynis illisible"
+    fi
+    chmod 640 /var/log/lynis.log /var/log/lynis-report.dat 2>/dev/null || true
 else
     ko "lynis absent"
 fi
@@ -355,7 +370,7 @@ ok "dépôt Lynis CISOfy ajouté uniquement (lynis.list)"
 } >> "${REPORT}"
 
 chmod 644 "${REPORT}" 2>/dev/null || true
-step_off "Recette : ${PASS} OK / ${WARNN} WARN / ${FAIL} FAIL"
+step_off "Check : ${PASS} OK / ${WARNN} WARN / ${FAIL} FAIL"
 info "Rapport : ${REPORT}"
 
 if [[ "${FAIL}" -gt 0 ]]; then
@@ -363,6 +378,6 @@ if [[ "${FAIL}" -gt 0 ]]; then
     grep '^- FAIL' "${REPORT}" | while IFS= read -r line; do
         red "${line}"
     done
-    error "Recette : ${FAIL} échec(s)"
+    error "Check : ${FAIL} échec(s)"
 fi
-success "Recette workstation OK"
+success "Check workstation OK"

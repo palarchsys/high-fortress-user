@@ -17,7 +17,7 @@
 #   2. Réglages du poste, Postfix, SSH
 #   3. Pile de sécurité, dont ClamAV en continu
 #   4. Logiciels du bureau, puis leurs profils AppArmor
-#   5. Purge des paquets résiduels, recette, base AIDE, e-mail
+#   5. Purge des paquets résiduels, check, base AIDE, e-mail
 #
 # Les comptes créés par l'installateur Ubuntu et les dépôts APT déjà
 # présents ne sont pas modifiés.
@@ -147,7 +147,7 @@ run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "verify/workstation.sh"
 
 # Dernière écriture de l'installation. Brave, Thunderbird,
 # les profils AppArmor, les scripts de contrôle et la purge sont
-# déjà sur le disque. La recette n'écrit que des journaux dans
+# déjà sur le disque. Le check n'écrit que des journaux dans
 # /var/log, hors du périmètre AIDE. L'e-mail de test part ensuite.
 run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "service/aide/init-db.sh"
 
