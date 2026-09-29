@@ -149,6 +149,16 @@ La commande enregistre ces lignes dans `/opt/high-fortress-user/cron/chkrootkit.
 
 Si une ligne du journal vous est inconnue, ne lancez pas cette commande. Conservez l'e-mail et relisez le chemin indiqué.
 
+## E-mail debsums
+
+Au démarrage, debsums compare les fichiers des paquets Ubuntu à leurs empreintes. Un fichier modifié ou manquant produit un e-mail.
+
+L'e-mail contient d'abord le journal. En dessous, un second bloc donne la commande complète, avec le nom réel du journal de cette alerte. Copiez-la telle quelle : rien n'est à modifier.
+
+La commande enregistre ces lignes dans `/opt/high-fortress-user/cron/debsums.local.ignore`. Elle affiche le nombre de détections enregistrées. Le démarrage suivant ne signale plus ces lignes exactes. Une ligne différente, par exemple un autre fichier, produit un nouvel e-mail. Une réinstallation du poste conserve ce fichier.
+
+Si une ligne du journal vous est inconnue, ne lancez pas cette commande. Conservez l'e-mail et relisez le chemin indiqué.
+
 ## Après l'installation
 
 Un redémarrage est souvent utile lorsque le noyau ou des bibliothèques ont été mis à jour. Ouvrez ensuite Brave, Discord et KeePassXC depuis le menu des applications. Discord démarre avec Vencord.

@@ -103,7 +103,7 @@ log_alert() {
     fi
     module="${module:-contrôle}"
     # Second bloc de l'e-mail, sous le journal.
-    # AIDE : recalculer la base. chkrootkit : enregistrer ces lignes.
+    # AIDE : recalculer la base. chkrootkit / debsums : enregistrer ces lignes.
     local note="" note_cmd=""
     if [[ "${HFU_AIDE_REFRESH:-}" == "1" ]]; then
         note="Si ce journal correspond à des changements attendus (une mise à jour, un logiciel que vous avez installé, un fichier que vous avez modifié) et qu'il ne révèle pas d'anomalie, exécutez la commande ci-dessous. Elle recalcule la base de référence AIDE à partir du disque actuel."
@@ -111,6 +111,9 @@ log_alert() {
     elif [[ "${HFU_CHKROOTKIT_IGNORE:-}" == "1" && -n "${LOG_FILE:-}" ]]; then
         note="Si les lignes de ce journal sont des faux positifs que vous reconnaissez, et qu'aucune ne révèle une anomalie, exécutez la commande ci-dessous. Elle enregistre ces détections. Le prochain contrôle de chkrootkit ne les signalera plus."
         note_cmd="sudo bash ${HFU_BASE}/bin/chkrootkit-ignore-log.sh '${LOG_FILE}'"
+    elif [[ "${HFU_DEBSUMS_IGNORE:-}" == "1" && -n "${LOG_FILE:-}" ]]; then
+        note="Si les lignes de ce journal sont des faux positifs que vous reconnaissez, et qu'aucune ne révèle une anomalie, exécutez la commande ci-dessous. Elle enregistre ces fichiers. Le prochain contrôle de debsums ne les signalera plus."
+        note_cmd="sudo bash ${HFU_BASE}/bin/debsums-ignore-log.sh '${LOG_FILE}'"
     fi
     if [[ -n "${WATCHDOG_MAIL:-}" && -x "${HFU_BASE}/cron/bin/send.sh" ]]; then
         TITLE="Alerte ${module}" \
