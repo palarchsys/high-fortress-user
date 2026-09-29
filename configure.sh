@@ -61,7 +61,7 @@ hfu_read_stars() {
 # Libellé en bleu, deux-points alignés avec la ligne Confirmation.
 hfu_secret_line() {
     local label="$1" dest="$2" width="$3"
-    printf '   \e[34m%*s\e[0m : ' "${width}" "${label}" >&2
+    printf '         \e[34m%*s\e[0m : ' "${width}" "${label}" >&2
     hfu_read_stars "${dest}"
 }
 
@@ -74,10 +74,8 @@ hfu_prompt() {
     current="${!__var:-}"
     [[ -n "${current}" ]] && __default="${current}"
     for attempt in 1 2 3; do
+        echo ""
         if [[ "${__kind}" == "pro_token" || "${__kind}" == "secret" ]]; then
-            if [[ -n "${__default}" ]]; then
-                info "Entrée conserve la valeur déjà enregistrée."
-            fi
             width="${#__label}"
             [[ "${width}" -lt 12 ]] && width=12
             hfu_secret_line "${__label}" value "${width}"
@@ -88,6 +86,7 @@ hfu_prompt() {
                 hfu_secret_line "Confirmation" confirm "${width}"
                 confirm="${confirm// /}"
                 if [[ "${value}" != "${confirm}" ]]; then
+                    echo ""
                     warn "Les deux saisies sont différentes."
                     continue
                 fi
@@ -113,6 +112,7 @@ hfu_prompt() {
             printf -v "${__var}" '%s' "${value}"
             return 0
         fi
+        echo ""
         warn "${__hint}"
     done
     error "${__label} — trois essais sans réponse acceptée. Exemple : ${__example}"
@@ -195,6 +195,7 @@ hfu_prompt UBUNTU_PRO_TOKEN \
     "Lettres et chiffres seulement, entre 6 et 100, sans espace."
 
 title "2/5 — Adresse Gmail qui envoie"
+info "Entrée garde la valeur proposée."
 hfu_prompt POSTFIX_MAIL_ADDRESS \
     "Adresse Gmail qui envoie" \
     "prenom.nom@gmail.com" \
@@ -221,7 +222,7 @@ hfu_prompt POSTFIX_MAIL_SMTP \
     "Laissez [smtp.gmail.com]:587."
 
 title "5/5 — Adresse Gmail qui reçoit"
-info "Entrée reprend l'adresse qui envoie."
+info "Entrée garde la valeur proposée."
 hfu_prompt WATCHDOG_MAIL \
     "Adresse Gmail qui reçoit" \
     "alertes@gmail.com" \
