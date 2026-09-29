@@ -42,6 +42,9 @@ services=(
     apparmor.service
     postfix.service
     unattended-upgrades.service
+    unbound.service
+    systemd-resolved.service
+    hfu-unbound-root-hints.path
     hfu-boot-scan.timer
 )
 for unit in "${services[@]}"; do

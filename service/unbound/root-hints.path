@@ -1,0 +1,10 @@
+[Unit]
+Description=Recharge Unbound quand la liste des serveurs racine DNS change
+
+[Path]
+PathChanged=/usr/share/dns/root.hints
+PathChanged=/usr/share/dns/root.key
+Unit=hfu-unbound-root-hints.service
+
+[Install]
+WantedBy=multi-user.target

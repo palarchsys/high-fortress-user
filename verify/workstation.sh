@@ -207,7 +207,7 @@ esac
 # systemd avant de lire l'état, sinon systemctl signale « changed on disk ».
 systemctl daemon-reload >/dev/null 2>&1 || true
 
-for svc in apparmor fail2ban auditd clamav-daemon clamav-freshclam unattended-upgrades; do
+for svc in apparmor fail2ban auditd clamav-daemon clamav-freshclam unattended-upgrades unbound; do
     if systemctl is-enabled --quiet "${svc}" 2>/dev/null || systemctl is-active --quiet "${svc}" 2>/dev/null; then
         ok "service ${svc} enabled/active"
     else
@@ -231,6 +231,36 @@ if systemctl is-active --quiet crowdsec 2>/dev/null \
     ok "CrowdSec et bouncer actifs"
 else
     ko "CrowdSec inactif"
+fi
+
+title "DNS local (Unbound)"
+if systemctl is-enabled --quiet unbound 2>/dev/null && systemctl is-active --quiet unbound; then
+    ok "Unbound actif au démarrage"
+else
+    ko "Unbound inactif"
+fi
+if [[ -f /usr/share/dns/root.hints && -f /etc/unbound/unbound.conf.d/high-fortress-user.conf ]]; then
+    ok "liste des serveurs racine et configuration Unbound présentes"
+else
+    ko "configuration Unbound ou root.hints absente"
+fi
+if systemctl is-enabled --quiet hfu-unbound-root-hints.path 2>/dev/null; then
+    ok "rechargement Unbound quand les serveurs racine changent"
+else
+    ko "surveillance des serveurs racine DNS absente"
+fi
+if ss -H -lntu src 127.0.0.1:53 2>/dev/null | grep -q .; then
+    ok "Unbound écoute 127.0.0.1:53"
+else
+    ko "Unbound n'écoute pas 127.0.0.1:53"
+fi
+if ss -H -lntu src 0.0.0.0:53 2>/dev/null | grep -q .; then
+    ko "Unbound écoute hors de la machine"
+fi
+if grep -q '^DNS=127.0.0.1' /etc/systemd/resolved.conf.d/90-high-fortress-user.conf 2>/dev/null; then
+    ok "systemd-resolved pointe vers Unbound"
+else
+    ko "systemd-resolved n'est pas pointé vers Unbound"
 fi
 
 title "Ubuntu Pro"

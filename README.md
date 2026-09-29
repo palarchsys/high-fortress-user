@@ -80,7 +80,7 @@ sudo bash configure.sh
 
 1. Les snaps Firefox et Thunderbird sont retirés. `snapd` reste installé, ainsi que les autres snaps. Le paquet Firefox est bloqué pour qu'il ne revienne pas à la place de Brave.
 2. Les réglages du poste, la messagerie locale (Postfix) et SSH.
-3. La pile de sécurité : pare-feu, Fail2Ban, audit, rkhunter, chkrootkit, ClamAV, CrowdSec, debsums, AppArmor, AIDE, mises à jour automatiques, puis les contrôles planifiés.
+3. La pile de sécurité : pare-feu, Fail2Ban, audit, rkhunter, chkrootkit, ClamAV, CrowdSec, debsums, Unbound, AppArmor, AIDE, mises à jour automatiques, puis les contrôles planifiés.
 4. Brave, Thunderbird (dépôt Mozilla), KeePassXC, Discord et Vencord, puis les profils dont ces programmes ont besoin pour leur bac à sable.
 5. Retrait des paquets résiduels, vérification du poste, enregistrement de la base AIDE, e-mail de test.
 
@@ -99,6 +99,7 @@ sudo bash configure.sh
 | Sujet | Comportement |
 |-------|----------------|
 | Pare-feu | Les connexions entrantes sont refusées. Les connexions sortantes sont autorisées. |
+| DNS | Unbound résout les noms sur le poste, sans passer par le DNS du FAI. Les applications n'ont rien à régler. Un VPN, une fois connecté, utilise le DNS du tunnel. La liste des serveurs racine est tenue à jour avec les paquets Ubuntu. |
 | SSH | La connexion root est interdite. Le mot de passe de votre compte habituel reste accepté. Le nombre d'essais est limité. Fail2Ban bloque une adresse après plusieurs échecs. |
 | Comptes | Les comptes déjà créés restent tels quels. Un nouveau mot de passe, le jour où vous en choisissez un, doit respecter une longueur minimale. |
 | Noyau | Les paquets réseau douteux sont filtrés, les vidages mémoire des programmes sont désactivés, les adresses du noyau sont masquées. IPv6 reste actif. |

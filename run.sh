@@ -15,7 +15,7 @@
 # Ordre :
 #   1. Snaps Firefox et Thunderbird seulement ; snapd reste
 #   2. Réglages du poste, Postfix, SSH
-#   3. Pile de sécurité, dont ClamAV en continu
+#   3. Pile de sécurité, dont ClamAV en continu et Unbound en DNS local
 #   4. Logiciels du bureau, puis leurs profils AppArmor
 #   5. Purge des paquets résiduels, check, base AIDE, e-mail
 #
@@ -68,6 +68,7 @@ echo "     Discord et Vencord, puis les profils AppArmor de ces programmes."
 echo "   • Steam et KeePassXC restent utilisables. Dépôts APT existants intacts."
 echo "   • i386 activé sur amd64 (Steam)."
 echo "   • UFW : deny incoming, ALLOW outgoing."
+echo "   • DNS : Unbound local, sans le résolveur du FAI."
 echo "   • SSH : drop-in, PasswordAuthentication conservé, PermitRootLogin no."
 echo "   • Ubuntu Pro : ESM infra, ESM apps et Livepatch."
 echo "   • AIDE : base de référence prise tout à la fin, sur le disque terminé."
@@ -97,6 +98,7 @@ STEP_SECURITY_INSTALL=(
     "service/clamav/install.sh"
     "service/crowdsec/install.sh"
     "service/debsums/install.sh"
+    "service/unbound/install.sh"
     "service/apparmor/install.sh"
     "service/aide/install.sh"
     "service/unattended-upgrades/install.sh"
@@ -104,6 +106,7 @@ STEP_SECURITY_INSTALL=(
 
 STEP_SECURITY_CONFIGURE=(
     "service/ufw/configure.sh"
+    "service/unbound/configure.sh"
     "service/fail2ban/configure.sh"
     "service/auditd/configure.sh"
     "service/rkhunter/configure.sh"
