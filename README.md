@@ -12,7 +12,7 @@ Il vous faut :
 - le droit d'administration (`sudo`) ;
 - un compte [Ubuntu Pro](https://ubuntu.com/pro) et son jeton, copié depuis le [tableau de bord](https://ubuntu.com/pro/dashboard) ;
 - une adresse GMAIL ;
-- un Mot de passe d'application GMAIL ;
+- un mot de passe d'application GMAIL ;
 
 ## Ubuntu Pro
 
@@ -36,8 +36,6 @@ Gmail refuse le mot de passe habituel du compte pour un programme comme celui-ci
 3. Donnez le nom `High-Fortress User`, puis créez le mot de passe.
 4. Google affiche 16 lettres, souvent en groupes de 4. Copiez-les sans les espaces.
 5. Collez-les dans `configure.sh` lorsque le mot de passe SMTP est demandé.
-
-Le mot de passe du compte Ubuntu et celui de Gmail dans le navigateur ne changent pas. Le poste ne reçoit pas le courrier : il ne fait qu'envoyer les alertes vers Gmail.
 
 Guide Google : [Se connecter avec des mots de passe d'application](https://support.google.com/accounts/answer/185833).
 
