@@ -11,22 +11,48 @@ Il vous faut :
 - un ordinateur sous Ubuntu 26.04, de préférence une installation neuve, avec une session graphique et une connexion à Internet ;
 - le droit d'administration (`sudo`) ;
 - un compte [Ubuntu Pro](https://ubuntu.com/pro) et son jeton, copié depuis le [tableau de bord](https://ubuntu.com/pro/dashboard) ;
-- une adresse Gmail (`@gmail.com` ou `@googlemail.com`).
+- une adresse GMAIL ;
+- un Mot de passe d'application GMAIL ;
 
-Les alertes partent uniquement vers Gmail, par le serveur `[smtp.gmail.com]:587`. Une autre adresse est refusée. Le programme s'arrête aussi si le système n'est pas Ubuntu 26.04.
+## Ubuntu Pro
 
-Prévoyez du temps : le téléchargement des paquets et le calcul de la base d'intégrité des fichiers prennent plusieurs minutes. Laissez la session ouverte jusqu'au message de fin.
+Le jeton rattache l'ordinateur à votre compte Ubuntu Pro. Le programme active ensuite :
+
+| Élément | Rôle |
+|---------|------|
+| ESM Infra | Correctifs de sécurité du dépôt principal, au-delà du support standard |
+| ESM Apps | Correctifs de sécurité du dépôt universe |
+| Livepatch | Certains correctifs du noyau, appliqués sans redémarrage |
+| Mises à jour automatiques | Installation quotidienne des correctifs de sécurité Ubuntu, ESM et Thunderbird |
+
+Les mises à jour ordinaires, hors sécurité, restent proposées par la mise à jour logicielle d'Ubuntu. Aucun redémarrage n'est lancé automatiquement.
+
+## Mot de passe d'application GMAIL
+
+Gmail refuse le mot de passe habituel du compte pour un programme comme celui-ci. Il faut un mot de passe d'application : 16 lettres créées par Google, utilisées seulement pour l'envoi des alertes.
+
+1. Ouvrez la [validation en deux étapes](https://myaccount.google.com/signinoptions/two-step-verification) et activez-la si ce n'est pas déjà fait. Sans elle, la page des mots de passe d'application reste fermée.
+2. Ouvrez [Mots de passe des applications](https://myaccount.google.com/apppasswords).
+3. Donnez le nom `High-Fortress User`, puis créez le mot de passe.
+4. Google affiche 16 lettres, souvent en groupes de 4. Copiez-les sans les espaces.
+5. Collez-les dans `configure.sh` lorsque le mot de passe SMTP est demandé.
+
+Le mot de passe du compte Ubuntu et celui de Gmail dans le navigateur ne changent pas. Le poste ne reçoit pas le courrier : il ne fait qu'envoyer les alertes vers Gmail.
+
+Guide Google : [Se connecter avec des mots de passe d'application](https://support.google.com/accounts/answer/185833).
 
 ## Installation
+
+Prévoyez du temps : le téléchargement des paquets et le calcul de la base d'intégrité des fichiers prennent plusieurs minutes. Laissez la session ouverte jusqu'au message de fin.
 
 Cette commande installe curl, télécharge le programme dans `/opt/high-fortress-user/src`, puis lance la configuration :
 
 ```bash
-sudo apt-get install curl -y
+sudo apt-get install git curl -y
 curl -fsSL https://raw.githubusercontent.com/palarchsys/high-fortress-user/main/install.sh | sudo bash
 ```
 
-Les cinq questions portent sur le jeton Ubuntu Pro et l'e-mail Gmail. Un secret s'affiche en astérisques, puis une ligne Confirmation redemande la même saisie. Entrée conserve une valeur déjà enregistrée. L'installation démarre dès que les réponses sont acceptées.
+Les cinq questions portent sur le jeton Ubuntu Pro et l'e-mail GMAIL. Un secret s'affiche en astérisques, puis une ligne Confirmation redemande la même saisie. Entrée conserve une valeur déjà enregistrée. L'installation démarre dès que les réponses sont acceptées.
 
 Pour recontrôler les fichiers sans relancer l'installation : `sudo bash /opt/high-fortress-user/src/configure.sh --check`.
 
@@ -45,26 +71,10 @@ sudo bash configure.sh
 | Question | Ce qu'il faut répondre |
 |----------|------------------------|
 | Jeton Ubuntu Pro | La valeur affichée sur le tableau de bord Ubuntu Pro, sans espace |
-| Adresse qui envoie | Votre adresse Gmail complète |
+| Adresse qui envoie | Votre adresse GMAIL complète |
 | Mot de passe SMTP | Le mot de passe d'application à 16 lettres, sans les espaces |
 | Serveur SMTP | `[smtp.gmail.com]:587` |
-| Adresse qui reçoit les alertes | Une adresse Gmail, la même ou une autre |
-
-Entrée conserve une valeur déjà enregistrée, sans la réafficher.
-
-## Mot de passe d'application Gmail
-
-Gmail refuse le mot de passe habituel du compte pour un programme comme celui-ci. Il faut un mot de passe d'application : 16 lettres créées par Google, utilisées seulement pour l'envoi des alertes.
-
-1. Ouvrez la [validation en deux étapes](https://myaccount.google.com/signinoptions/two-step-verification) et activez-la si ce n'est pas déjà fait. Sans elle, la page des mots de passe d'application reste fermée.
-2. Ouvrez [Mots de passe des applications](https://myaccount.google.com/apppasswords).
-3. Donnez le nom `High-Fortress User`, puis créez le mot de passe.
-4. Google affiche 16 lettres, souvent en groupes de 4. Copiez-les sans les espaces.
-5. Collez-les dans `configure.sh` lorsque le mot de passe SMTP est demandé.
-
-Le mot de passe du compte Ubuntu et celui de Gmail dans le navigateur ne changent pas. Le poste ne reçoit pas le courrier : il ne fait qu'envoyer les alertes vers Gmail.
-
-Guide Google : [Se connecter avec des mots de passe d'application](https://support.google.com/accounts/answer/185833).
+| Adresse qui reçoit les alertes | Une adresse GMAIL, la même ou une autre |
 
 ## Déroulement de l'installation
 
@@ -76,21 +86,6 @@ Guide Google : [Se connecter avec des mots de passe d'application](https://suppo
 4. Brave, Thunderbird (dépôt Mozilla), KeePassXC, Discord et Vencord, puis les profils dont ces programmes ont besoin pour leur bac à sable.
 5. Retrait des paquets résiduels, vérification du poste, enregistrement de la base AIDE, e-mail de test.
 
-QEMU, libvirt et Telegram ne sont pas installés. S'ils sont déjà présents sur le poste, l'installation ne les retire pas.
-
-## Ubuntu Pro
-
-Le jeton rattache l'ordinateur à votre compte Ubuntu Pro. Le programme active ensuite :
-
-| Élément | Rôle |
-|---------|------|
-| ESM Infra | Correctifs de sécurité du dépôt principal, au-delà du support standard |
-| ESM Apps | Correctifs de sécurité du dépôt universe |
-| Livepatch | Certains correctifs du noyau, appliqués sans redémarrage |
-| Mises à jour automatiques | Installation quotidienne des correctifs de sécurité Ubuntu, ESM et Thunderbird |
-
-Les mises à jour ordinaires, hors sécurité, restent proposées par la mise à jour logicielle d'Ubuntu. Aucun redémarrage n'est lancé automatiquement.
-
 ## Logiciels installés
 
 | Logiciel | Origine |
@@ -100,12 +95,6 @@ Les mises à jour ordinaires, hors sécurité, restent proposées par la mise à
 | KeePassXC | Dépôt Ubuntu |
 | Discord | Paquet `.deb` publié sur [discord.com/download](https://discord.com/download) |
 | Vencord | Installeur officiel, [vencord.dev](https://vencord.dev/download/), appliqué à ce Discord |
-
-Le paquet Discord officiel ne contient que le programme qui télécharge le client. L'installation récupère ce client dans votre dossier personnel, puis y applique Vencord. Brave, Discord et Vencord suivent ensuite le canal de leur éditeur. Thunderbird suit le dépôt Mozilla. KeePassXC suit les paquets Ubuntu.
-
-Steam n'est pas installé. L'architecture 32 bits est activée pour pouvoir l'installer plus tard, et le pare-feu laisse sortir son trafic.
-
-Les dépôts APT déjà configurés sur la machine ne sont pas remplacés. Trois dépôts sont ajoutés : Lynis (contrôle du durcissement), Brave et Thunderbird.
 
 ## Ce que le poste fait après l'installation
 
