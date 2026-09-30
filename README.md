@@ -1,6 +1,6 @@
 # High-Fortress User
 
-High-Fortress User prépare un poste Ubuntu 26.04 pour un usage quotidien. Il active les mises à jour de sécurité Ubuntu Pro, règle le pare-feu et les contrôles du système, installe les logiciels du bureau, puis envoie un e-mail de confirmation.
+High-Fortress User prépare un poste Ubuntu 26.04 pour un usage quotidien. Il active les mises à jour de sécurité Ubuntu Pro, règle le pare-feu et les contrôles du système, installe les logiciels du bureau, puis, si vous l'avez demandé, envoie un e-mail de confirmation.
 
 Le compte créé pendant l'installation d'Ubuntu reste tel quel : le nom, le mot de passe, le dossier personnel et l'interpréteur de commandes ne changent pas.
 
@@ -11,8 +11,7 @@ Il vous faut :
 - un ordinateur sous Ubuntu 26.04, de préférence une installation neuve, avec une session graphique et une connexion à Internet ;
 - le droit d'administration (`sudo`) ;
 - un compte [Ubuntu Pro](https://ubuntu.com/pro) et son jeton, copié depuis le [tableau de bord](https://ubuntu.com/pro/dashboard) ;
-- une adresse GMAIL ;
-- un mot de passe d'application GMAIL ;
+- si vous activez les alertes : un compte e-mail chez le fournisseur de votre choix, et un mot de passe d'application de ce fournisseur.
 
 ## Ubuntu Pro
 
@@ -27,17 +26,10 @@ Le jeton rattache l'ordinateur à votre compte Ubuntu Pro. Le programme active e
 
 Les mises à jour ordinaires, hors sécurité, restent proposées par la mise à jour logicielle d'Ubuntu. Aucun redémarrage n'est lancé automatiquement.
 
-## Mot de passe d'application GMAIL
+## Mot de passe d'application
 
-Gmail refuse le mot de passe habituel du compte pour un programme comme celui-ci. Il faut un mot de passe d'application : 16 lettres créées par Google, utilisées seulement pour l'envoi des alertes.
-
-1. Ouvrez la [validation en deux étapes](https://myaccount.google.com/signinoptions/two-step-verification) et activez-la si ce n'est pas déjà fait. Sans elle, la page des mots de passe d'application reste fermée.
-2. Ouvrez [Mots de passe des applications](https://myaccount.google.com/apppasswords).
-3. Donnez le nom `High-Fortress User`, puis créez le mot de passe.
-4. Google affiche 16 lettres, souvent en groupes de 4. Copiez-les sans les espaces.
-5. Collez-les dans `configure.sh` lorsque le mot de passe SMTP est demandé.
-
-Guide Google : [Se connecter avec des mots de passe d'application](https://support.google.com/accounts/answer/185833).
+Les alertes utilisent un mot de passe d'application créé chez votre fournisseur de mail. Le mot de passe habituel du compte e-mail ne doit pas être saisi ici : il resterait dans la configuration du poste.
+Chaque fournisseur a sa propre page pour créer ce mot de passe (souvent après une validation en deux étapes). Copiez-le sans espaces lorsque `configure.sh` demande `Password`.
 
 ## Installation
 
@@ -46,11 +38,13 @@ Prévoyez du temps : le téléchargement des paquets et le calcul de la base d'i
 Cette commande installe curl, télécharge le programme dans `/opt/high-fortress-user/src`, puis lance la configuration :
 
 ```bash
-sudo apt-get install git curl -y
+sudo apt-get install git curl swaks -y
 curl -fsSL https://raw.githubusercontent.com/palarchsys/high-fortress-user/main/install.sh | sudo bash
 ```
 
-Les cinq questions portent sur le jeton Ubuntu Pro et l'e-mail GMAIL. Un secret s'affiche en astérisques, puis une ligne Confirmation redemande la même saisie. Entrée conserve une valeur déjà enregistrée. L'installation démarre dès que les réponses sont acceptées.
+La première question porte sur le jeton Ubuntu Pro. Il s'affiche en astérisques, puis une ligne Confirmation redemande la même saisie. Entrée conserve un jeton déjà enregistré.
+
+Ensuite, `configure.sh` demande si les alertes e-mail sont activées (`o` ou `n`). Avec `n`, les contrôles du poste se lancent quand même, sans envoyer de message. Avec `o`, quatre champs sont demandés, vides, sans valeur proposée : le serveur `hôte:port`, le login, le mot de passe d'application, et l'adresse From. Les alertes partent vers cette adresse From. `swaks` envoie un essai. S'il est accepté, l'installation continue. S'il est refusé, un message l'indique et la question `o` / `n` revient.
 
 Pour recontrôler les fichiers sans relancer l'installation : `sudo bash /opt/high-fortress-user/src/configure.sh --check`.
 
@@ -69,20 +63,11 @@ sudo bash configure.sh
 | Question | Ce qu'il faut répondre |
 |----------|------------------------|
 | Jeton Ubuntu Pro | La valeur affichée sur le tableau de bord Ubuntu Pro, sans espace |
-| Adresse qui envoie | Votre adresse GMAIL complète |
-| Mot de passe SMTP | Le mot de passe d'application à 16 lettres, sans les espaces |
-| Serveur SMTP | `[smtp.gmail.com]:587` |
-| Adresse qui reçoit les alertes | Une adresse GMAIL, la même ou une autre |
-
-## Déroulement de l'installation
-
-`run.sh` avance dans cet ordre.
-
-1. Les snaps Firefox et Thunderbird sont retirés. `snapd` reste installé, ainsi que les autres snaps. Le paquet Firefox est bloqué pour qu'il ne revienne pas à la place de Brave.
-2. Les réglages du poste, la messagerie locale (Postfix) et SSH.
-3. La pile de sécurité : pare-feu, Fail2Ban, audit, rkhunter, chkrootkit, ClamAV, CrowdSec, debsums, Unbound, AppArmor, AIDE, mises à jour automatiques, puis les contrôles planifiés.
-4. Brave, Thunderbird (dépôt Mozilla), KeePassXC, Discord et Vencord, puis les profils dont ces programmes ont besoin pour leur bac à sable.
-5. Retrait des paquets résiduels, vérification du poste, enregistrement de la base AIDE, e-mail de test.
+| Alertes | `o` pour les activer, `n` pour les laisser coupées |
+| Serveur | `hôte:port` du SMTP, par exemple `smtp-mail.outlook.com:587` |
+| Login | L'adresse e-mail utilisée pour l'authentification SMTP |
+| Password | Le mot de passe d'application, sans espaces |
+| From | L'adresse expéditeur. Les alertes arrivent sur cette même adresse |
 
 ## Logiciels installés
 
@@ -108,7 +93,7 @@ sudo bash configure.sh
 | Contrôles au démarrage | AIDE, rkhunter, chkrootkit, le parcours ClamAV et debsums. Ils utilisent au plus 20 % du processeur et une priorité basse, deux minutes après le démarrage. |
 | Lynis | Lancé une fois à la fin de l'installation. Le score doit être d'au moins 80. Il ne fait pas partie des contrôles au démarrage. |
 | CrowdSec | Lit les journaux SSH et système, et bloque l'adresse attaquante dans le pare-feu pendant 24 heures. |
-| E-mail | Chaque alerte part vers l'adresse Gmail indiquée dans `configure.sh`. |
+| E-mail | Si les alertes sont activées, chaque message part vers l'adresse From. Sinon les contrôles écrivent leur journal et n'envoient rien. |
 | Journaux | `/var/log/high-fortress-user/` et `/opt/high-fortress-user/cron/`. |
 
 ## E-mail AIDE
@@ -123,29 +108,37 @@ sudo bash /opt/high-fortress-user/bin/aide-refresh-db.sh
 
 La commande recalcule la photo à partir du disque actuel. Le calcul peut prendre plusieurs minutes. Elle affiche `Base de référence AIDE enregistrée.` lorsqu'elle a réussi. Le démarrage suivant ne signale plus ces changements.
 
-Si une ligne du journal vous est inconnue, ne lancez pas cette commande. Conservez l'e-mail et relisez le chemin indiqué.
+Ouvrez l'e-mail reçu et copiez la commande du second bloc. Si une ligne du journal vous est inconnue, ne lancez pas cette commande. Conservez l'e-mail et relisez le chemin indiqué.
 
-L'e-mail de fin d'installation est un essai d'envoi. Son objet indique que l'installation s'est terminée. Il ne contient pas ce second bloc.
+L'e-mail de fin d'installation, lorsqu'il est demandé, est un essai d'envoi. Son objet indique que l'installation s'est terminée. Il ne contient pas ce second bloc.
 
 ## E-mail chkrootkit
 
 Au démarrage, chkrootkit cherche des signes connus de compromission. Une ligne absente de la liste d'exclusion produit un e-mail.
 
-L'e-mail contient d'abord le journal. En dessous, un second bloc donne la commande complète, avec le nom réel du journal de cette alerte. Copiez-la telle quelle : rien n'est à modifier.
+L'e-mail contient d'abord le journal. En dessous, un second bloc donne la commande complète. Copiez-la telle quelle : rien n'est à modifier.
+
+```bash
+sudo bash /opt/high-fortress-user/bin/chkrootkit-ignore-log.sh '/opt/high-fortress-user/cron/security_logs/chkrootkit-DATE.log'
+```
 
 La commande enregistre ces lignes dans `/opt/high-fortress-user/cron/chkrootkit.local.ignore`. Elle affiche le nombre de détections enregistrées. Le démarrage suivant ne signale plus ces lignes exactes. Une ligne différente, par exemple un autre numéro de processus, produit un nouvel e-mail. Une réinstallation du poste conserve ce fichier.
 
-Si une ligne du journal vous est inconnue, ne lancez pas cette commande. Conservez l'e-mail et relisez le chemin indiqué.
+Ouvrez l'e-mail reçu et copiez la commande du second bloc : le nom réel du journal de cette alerte y est déjà écrit. L'exemple ci-dessus montre seulement la forme. Si une ligne du journal vous est inconnue, ne lancez pas cette commande. Conservez l'e-mail et relisez le chemin indiqué.
 
 ## E-mail debsums
 
 Au démarrage, debsums compare les fichiers des paquets Ubuntu à leurs empreintes. Un fichier modifié ou manquant produit un e-mail.
 
-L'e-mail contient d'abord le journal. En dessous, un second bloc donne la commande complète, avec le nom réel du journal de cette alerte. Copiez-la telle quelle : rien n'est à modifier.
+L'e-mail contient d'abord le journal. En dessous, un second bloc donne la commande complète. Copiez-la telle quelle : rien n'est à modifier.
+
+```bash
+sudo bash /opt/high-fortress-user/bin/debsums-ignore-log.sh '/opt/high-fortress-user/cron/security_logs/debsums-DATE.log'
+```
 
 La commande enregistre ces lignes dans `/opt/high-fortress-user/cron/debsums.local.ignore`. Elle affiche le nombre de détections enregistrées. Le démarrage suivant ne signale plus ces lignes exactes. Une ligne différente, par exemple un autre fichier, produit un nouvel e-mail. Une réinstallation du poste conserve ce fichier.
 
-Si une ligne du journal vous est inconnue, ne lancez pas cette commande. Conservez l'e-mail et relisez le chemin indiqué.
+Ouvrez l'e-mail reçu et copiez la commande du second bloc : le nom réel du journal de cette alerte y est déjà écrit. L'exemple ci-dessus montre seulement la forme. Si une ligne du journal vous est inconnue, ne lancez pas cette commande. Conservez l'e-mail et relisez le chemin indiqué.
 
 ## Après l'installation
 
@@ -178,7 +171,7 @@ sudo bash /opt/high-fortress-user/src/lynis.sh
 | Ubuntu Pro n'attache pas la machine | Vérifier le jeton et la connexion, puis relancer `sudo bash run.sh` |
 | Le système n'est pas Ubuntu 26.04 | Le programme ne continue pas |
 | L'empreinte de la clé Mozilla est inattendue | Vérifier la connexion, puis relancer `sudo bash run.sh` |
-| L'e-mail de test ne part pas | Vérifier l'adresse Gmail, le mot de passe d'application sans espaces, et le serveur `[smtp.gmail.com]:587` |
+| L'essai swaks ou l'e-mail de test ne part pas | Vérifier le serveur `hôte:port`, le login, le mot de passe d'application sans espaces, et l'adresse From. `configure.sh` redemande alors le choix `o` / `n` |
 | La base AIDE n'est pas générée | Lire `/var/log/high-fortress-user/aide-init.log`, puis relancer `sudo bash /opt/high-fortress-user/bin/aide-refresh-db.sh` une fois le message d'erreur compris |
 
 Les journaux de l'installation sont dans `/var/log/high-fortress-user/`.

@@ -55,22 +55,30 @@ hfu_is_email() {
     [[ "$1" =~ ^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$ ]]
 }
 
-# Cette version n'envoie le courrier que par Gmail.
-hfu_is_gmail() {
-    local mail="${1,,}"
-    hfu_is_email "${mail}" || return 1
-    [[ "${mail}" =~ @(gmail\.com|googlemail\.com)$ ]]
-}
-
-# Mot de passe d'application : assez long, sans espace, sans caractère
+# Mot de passe d'application : assez long, sans espace ni caractère
 # qui casserait une ligne CLE="valeur".
 hfu_is_secret() {
-    [[ "$1" =~ ^[A-Za-z0-9@#%+=:./_-]{16,128}$ ]]
+    local value="$1" i c tick=$'\x60'
+    [[ "${#value}" -ge 8 && "${#value}" -le 128 ]] || return 1
+    for ((i = 0; i < ${#value}; i++)); do
+        c="${value:i:1}"
+        case "${c}" in
+            [[:space:]] | '"' | "'" | '$' | '\' | "${tick}")
+                return 1
+                ;;
+        esac
+    done
+    return 0
 }
 
-# Cette version ne relaye que vers le SMTP de Gmail, port 587.
+# hôte:port, sans crochets. Exemple : smtp-mail.outlook.com:587
 hfu_is_smtp() {
-    [[ "$1" == "[smtp.gmail.com]:587" ]]
+    local host port
+    [[ "$1" =~ ^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?:[0-9]+$ ]] || return 1
+    host="${1%:*}"
+    port="${1##*:}"
+    [[ "${host}" != *..* && "${host}" != .* && "${host}" != *. ]] || return 1
+    hfu_is_port "${port}" 1 65535
 }
 
 # Jeton Ubuntu Pro : lettres et chiffres, assez long pour ne pas être un mot de passe court.
@@ -102,9 +110,11 @@ hfu_config_set_builtin_defaults() {
     : "${WATCHDOG_LIMIT_NICE:=19}"
     : "${WATCHDOG_LIMIT_IONICE:=3}"
     : "${UBUNTU_PRO_TOKEN:=}"
+    : "${HF_MAIL_ALERTS:=0}"
+    : "${POSTFIX_SMTP_LOGIN:=}"
     : "${POSTFIX_MAIL_ADDRESS:=}"
     : "${POSTFIX_MAIL_PASS:=}"
-    : "${POSTFIX_MAIL_SMTP:=[smtp.gmail.com]:587}"
+    : "${POSTFIX_MAIL_SMTP:=}"
     : "${WATCHDOG_MAIL:=}"
     if [[ -z "${BANNER_MESSAGE:-}" ]]; then
         BANNER_MESSAGE="***********************************************************************
@@ -184,6 +194,9 @@ WATCHDOG_CPU_LIMIT=${WATCHDOG_CPU_LIMIT}
 WATCHDOG_LIMIT_NICE=${WATCHDOG_LIMIT_NICE}
 WATCHDOG_LIMIT_IONICE=${WATCHDOG_LIMIT_IONICE}
 
+# 1 = alertes e-mail. 0 = contrôles lancés, aucun envoi.
+HF_MAIL_ALERTS=${HF_MAIL_ALERTS}
+
 # Charge le jeton quand run.sh a défini DIR_INSTALL_PATH.
 if [[ -n "\${DIR_INSTALL_PATH:-}" && -f "\${DIR_INSTALL_PATH}/secrets.conf" ]]; then
     # shellcheck disable=SC1091
@@ -206,6 +219,7 @@ hfu_write_secrets_conf() {
 
 HF_SECRETS_PREPARED=1
 UBUNTU_PRO_TOKEN="${UBUNTU_PRO_TOKEN}"
+POSTFIX_SMTP_LOGIN="${POSTFIX_SMTP_LOGIN}"
 POSTFIX_MAIL_ADDRESS="${POSTFIX_MAIL_ADDRESS}"
 POSTFIX_MAIL_PASS="${POSTFIX_MAIL_PASS}"
 POSTFIX_MAIL_SMTP="${POSTFIX_MAIL_SMTP}"
@@ -261,15 +275,23 @@ hfu_validate_values() {
     hfu_is_port "${WATCHDOG_CPU_LIMIT:-x}" 1 100 || hfu_config_err "${label_g} : WATCHDOG_CPU_LIMIT invalide (« ${WATCHDOG_CPU_LIMIT:-} »). exemple : 20"
     hfu_is_port "${WATCHDOG_LIMIT_NICE:-x}" 0 19 || hfu_config_err "${label_g} : WATCHDOG_LIMIT_NICE invalide (« ${WATCHDOG_LIMIT_NICE:-} »). exemple : 19"
     hfu_is_port "${WATCHDOG_LIMIT_IONICE:-x}" 0 7 || hfu_config_err "${label_g} : WATCHDOG_LIMIT_IONICE invalide (« ${WATCHDOG_LIMIT_IONICE:-} »). exemple : 3"
+    [[ "${HF_MAIL_ALERTS:-}" =~ ^[01]$ ]] || hfu_config_err "${label_g} : HF_MAIL_ALERTS invalide (« ${HF_MAIL_ALERTS:-} »). exemple : 0 ou 1"
     [[ "${CONFIG_BASE_DIR:-}" == "/opt/high-fortress-user" ]] || hfu_config_err "${label_g} : CONFIG_BASE_DIR invalide (« ${CONFIG_BASE_DIR:-} »). exemple : /opt/high-fortress-user"
     [[ "${SECRETS_DIR:-}" == "/opt/high-fortress-user/secrets" ]] || hfu_config_err "${label_g} : SECRETS_DIR invalide (« ${SECRETS_DIR:-} »). exemple : /opt/high-fortress-user/secrets"
 
     [[ "${HF_SECRETS_PREPARED:-}" == "1" ]] || hfu_config_err "${label_s} : HF_SECRETS_PREPARED doit valoir 1. exemple : bash configure.sh"
     hfu_is_pro_token "${UBUNTU_PRO_TOKEN:-}" || hfu_config_err "${label_s} : UBUNTU_PRO_TOKEN invalide. exemple : le jeton alphanumérique du tableau de bord Ubuntu Pro (https://ubuntu.com/pro/dashboard)"
-    hfu_is_gmail "${POSTFIX_MAIL_ADDRESS:-}" || hfu_config_err "${label_s} : POSTFIX_MAIL_ADDRESS doit être une adresse Gmail (« ${POSTFIX_MAIL_ADDRESS:-} »). exemple : prenom.nom@gmail.com"
-    hfu_is_secret "${POSTFIX_MAIL_PASS:-}" || hfu_config_err "${label_s} : POSTFIX_MAIL_PASS invalide. exemple : les 16 caractères du mot de passe d'application Gmail, sans espaces"
-    hfu_is_smtp "${POSTFIX_MAIL_SMTP:-}" || hfu_config_err "${label_s} : POSTFIX_MAIL_SMTP doit être le serveur Gmail (« ${POSTFIX_MAIL_SMTP:-} »). exemple : [smtp.gmail.com]:587"
-    hfu_is_gmail "${WATCHDOG_MAIL:-}" || hfu_config_err "${label_s} : WATCHDOG_MAIL doit être une adresse Gmail (« ${WATCHDOG_MAIL:-} »). exemple : alertes@gmail.com"
+    if [[ "${HF_MAIL_ALERTS}" == "1" ]]; then
+        hfu_is_email "${POSTFIX_SMTP_LOGIN:-}" || hfu_config_err "${label_s} : POSTFIX_SMTP_LOGIN doit être une adresse e-mail (« ${POSTFIX_SMTP_LOGIN:-} »). exemple : toi@exemple.com"
+        hfu_is_email "${POSTFIX_MAIL_ADDRESS:-}" || hfu_config_err "${label_s} : POSTFIX_MAIL_ADDRESS doit être une adresse e-mail (« ${POSTFIX_MAIL_ADDRESS:-} »). exemple : toi@exemple.com"
+        hfu_is_secret "${POSTFIX_MAIL_PASS:-}" || hfu_config_err "${label_s} : POSTFIX_MAIL_PASS invalide. exemple : le mot de passe d'application du fournisseur, sans espace"
+        hfu_is_smtp "${POSTFIX_MAIL_SMTP:-}" || hfu_config_err "${label_s} : POSTFIX_MAIL_SMTP invalide (« ${POSTFIX_MAIL_SMTP:-} »). exemple : smtp-mail.outlook.com:587"
+        hfu_is_email "${WATCHDOG_MAIL:-}" || hfu_config_err "${label_s} : WATCHDOG_MAIL doit être une adresse e-mail (« ${WATCHDOG_MAIL:-} »). exemple : toi@exemple.com"
+        [[ "${WATCHDOG_MAIL:-}" == "${POSTFIX_MAIL_ADDRESS:-}" ]] || hfu_config_err "${label_s} : WATCHDOG_MAIL doit être la même adresse que POSTFIX_MAIL_ADDRESS."
+    else
+        [[ -z "${POSTFIX_SMTP_LOGIN:-}${POSTFIX_MAIL_ADDRESS:-}${POSTFIX_MAIL_PASS:-}${POSTFIX_MAIL_SMTP:-}${WATCHDOG_MAIL:-}" ]] \
+            || hfu_config_err "${label_s} : les champs e-mail doivent être vides quand les alertes sont coupées."
+    fi
 }
 
 # Point d'entrée utilisé par configure.sh --check et par run.sh.

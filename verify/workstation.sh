@@ -188,20 +188,24 @@ if grep -q '^DEFAULT_FORWARD_POLICY="ACCEPT"' /etc/default/ufw 2>/dev/null; then
 else
     ko "UFW forward policy n'est pas ACCEPT"
 fi
-if systemctl is-active --quiet postfix; then
-    ok "Postfix actif"
+if [[ "${HF_MAIL_ALERTS:-0}" == "1" ]]; then
+    if systemctl is-active --quiet postfix; then
+        ok "Postfix actif"
+    else
+        ko "Postfix inactif"
+    fi
+    postfix_listen="$(postconf -h inet_interfaces 2>/dev/null | tr -d '[:space:]' || true)"
+    case "${postfix_listen}" in
+        loopback-only|localhost|127.0.0.1|"[::1]")
+            ok "Postfix écoute seulement localhost"
+            ;;
+        *)
+            ko "Postfix n'est pas limité à localhost (${postfix_listen:-inconnu})"
+            ;;
+    esac
 else
-    ko "Postfix inactif"
+    ok "alertes e-mail coupées"
 fi
-postfix_listen="$(postconf -h inet_interfaces 2>/dev/null | tr -d '[:space:]' || true)"
-case "${postfix_listen}" in
-    loopback-only|localhost|127.0.0.1|"[::1]")
-        ok "Postfix écoute seulement localhost"
-        ;;
-    *)
-        ko "Postfix n'est pas limité à localhost (${postfix_listen:-inconnu})"
-        ;;
-esac
 
 # Les paquets installés ensuite ont pu modifier une unité. On recharge
 # systemd avant de lire l'état, sinon systemctl signale « changed on disk ».

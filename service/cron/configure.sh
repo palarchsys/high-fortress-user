@@ -35,9 +35,11 @@ cp -a "${DIR_SCRIPT_PATH}/watchdogs/." "${CONFIG_BASE_DIR}/cron/bin/"
 chmod 750 "${CONFIG_BASE_DIR}/cron/bin/"*.sh
 chmod 644 "${CONFIG_BASE_DIR}/cron/bin/mail.html"
 # Destinataire des alertes, sans le mot de passe SMTP.
+# HF_MAIL_ALERTS=0 : les contrôles tournent, send.sh n'est pas appelé.
 umask 077
 cat > "${CONFIG_BASE_DIR}/cron/mail.conf" << EOF
-WATCHDOG_MAIL="${WATCHDOG_MAIL}"
+HF_MAIL_ALERTS="${HF_MAIL_ALERTS:-0}"
+WATCHDOG_MAIL="${WATCHDOG_MAIL:-}"
 PROJECT_NAME="${PROJECT_NAME}"
 EOF
 umask 022

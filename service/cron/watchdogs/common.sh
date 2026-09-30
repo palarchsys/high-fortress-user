@@ -9,8 +9,8 @@
 # =============================================================================
 
 # Fonctions partagées des contrôles planifiés.
-# Une alerte est écrite sur disque puis envoyée par Postfix si mail.conf
-# contient WATCHDOG_MAIL.
+# Une alerte est écrite sur disque. L'e-mail part seulement si mail.conf
+# a HF_MAIL_ALERTS=1 et un destinataire.
 set -euo pipefail
 HFU_BASE="${HFU_BASE:-/opt/high-fortress-user}"
 LOG_DIR="${HFU_BASE}/cron/security_logs"
@@ -115,7 +115,7 @@ log_alert() {
         note="Si les lignes de ce journal sont des faux positifs que vous reconnaissez, et qu'aucune ne révèle une anomalie, exécutez la commande ci-dessous. Elle enregistre ces fichiers. Le prochain contrôle de debsums ne les signalera plus."
         note_cmd="sudo bash ${HFU_BASE}/bin/debsums-ignore-log.sh '${LOG_FILE}'"
     fi
-    if [[ -n "${WATCHDOG_MAIL:-}" && -x "${HFU_BASE}/cron/bin/send.sh" ]]; then
+    if [[ "${HF_MAIL_ALERTS:-0}" == "1" && -n "${WATCHDOG_MAIL:-}" && -x "${HFU_BASE}/cron/bin/send.sh" ]]; then
         TITLE="Alerte ${module}" \
         MODULE_NAME="${module}" \
         CONTENT="${summary}

@@ -40,13 +40,16 @@ services=(
     fail2ban.service
     auditd.service
     apparmor.service
-    postfix.service
     unattended-upgrades.service
     unbound.service
     systemd-resolved.service
     hfu-unbound-root-hints.path
     hfu-boot-scan.timer
 )
+if [[ -f /opt/high-fortress-user/cron/mail.conf ]] \
+    && grep -q '^HF_MAIL_ALERTS="1"$' /opt/high-fortress-user/cron/mail.conf; then
+    services+=(postfix.service)
+fi
 for unit in "${services[@]}"; do
     enabled="$(systemctl is-enabled "${unit}" 2>/dev/null || echo absent)"
     active="$(systemctl is-active "${unit}" 2>/dev/null || echo absent)"

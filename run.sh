@@ -62,7 +62,7 @@ echo "   OS                  : ${OS_PRETTY}"
 echo ""
 echo "   • Comptes humains (uid, groupes, home, shell, mot de passe) : inchangés."
 echo "   • Snaps Firefox et Thunderbird retirés. snapd reste installé."
-echo "   • Postfix et SSH, puis la pile de sécurité."
+echo "   • SSH, puis la pile de sécurité. Postfix suit le choix des alertes e-mail."
 echo "   • Ensuite : Brave, Thunderbird (Mozilla), KeePassXC,"
 echo "     Discord et Vencord, puis les profils AppArmor de ces programmes."
 echo "   • Steam et KeePassXC restent utilisables. Dépôts APT existants intacts."
@@ -123,8 +123,10 @@ run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "system/snap-remove.sh"
 # 2. Base du poste, avant la surveillance continue.
 run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "${STEP_SYSTEM_INSTALL[@]}"
 run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "${STEP_SYSTEM_CONFIGURE[@]}"
-run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "service/postfix/install.sh"
-run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "service/postfix/configure.sh"
+if [[ "${HF_MAIL_ALERTS:-0}" == "1" ]]; then
+    run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "service/postfix/install.sh"
+    run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "service/postfix/configure.sh"
+fi
 run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "${STEP_SSH_CONFIGURE[@]}"
 # 3. Pile de sécurité. ClamAV surveille /tmp à partir d'ici.
 run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "${STEP_SECURITY_INSTALL[@]}"
@@ -154,28 +156,32 @@ run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "verify/workstation.sh"
 # /var/log, hors du périmètre AIDE. L'e-mail de test part ensuite.
 run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "service/aide/init-db.sh"
 
-title "E-mail de test"
-if [[ -z "${WATCHDOG_MAIL:-}" ]]; then
-    error "WATCHDOG_MAIL est vide : l'e-mail de fin d'installation ne peut pas partir."
-fi
-export TITLE="Installation terminée"
-export MODULE_NAME="Installation"
-export PROJECT_NAME
-export WATCHDOG_MAIL
-export CONTENT="Ceci est un message de test.
+if [[ "${HF_MAIL_ALERTS:-0}" == "1" ]]; then
+    title "E-mail de test"
+    if [[ -z "${WATCHDOG_MAIL:-}" ]]; then
+        error "WATCHDOG_MAIL est vide : l'e-mail de fin d'installation ne peut pas partir."
+    fi
+    export TITLE="Installation terminée"
+    export MODULE_NAME="Installation"
+    export PROJECT_NAME
+    export WATCHDOG_MAIL
+    export CONTENT="Ceci est un message de test.
 
 L'installation de ${PROJECT_NAME} s'est terminée correctement.
 Cet e-mail vérifie que Postfix peut joindre ${WATCHDOG_MAIL}."
-if ! bash "${DIR_INSTALL_PATH}/service/cron/watchdogs/send.sh"; then
-    error "L'e-mail de test vers ${WATCHDOG_MAIL} n'a pas été accepté par Postfix."
+    if ! bash "${DIR_INSTALL_PATH}/service/cron/watchdogs/send.sh"; then
+        error "L'e-mail de test vers ${WATCHDOG_MAIL} n'a pas été accepté par Postfix."
+    fi
+    success "E-mail de test envoyé à ${WATCHDOG_MAIL}"
+else
+    info "Alertes e-mail coupées : aucun message de fin n'est envoyé."
 fi
-success "E-mail de test envoyé à ${WATCHDOG_MAIL}"
 
 step_off "Installation terminée"
 
 info "Utilisateur intact : ${CURRENT_USER} (mot de passe non modifié)"
-info "Journaux          : ${HF_LOG_DIR}"
-info "Audit Lynis       : sudo bash ${DIR_INSTALL_PATH}/lynis.sh"
+info "Journaux           : ${HF_LOG_DIR}"
+info "Audit Lynis        : sudo bash ${DIR_INSTALL_PATH}/lynis.sh"
 echo ""
 reboot_needed=0
 [[ -f /var/run/reboot-required ]] && reboot_needed=1

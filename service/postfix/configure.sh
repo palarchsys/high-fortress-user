@@ -8,9 +8,9 @@
 #   service/postfix/configure.sh
 # =============================================================================
 
-# Relais SMTP authentifié (Gmail en TLS), écoute limitée à la machine.
-# Tous les expéditeurs locaux sont réécrits vers POSTFIX_MAIL_ADDRESS,
-# sinon Gmail refuse le message.
+# Relais SMTP authentifié en TLS, écoute limitée à la machine.
+# Le login SMTP et l'adresse From peuvent différer. Les alertes
+# partent vers From. L'hôte saisi hôte:port devient [hôte]:port.
 # =============================================================================
 
 DIR_INSTALL_PATH="${1}"
@@ -22,10 +22,18 @@ source "${DIR_INSTALL_PATH}/lib.sh"
 source "${DIR_INSTALL_PATH}/global.conf"
 require_root
 
+if [[ "${HF_MAIL_ALERTS:-0}" != "1" ]]; then
+    info "Alertes e-mail coupées : Postfix n'est pas configuré."
+    exit 0
+fi
+
 title "Identifiants SMTP"
+relay_host="${POSTFIX_MAIL_SMTP%:*}"
+relay_port="${POSTFIX_MAIL_SMTP##*:}"
+relayhost="[${relay_host}]:${relay_port}"
 install -d -m 755 /etc/postfix
 umask 077
-printf '%s %s:%s\n' "${POSTFIX_MAIL_SMTP}" "${POSTFIX_MAIL_ADDRESS}" "${POSTFIX_MAIL_PASS}" \
+printf '%s %s:%s\n' "${relayhost}" "${POSTFIX_SMTP_LOGIN}" "${POSTFIX_MAIL_PASS}" \
     > /etc/postfix/sasl_passwd
 umask 022
 run_silent postmap /etc/postfix/sasl_passwd
@@ -40,7 +48,7 @@ success "mailname = $(hostname -f)"
 title "Relais et réécriture de l'expéditeur"
 postconf -e "myhostname = $(hostname -f)"
 postconf -e "myorigin = /etc/mailname"
-postconf -e "relayhost = ${POSTFIX_MAIL_SMTP}"
+postconf -e "relayhost = ${relayhost}"
 postconf -e "smtp_sasl_auth_enable = yes"
 postconf -e "smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd"
 postconf -e "smtp_sasl_security_options = noanonymous"

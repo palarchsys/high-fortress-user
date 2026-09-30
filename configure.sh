@@ -8,11 +8,12 @@
 #   configure.sh — écrit global.conf et secrets.conf, puis lance run.sh
 # =============================================================================
 
-#   bash configure.sh           cinq questions, puis l'installation
+#   bash configure.sh           questions, puis l'installation
 #   bash configure.sh --check   contrôle les fichiers, code 0 si conformes
 #
 # Jeton : https://ubuntu.com/pro/dashboard
-# Mot de passe d'application : https://myaccount.google.com/apppasswords
+# Les alertes e-mail sont au choix. Le mot de passe demandé est celui
+# d'application du fournisseur, jamais le mot de passe du compte.
 # =============================================================================
 
 set -euo pipefail
@@ -26,11 +27,11 @@ source "${DIR_SCRIPT}/lib.sh"
 usage() {
     cat << 'EOF'
 Usage :
-  sudo bash configure.sh           cinq questions, puis l'installation
+  sudo bash configure.sh           questions, puis l'installation
   bash configure.sh --check        contrôle les fichiers, code 0 si conformes
 
-Adresse Gmail seulement. Entrée conserve une valeur déjà enregistrée.
-Un secret s'affiche en astérisques, puis une seconde ligne demande la confirmation.
+Le jeton Ubuntu Pro est obligatoire. Les alertes e-mail sont au choix.
+Un mot de passe s'affiche en astérisques, puis une seconde ligne demande la confirmation.
 EOF
 }
 
@@ -65,9 +66,10 @@ hfu_secret_line() {
     hfu_read_stars "${dest}"
 }
 
-# __kind : pro_token | gmail | secret | smtp
+# __kind : pro_token | email | secret | smtp
 # Un secret s'affiche en astérisques et se confirme sur la ligne suivante.
 # Entrée vide reprend la valeur déjà connue, sans la réafficher.
+# Les champs e-mail sont posés à vide avant l'appel : rien n'est proposé.
 hfu_prompt() {
     local __var="$1" __label="$2" __example="$3" __default="$4" __kind="$5" __hint="$6"
     local value="" confirm="" attempt current="" width
@@ -92,19 +94,20 @@ hfu_prompt() {
                 fi
             fi
         else
-            if [[ -n "${__default}" ]]; then
-                printf '   \e[34m➤\e[0m [%s] ' "${__default}" >&2
-            else
-                printf '   \e[34m➤\e[0m ' >&2
-            fi
+            width="${#__label}"
+            [[ "${width}" -lt 12 ]] && width=12
+            printf '         \e[34m%*s\e[0m : ' "${width}" "${__label}" >&2
             IFS= read -r value || error "Entrée interrompue"
-            [[ -z "${value}" ]] && value="${__default}"
+            value="${value#"${value%%[![:space:]]*}"}"
+            value="${value%"${value##*[![:space:]]}"}"
+            if [[ -z "${value}" && -n "${__default}" ]]; then
+                value="${__default}"
+            fi
         fi
         local ok=0
         case "${__kind}" in
             pro_token) hfu_is_pro_token "${value}" && ok=1 ;;
             email) hfu_is_email "${value}" && ok=1 ;;
-            gmail) hfu_is_gmail "${value}" && ok=1 ;;
             secret) hfu_is_secret "${value}" && ok=1 ;;
             smtp) hfu_is_smtp "${value}" && ok=1 ;;
         esac
@@ -180,12 +183,8 @@ violet "════════════════════════
 violet " High-Fortress User — configuration                                               "
 violet "═════════════════════════════════════════════════════════════════════════════════"
 
-title "Jeton et e-mail"
-info "Cinq réponses. Adresses Gmail seulement."
+title "Jeton Ubuntu Pro"
 info "Jeton : https://ubuntu.com/pro/dashboard"
-info "Mot de passe d'application : https://myaccount.google.com/apppasswords"
-
-title "1/5 — Jeton Ubuntu Pro"
 info "Lettres et chiffres, sans espace."
 hfu_prompt UBUNTU_PRO_TOKEN \
     "Jeton Ubuntu Pro" \
@@ -194,41 +193,106 @@ hfu_prompt UBUNTU_PRO_TOKEN \
     pro_token \
     "Lettres et chiffres seulement, entre 6 et 100, sans espace."
 
-title "2/5 — Adresse Gmail qui envoie"
-info "Entrée garde la valeur proposée."
-hfu_prompt POSTFIX_MAIL_ADDRESS \
-    "Adresse Gmail qui envoie" \
-    "prenom.nom@gmail.com" \
-    "" \
-    gmail \
-    "L'adresse doit se terminer par @gmail.com ou @googlemail.com."
+# Les champs mail ne reprennent jamais une valeur déjà enregistrée.
+hfu_clear_mail() {
+    POSTFIX_SMTP_LOGIN=""
+    POSTFIX_MAIL_ADDRESS=""
+    POSTFIX_MAIL_PASS=""
+    POSTFIX_MAIL_SMTP=""
+    WATCHDOG_MAIL=""
+}
 
-title "3/5 — Mot de passe d'application"
-info "16 lettres. Les espaces sont retirés."
-hfu_prompt POSTFIX_MAIL_PASS \
-    "Mot de passe d'application" \
-    "abcdefghijklmnop" \
-    "" \
-    secret \
-    "Au moins 16 caractères, sans espace."
+# Essai d'envoi. Succès : sortie 0 et un code SMTP 250. Le mot de passe
+# n'est pas affiché.
+hfu_swaks_probe() {
+    local out="" rc=0 safe=""
+    if ! command -v swaks >/dev/null 2>&1; then
+        info "Installation de swaks pour l'essai d'envoi."
+        run_silent_apt install -y swaks
+    fi
+    out="$(swaks \
+        --to "${POSTFIX_MAIL_ADDRESS}" \
+        --from "${POSTFIX_MAIL_ADDRESS}" \
+        --server "${POSTFIX_MAIL_SMTP}" \
+        --auth LOGIN \
+        --auth-user "${POSTFIX_SMTP_LOGIN}" \
+        --auth-password "${POSTFIX_MAIL_PASS}" \
+        --tls \
+        --timeout 25 \
+        2>&1)" || rc=$?
+    safe="${out//${POSTFIX_MAIL_PASS}/[masqué]}"
+    if [[ "${rc}" -eq 0 ]] && printf '%s\n' "${safe}" | grep -qE '(^|[^0-9])250([^0-9]|$)'; then
+        return 0
+    fi
+    echo ""
+    warn "Les données e-mail ne sont pas bonnes."
+    printf '%s\n' "${safe}" | tail -n 12 >&2
+    return 1
+}
 
-title "4/5 — Serveur SMTP"
-info "Entrée garde la valeur proposée."
-hfu_prompt POSTFIX_MAIL_SMTP \
-    "Serveur SMTP" \
-    "[smtp.gmail.com]:587" \
-    "[smtp.gmail.com]:587" \
-    smtp \
-    "Laissez [smtp.gmail.com]:587."
-
-title "5/5 — Adresse Gmail qui reçoit"
-info "Entrée garde la valeur proposée."
-hfu_prompt WATCHDOG_MAIL \
-    "Adresse Gmail qui reçoit" \
-    "alertes@gmail.com" \
-    "${POSTFIX_MAIL_ADDRESS}" \
-    gmail \
-    "L'adresse doit se terminer par @gmail.com ou @googlemail.com."
+title "Alertes par e-mail"
+info "Activer les alertes par e-mails (Y/N)."
+while true; do
+    echo ""
+    printf '         \e[34m%*s\e[0m : ' 12 "Activer" >&2
+    IFS= read -r mail_choice || error "Entrée interrompue"
+    case "${mail_choice,,}" in
+        Y|y)
+            hfu_clear_mail
+            title "Serveur SMTP"
+            info "Forme hôte:port, par exemple smtp-mail.outlook.com:587."
+            hfu_prompt POSTFIX_MAIL_SMTP \
+                "Serveur" \
+                "smtp-mail.outlook.com:587" \
+                "" \
+                smtp \
+                "Indiquez le serveur et le port, sans crochets. Exemple : smtp-mail.outlook.com:587."
+            title "Login SMTP"
+            info "Adresse email servant de login."
+            hfu_prompt POSTFIX_SMTP_LOGIN \
+                "Login" \
+                "toi@exemple.com" \
+                "" \
+                email \
+                "Indiquez l'adresse e-mail du compte SMTP."
+            title "Mot de passe d'application"
+            info "Les espaces sont retirés. Une seconde ligne demande la confirmation."
+            hfu_prompt POSTFIX_MAIL_PASS \
+                "Password" \
+                "mot-de-passe-application" \
+                "" \
+                secret \
+                "Mot de passe d'application : au moins 8 caractères, sans espace."
+            title "Expéditeur"
+            info "Les alertes partent vers cette même adresse."
+            hfu_prompt POSTFIX_MAIL_ADDRESS \
+                "From" \
+                "toi@exemple.com" \
+                "" \
+                email \
+                "Indiquez l'adresse e-mail expéditeur."
+            WATCHDOG_MAIL="${POSTFIX_MAIL_ADDRESS}"
+            title "Essai d'envoi"
+            info "swaks vérifie le serveur, le login, le mot de passe d'application et l'expéditeur."
+            if hfu_swaks_probe; then
+                HF_MAIL_ALERTS=1
+                success "Essai d'envoi accepté."
+                break
+            fi
+            hfu_clear_mail
+            info "Retour au choix des alertes."
+            ;;
+        n|non)
+            hfu_clear_mail
+            HF_MAIL_ALERTS=0
+            success "Alertes e-mail coupées. Les contrôles partiront sans envoi."
+            break
+            ;;
+        *)
+            warn "Répondez o ou n."
+            ;;
+    esac
+done
 
 hfu_write_global_conf "${DIR_SCRIPT}/global.conf"
 hfu_write_secrets_conf "${DIR_SCRIPT}/secrets.conf"
@@ -239,3 +303,4 @@ fi
 
 success "Configuration enregistrée"
 exec bash "${DIR_SCRIPT}/run.sh"
+echo ""

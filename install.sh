@@ -9,7 +9,7 @@
 # =============================================================================
 
 # Commande :
-#   sudo apt-get install curl -y
+#   sudo apt-get install git curl swaks -y
 #   curl -fsSL https://raw.githubusercontent.com/palarchsys/high-fortress-user/main/install.sh | sudo bash
 #
 # Le script :
@@ -89,7 +89,9 @@ if [[ "${keep}" != "1" ]]; then
 fi
 
 if ! bash "${INSTALL_ROOT}/configure.sh" --check; then
-    exit 1
+    printf '\nLa configuration enregistrée ne passe plus le contrôle.\n' >&2
+    printf 'Lancement des questions.\n\n' >&2
+    exec bash "${INSTALL_ROOT}/configure.sh"
 fi
 
 cd "${INSTALL_ROOT}"
