@@ -8,8 +8,8 @@
 #   configure.sh — écrit global.conf et secrets.conf, puis lance run.sh
 # =============================================================================
 
-#   bash configure.sh           questions, puis l'installation
-#   bash configure.sh --check   contrôle les fichiers, code 0 si conformes
+#   sudo ./hf configure     questions, puis l'installation
+#   ./hf check              contrôle les fichiers, code 0 si conformes
 #
 # Jeton : https://ubuntu.com/pro/dashboard
 # Les alertes e-mail sont au choix. Le mot de passe demandé est celui
@@ -18,17 +18,17 @@
 
 set -euo pipefail
 
-DIR_SCRIPT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+DIR_SCRIPT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck disable=SC1091
-source "${DIR_SCRIPT}/config-check.sh"
+source "${DIR_SCRIPT}/scripts/config-check.sh"
 # shellcheck disable=SC1091
-source "${DIR_SCRIPT}/lib.sh"
+source "${DIR_SCRIPT}/core/lib.sh"
 
 usage() {
     cat << 'EOF'
 Usage :
-  sudo bash configure.sh           questions, puis l'installation
-  bash configure.sh --check        contrôle les fichiers, code 0 si conformes
+  sudo ./hf configure          questions, puis l'installation
+  ./hf check                   contrôle les fichiers, code 0 si conformes
 
 Le jeton Ubuntu Pro est obligatoire. Les alertes e-mail sont au choix.
 Un mot de passe s'affiche en astérisques, puis une seconde ligne demande la confirmation.
@@ -142,7 +142,7 @@ fi
 # curl | sudo bash a déjà lu le script sur l'entrée standard.
 if [[ ! -t 0 ]]; then
     if [[ ! -r /dev/tty ]]; then
-        error "Pas de terminal pour les questions. Lancez : sudo bash ${DIR_SCRIPT}/configure.sh"
+        error "Pas de terminal pour les questions. Lancez : sudo bash ${DIR_SCRIPT}/hf configure"
     fi
     exec </dev/tty
 fi
@@ -302,5 +302,5 @@ if ! hfu_require_prepared_config "${DIR_SCRIPT}"; then
 fi
 
 success "Configuration enregistrée"
-exec bash "${DIR_SCRIPT}/run.sh"
+exec bash "${DIR_SCRIPT}/scripts/run.sh"
 echo ""

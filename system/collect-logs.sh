@@ -15,7 +15,7 @@ fi
 export DIR_INSTALL_PATH
 
 # shellcheck disable=SC1091
-source "${DIR_INSTALL_PATH}/lib.sh"
+source "${DIR_INSTALL_PATH}/core/lib.sh"
 # shellcheck disable=SC1091
 source "${DIR_INSTALL_PATH}/global.conf"
 

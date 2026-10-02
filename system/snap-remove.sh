@@ -22,7 +22,7 @@ export DIR_INSTALL_PATH
 SERVER_TYPE="${2}"
 export SERVER_TYPE
 
-source "${DIR_INSTALL_PATH}/lib.sh"
+source "${DIR_INSTALL_PATH}/core/lib.sh"
 source "${DIR_INSTALL_PATH}/global.conf"
 require_root
 detect_current_user

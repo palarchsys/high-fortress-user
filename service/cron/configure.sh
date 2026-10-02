@@ -20,7 +20,7 @@ export SERVER_TYPE
 # shellcheck disable=SC2155
 readonly DIR_SCRIPT_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 
-source "${DIR_INSTALL_PATH}/lib.sh"
+source "${DIR_INSTALL_PATH}/core/lib.sh"
 source "${DIR_INSTALL_PATH}/global.conf"
 require_root
 
@@ -33,7 +33,8 @@ ensure_dir "${CONFIG_BASE_DIR}/cron/alerts" 750
 
 cp -a "${DIR_SCRIPT_PATH}/watchdogs/." "${CONFIG_BASE_DIR}/cron/bin/"
 chmod 750 "${CONFIG_BASE_DIR}/cron/bin/"*.sh
-chmod 644 "${CONFIG_BASE_DIR}/cron/bin/mail.html"
+hf_source_core mail.sh
+hf_install_mail_templates "${CONFIG_BASE_DIR}/cron/bin"
 # Destinataire des alertes, sans le mot de passe SMTP.
 # HF_MAIL_ALERTS=0 : les contrôles tournent, send.sh n'est pas appelé.
 umask 077
@@ -41,6 +42,7 @@ cat > "${CONFIG_BASE_DIR}/cron/mail.conf" << EOF
 HF_MAIL_ALERTS="${HF_MAIL_ALERTS:-0}"
 WATCHDOG_MAIL="${WATCHDOG_MAIL:-}"
 PROJECT_NAME="${PROJECT_NAME}"
+MAIL_TEMPLATE="${MAIL_TEMPLATE:-mail.html}"
 EOF
 umask 022
 chmod 600 "${CONFIG_BASE_DIR}/cron/mail.conf"

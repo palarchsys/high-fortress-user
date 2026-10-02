@@ -133,6 +133,9 @@ hf_publish_repo_logs() {
     done < <(find "$path" -print 2>/dev/null)
 }
 
+# Ancien nom, encore appelé par verify/.
+hf_publish_install_dir_logs() { hf_publish_repo_logs "$@"; }
+
 hf_log_index_append() {
     local step="$1"
     local exit_code="$2"

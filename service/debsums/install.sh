@@ -19,7 +19,7 @@ SERVER_TYPE="${2}"
 export SERVER_TYPE
 # shellcheck disable=SC2155
 readonly DIR_SCRIPT_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
-source "${DIR_INSTALL_PATH}/lib.sh"
+source "${DIR_INSTALL_PATH}/core/lib.sh"
 source "${DIR_INSTALL_PATH}/global.conf"
 require_root
 title "Installation debsums"

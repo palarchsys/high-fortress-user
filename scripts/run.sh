@@ -10,7 +10,7 @@
 
 # Point d'entrée root. Les questions sont posées par configure.sh.
 # Ce script refuse de démarrer si global.conf et secrets.conf ne sont
-# pas conformes (bash configure.sh --check).
+# pas conformes (./hf check).
 #
 # Ordre :
 #   1. Snaps Firefox et Thunderbird seulement ; snapd reste
@@ -24,15 +24,15 @@
 # =============================================================================
 
 # shellcheck disable=SC2155
-DIR_INSTALL_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+DIR_INSTALL_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." &>/dev/null && pwd)"
 export DIR_INSTALL_PATH
 
 # shellcheck disable=SC1091
-source "${DIR_INSTALL_PATH}/config-check.sh"
+source "${DIR_INSTALL_PATH}/scripts/config-check.sh"
 if ! hfu_require_prepared_config "${DIR_INSTALL_PATH}"; then
     printf '\nInstallation refusée. Préparez les deux fichiers :\n' >&2
-    printf '  bash %s/configure.sh\n' "${DIR_INSTALL_PATH}" >&2
-    printf '  bash %s/configure.sh --check\n' "${DIR_INSTALL_PATH}" >&2
+    printf '  bash %s/hf configure\n' "${DIR_INSTALL_PATH}" >&2
+    printf '  bash %s/hf check\n' "${DIR_INSTALL_PATH}" >&2
     exit 1
 fi
 readonly DIR_INSTALL_PATH
@@ -42,9 +42,10 @@ clear
 # shellcheck disable=SC1091
 source "${DIR_INSTALL_PATH}/global.conf"
 # shellcheck disable=SC1091
-source "${DIR_INSTALL_PATH}/lib.sh"
+source "${DIR_INSTALL_PATH}/core/lib.sh"
 
 require_root
+chmod 755 "${DIR_INSTALL_PATH}/hf"
 detect_os
 detect_current_user
 detect_ssh_port
@@ -181,7 +182,7 @@ step_off "Installation terminée"
 
 info "Utilisateur intact : ${CURRENT_USER} (mot de passe non modifié)"
 info "Journaux           : ${HF_LOG_DIR}"
-info "Audit Lynis        : sudo bash ${DIR_INSTALL_PATH}/lynis.sh"
+info "Audit Lynis        : sudo bash ${DIR_INSTALL_PATH}/hf lynis"
 echo ""
 reboot_needed=0
 [[ -f /var/run/reboot-required ]] && reboot_needed=1

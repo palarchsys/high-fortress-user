@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Résolution de core/ pour le monodépôt (../core) et pour une archive
-# publiée (./core à côté de lib.sh). HF_PRODUCT_ROOT est posé par l'appelant.
+# publiée (./core à la racine du produit). HF_PRODUCT_ROOT est cette racine.
 
 hf_source_core() {
     local name="$1"
