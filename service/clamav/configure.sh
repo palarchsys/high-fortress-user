@@ -116,9 +116,14 @@ if ! visudo -cf /etc/sudoers.d/high-fortress-user-clamav >/dev/null; then
     error "sudoers ClamAV invalide"
 fi
 
-# L'unité Ubuntu s'appelle clamav-clamonacc et déplace les fichiers reconnus
-# vers /root/quarantine. Sans ce dossier, le processus s'arrête tout de suite.
-install -d -m 700 /root/quarantine
+# L'unité Ubuntu déplace les fichiers reconnus vers /root/quarantine.
+# Le serveur utilise /var/lib/clamav/quarantine : même dossier ici.
+# Sans ce dossier, clamonacc s'arrête tout de suite.
+if id clamav >/dev/null 2>&1; then
+    install -d -m 750 -o clamav -g clamav /var/lib/clamav/quarantine
+else
+    install -d -m 750 /var/lib/clamav/quarantine
+fi
 # Le paquet a pu remplacer l'unité depuis le dernier rechargement.
 run_silent systemctl daemon-reload
 try_silent systemctl unmask clamav-clamonacc.service clamonacc.service
@@ -133,6 +138,8 @@ fi
 install -d -m 755 "/etc/systemd/system/${clam_unit}.d"
 tee "/etc/systemd/system/${clam_unit}.d/hfu.conf" > /dev/null << 'EOF'
 [Service]
+ExecStart=
+ExecStart=/usr/sbin/clamonacc -F --log=/var/log/clamav/clamonacc.log --move=/var/lib/clamav/quarantine
 Restart=on-failure
 RestartSec=5
 EOF

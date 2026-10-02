@@ -16,6 +16,19 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
     exit 1
 fi
 
+HF_PRODUCT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "${HF_PRODUCT_ROOT}/../core/bootstrap.sh" ]]; then
+    # shellcheck disable=SC1091
+    source "${HF_PRODUCT_ROOT}/../core/bootstrap.sh"
+elif [[ -f "${HF_PRODUCT_ROOT}/core/bootstrap.sh" ]]; then
+    # shellcheck disable=SC1091
+    source "${HF_PRODUCT_ROOT}/core/bootstrap.sh"
+else
+    printf 'bootstrap core introuvable depuis %s\n' "${HF_PRODUCT_ROOT}" >&2
+    exit 1
+fi
+hf_source_core config-validators.sh
+
 HFU_CONFIG_ERRORS=()
 
 hfu_config_reset() {
@@ -38,48 +51,8 @@ hfu_config_emit() {
     return 1
 }
 
-# Chemin absolu sans « .. » ni espace : un chemin de configuration, pas une option.
-hfu_is_abs_path() {
-    [[ "$1" =~ ^/[A-Za-z0-9._/-]+$ && "$1" != *..* ]]
-}
-
-# Entier décimal inclus dans [min, max]. Le 10# évite l'interprétation octale.
-hfu_is_port() {
-    local min="$2" max="$3"
-    [[ "$1" =~ ^[0-9]+$ ]] || return 1
-    (( 10#$1 >= min && 10#$1 <= max )) || return 1
-    return 0
-}
-
-hfu_is_email() {
-    [[ "$1" =~ ^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$ ]]
-}
-
-# Mot de passe d'application : assez long, sans espace ni caractère
-# qui casserait une ligne CLE="valeur".
-hfu_is_secret() {
-    local value="$1" i c tick=$'\x60'
-    [[ "${#value}" -ge 8 && "${#value}" -le 128 ]] || return 1
-    for ((i = 0; i < ${#value}; i++)); do
-        c="${value:i:1}"
-        case "${c}" in
-            [[:space:]] | '"' | "'" | '$' | '\' | "${tick}")
-                return 1
-                ;;
-        esac
-    done
-    return 0
-}
-
-# hôte:port, sans crochets. Exemple : smtp-mail.outlook.com:587
-hfu_is_smtp() {
-    local host port
-    [[ "$1" =~ ^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?:[0-9]+$ ]] || return 1
-    host="${1%:*}"
-    port="${1##*:}"
-    [[ "${host}" != *..* && "${host}" != .* && "${host}" != *. ]] || return 1
-    hfu_is_port "${port}" 1 65535
-}
+# hfu_is_abs_path, hfu_is_port, hfu_is_email, hfu_is_secret, hfu_is_smtp :
+# core/config-validators.sh (alias conservés).
 
 # Jeton Ubuntu Pro : lettres et chiffres, assez long pour ne pas être un mot de passe court.
 hfu_is_pro_token() {

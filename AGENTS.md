@@ -1,5 +1,7 @@
 # Agents
 
+Monodépôt : la carte est `../AGENTS.md`. Ce fichier reste la loi de `user/`.
+
 Durcissement d'un poste Ubuntu 26.04. Le flux est `configure.sh`, puis `config-check.sh`, puis `run.sh`. `install.sh` télécharge l'archive publique et ne lance `run.sh` que si le contrôle réussit.
 
 ## Interdits

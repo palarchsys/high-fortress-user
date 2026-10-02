@@ -6,6 +6,9 @@ secrets.conf
 # lorsque DEBUG_INSTALL_LOGS=1 dans global.conf.
 logs/
 
+# Rapports du banc statique.
+test/output/
+
 # Recette de verify/workstation.sh lorsqu'elle est lancée
 # depuis le dossier des sources, sans journal d'installation.
 verify-report-*.md
@@ -13,6 +16,9 @@ verify-report-*.md
 # Anciennes recettes texte, si un dossier en contient encore.
 verify-report-*.txt
 verify-report-*.tsv
+
+# Lien local vers ../core. La publication copie les fichiers, pas le lien.
+/core
 
 # Éditeurs et environnements locaux.
 .idea/

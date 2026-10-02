@@ -17,214 +17,21 @@
 
 set -euo pipefail
 
-blue()    { printf "\e[34m%s\e[0m\n"               "$*" >&2; }
-violet()  { printf "\e[35m%s\e[0m\n"               "$*" >&2; }
-red()     { printf "\e[31m%s\e[0m\n"               "$*" >&2; }
-info()    { printf "   \e[34m   [INFO]\e[0m  %s\n" "$*" >&2; }
-success() { printf "   \e[32m[SUCCESS]\e[0m  %s\n" "$*" >&2; }
-warn()    { printf "   \e[33m[WARNING]\e[0m  %s\n" "$*" >&2; }
-debug()   { printf "   \e[90m  [DEBUG]\e[0m  %s\n" "$*" >&2; }
 
-require_root() {
-    [[ "$EUID" -eq 0 ]] || error "Ce script doit être exécuté avec sudo ou en root."
-}
-
-step_on (){
-  # Le bandeau et la ligne vide partent sur la même sortie que les
-  # messages [SUCCESS], sinon le titre et le premier message se collent.
-  echo "" >&2
-  violet "═════════════════════════════════════════════════════════════════════════════════"
-  violet " # $*"
-  violet "═══ ↓ ↓ ═════════════════════════════════════════════════════════════════ ↓ ↓ ═══"
-}
-
-step_off (){
-  echo ""
-  violet "═══ ↑ ↑ ═════════════════════════════════════════════════════════════════ ↑ ↑ ═══"
-  violet " # $*"
-  violet "═════════════════════════════════════════════════════════════════════════════════"
-  echo ""
-}
-
-title (){
-  echo ""
-  blue "  -----------------------------------------------------------------------------"
-  blue "   $*"
-  blue "  -----------------------------------------------------------------------------"
-  echo ""
-}
-
-error (){
-  echo ""
-  red "  -----------------------------------------------------------------------------"
-  red "   $*"
-  red "  -----------------------------------------------------------------------------"
-  echo ""
-  if [[ -n "${HF_LOG_DIR:-}" ]]; then
-      printf '%s\n' "$*" >> "${HF_LOG_DIR}/errors.log" 2>/dev/null || true
-      info "Journaux : ${HF_LOG_DIR}"
-  fi
-  exit 1
-}
-
-run_silent() {
-    local cmd_output
-    local exit_code=0
-
-    cmd_output=$("$@" 2>&1) || exit_code=$?
-
-    if [[ $exit_code -eq 0 ]]; then
-        return 0
-    fi
-
-    error "$cmd_output"
-}
-
-try_silent() {
-    local cmd_output
-    local exit_code=0
-
-    cmd_output=$("$@" 2>&1) || exit_code=$?
-    if [[ $exit_code -ne 0 && -n "$cmd_output" ]]; then
-        debug "$cmd_output"
-    fi
-    return 0
-}
-
-run_silent_apt() {
-    local cmd_output
-    local exit_code=0
-    local attempt=0
-    local max_attempts=30
-
-    sleep 1
-
-    while [[ $attempt -lt $max_attempts ]]; do
-        # stdin fermé : une question debconf ou needrestart ne peut pas
-        # bloquer l'installation sans texte visible.
-        cmd_output=$(DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt-get "$@" </dev/null 2>&1) || exit_code=$?
-
-        if [[ $exit_code -eq 0 ]]; then
-            return 0
-        fi
-
-        if echo "$cmd_output" | grep -qE "Could not get lock|verrou|lock-frontend|unattended-upgr"; then
-            attempt=$((attempt + 1))
-            exit_code=0
-            sleep 2
-            continue
-        fi
-
-        error "$cmd_output"
-    done
-
-    error "Timeout : verrou apt toujours occupé après ${max_attempts} tentatives !"
-}
-
-run_steps() {
-    local dir_install_path="$1"
-    local server_type="$2"
-    shift 2
-    local -a steps=("$@")
-
-    [[ ${#steps[@]} -eq 0 ]] && error "Aucun step fourni"
-    [[ -z "$dir_install_path" || ! -d "$dir_install_path" ]] && error "dir_install_path invalide : '$dir_install_path'"
-
-    for step in "${steps[@]}"; do
-        local full_path="${dir_install_path}/${step}"
-        step_on "Exécution de ${step}"
-
-        if [[ ! -f "$full_path" ]]; then
-            error "Fichier introuvable : $full_path"
-        fi
-
-        local step_exit=0
-        if [[ -n "${HF_LOG_DIR:-}" ]]; then
-            local step_log="${HF_LOG_DIR}/steps/$(echo "$step" | tr '/' '-').log"
-            mkdir -p "${HF_LOG_DIR}/steps"
-            set +e
-            bash "$full_path" "$dir_install_path" "$server_type" 2>&1 | tee -a "$step_log"
-            step_exit=${PIPESTATUS[0]}
-            set -e
-        else
-            bash "$full_path" "$dir_install_path" "$server_type"
-            step_exit=$?
-        fi
-
-        if [[ $step_exit -ne 0 ]]; then
-            exit $step_exit
-        fi
-    done
-
-    return 0
-}
-
-add_line_if_missing() {
-    local file="$1"
-    local line="$2"
-    local comment="${3:-}"
-    if ! grep -qF "$line" "$file" 2>/dev/null; then
-        [[ -n "$comment" ]] && echo "$comment" >> "$file"
-        echo "$line" >> "$file"
-    fi
-}
-
-backup_file_once() {
-    local file="$1"
-    local backup="${file}.bak"
-    [[ -f "$file" ]] || return 0
-    [[ -f "$backup" ]] && return 0
-    cp -a "$file" "$backup" && success "Backup créé : $backup"
-}
-
-ensure_dir() {
-    local mode="700"
-    local user="root"
-    local group="root"
-    local dirs=()
-
-    while [ $# -gt 0 ]; do
-        case "$1" in
-            [0-9]*)
-                mode="$1"
-                shift
-                break
-                ;;
-            *)
-                dirs+=("$1")
-                shift
-                ;;
-        esac
-    done
-
-    if [ $# -ge 1 ]; then
-        user="$1"
-    fi
-    if [ $# -ge 2 ]; then
-        group="$2"
-    fi
-
-    for dir in "${dirs[@]}"; do
-        mkdir -p "$dir"
-        chmod "$mode" "$dir"
-
-        local effective_user="$user"
-        local effective_group="$group"
-
-        if ! id -u "$effective_user" >/dev/null 2>&1; then
-            effective_user="root"
-        fi
-        if ! getent group "$effective_group" >/dev/null 2>&1; then
-            effective_group="root"
-        fi
-
-        chown "${effective_user}:${effective_group}" "$dir" 2>/dev/null || true
-    done
-}
-
-user_exists() {
-    id "$1" >/dev/null 2>&1
-}
+HF_PRODUCT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "${HF_PRODUCT_ROOT}/../core/bootstrap.sh" ]]; then
+    # shellcheck disable=SC1091
+    source "${HF_PRODUCT_ROOT}/../core/bootstrap.sh"
+elif [[ -f "${HF_PRODUCT_ROOT}/core/bootstrap.sh" ]]; then
+    # shellcheck disable=SC1091
+    source "${HF_PRODUCT_ROOT}/core/bootstrap.sh"
+else
+    printf 'bootstrap core introuvable depuis %s\n' "${HF_PRODUCT_ROOT}" >&2
+    exit 1
+fi
+hf_source_core log.sh
+hf_source_core exec.sh
+hf_source_core fs.sh
 
 # -----------------------------------------------------------------------------
 # Détection workstation
@@ -298,10 +105,13 @@ snapshot_human_accounts() {
     mkdir -p /var/lib/high-fortress-user/accounts
     chmod 700 /var/lib/high-fortress-user/accounts
     write_human_account_table "${HFU_ACCOUNT_SNAPSHOT}"
-    if [[ -n "${HF_LOG_DIR:-}" ]]; then
-        mkdir -p "${HF_LOG_DIR}/accounts"
-        chmod 700 "${HF_LOG_DIR}/accounts"
-        cp -a "${HFU_ACCOUNT_SNAPSHOT}" "${HF_LOG_DIR}/accounts/human.tsv"
+    # Empreinte shadow : uniquement sur la machine, mode 600.
+    # Jamais dans la copie du dossier partagé.
+    if [[ -n "${HF_LOG_SYS:-}" ]]; then
+        mkdir -p "${HF_LOG_SYS}/accounts"
+        chmod 700 "${HF_LOG_SYS}/accounts"
+        cp -a "${HFU_ACCOUNT_SNAPSHOT}" "${HF_LOG_SYS}/accounts/human.tsv"
+        chmod 600 "${HF_LOG_SYS}/accounts/human.tsv"
     fi
     local n
     n="$(wc -l < "${HFU_ACCOUNT_SNAPSHOT}" | tr -d ' ')"
@@ -390,104 +200,27 @@ assert_no_password_mutation() {
     esac
 }
 
-# -----------------------------------------------------------------------------
-# Journaux d'installation
-# -----------------------------------------------------------------------------
 
-init_install_log() {
-    local root="${DIR_INSTALL_PATH:-.}"
-    local stamp name
-    stamp="$(date '+%Y%m%d-%H%M%S')"
-    name="install-${stamp}-${SERVER_TYPE:-workstation}"
+# Snapshot propre au poste. Pas de jeton Ubuntu Pro dans le fichier.
+hfu_collect_product_logs() {
+    local snap="$1"
+    {
+        echo "=== unbound ==="
+        systemctl status unbound --no-pager -l 2>&1 | head -n 80 || true
+        echo "=== resolvectl ==="
+        resolvectl status 2>&1 | head -n 120 || true
+    } > "${snap}/unbound.txt" 2>&1 || true
 
-    HF_LOG_SYS="/var/log/${PROJECT_SLUG:-high-fortress-user}/${name}"
-    mkdir -p "${HF_LOG_SYS}/steps" "${HF_LOG_SYS}/snapshot"
-    # Le dossier de journal reste lisible par le compte du poste,
-    # pour pouvoir relire le rapport sans être root.
-    chmod 755 "/var/log/${PROJECT_SLUG:-high-fortress-user}" "${HF_LOG_SYS}" "${HF_LOG_SYS}/steps" "${HF_LOG_SYS}/snapshot" 2>/dev/null || true
-
-    if [[ "${DEBUG_INSTALL_LOGS:-0}" = "1" ]]; then
-        HF_LOG_DIR="${root}/logs/${name}"
-        mkdir -p "${HF_LOG_DIR}/steps" "${HF_LOG_DIR}/snapshot"
-    else
-        HF_LOG_DIR="${HF_LOG_SYS}"
+    if command -v pro >/dev/null 2>&1; then
+        pro status 2>&1 | sed -E 's/[A-Za-z0-9]{20,}/[redacted]/g' > "${snap}/ubuntu-pro.txt" || true
     fi
 
-    HF_LOG_FILE="${HF_LOG_DIR}/install.log"
-    : > "${HF_LOG_FILE}"
-    export HF_LOG_DIR HF_LOG_FILE HF_LOG_SYS
-
-    {
-        echo "High-Fortress User install log"
-        echo "date        : $(date -Iseconds)"
-        echo "hostname    : $(hostname 2>/dev/null || echo '?')"
-        echo "user        : ${CURRENT_USER:-}"
-        echo "SERVER_TYPE : ${SERVER_TYPE:-}"
-        echo "DEBUG_INSTALL_LOGS : ${DEBUG_INSTALL_LOGS:-0}"
-        echo "DIR         : ${root}"
-        echo "uname       : $(uname -a 2>/dev/null || true)"
-    } | tee "${HF_LOG_DIR}/meta.txt" >/dev/null
-
-    if [[ "${HF_LOG_DIR}" != "${HF_LOG_SYS}" ]]; then
-        exec > >(tee -a "${HF_LOG_FILE}" "${HF_LOG_SYS}/install.log") 2>&1
-        info "Journaux (debug dépôt) : ${HF_LOG_DIR}"
-        info "Journaux (machine)     : ${HF_LOG_SYS}"
-    else
-        exec > >(tee -a "${HF_LOG_FILE}") 2>&1
-        info "Journaux (machine) : ${HF_LOG_DIR}"
-    fi
-}
-
-collect_install_logs() {
-    [[ -n "${HF_LOG_DIR:-}" && -d "${HF_LOG_DIR}" ]] || return 0
-    [[ "${HF_LOGS_COLLECTED:-0}" == "1" ]] && return 0
-    HF_LOGS_COLLECTED=1
-    export HF_LOGS_COLLECTED
-
-    local snap="${HF_LOG_DIR}/snapshot"
-    mkdir -p "$snap"
-
-    info "Copie des journaux système vers ${snap} ..."
-
-    {
-        hostnamectl 2>/dev/null || hostname
-        echo "---"
-        date -Iseconds
-        echo "---"
-        uptime
-        echo "---"
-        uname -a
-        echo "---"
-        echo "CURRENT_USER=${CURRENT_USER:-}"
-    } > "${snap}/host.txt" 2>&1 || true
-
-    {
-        echo "=== ip ==="
-        ip -br a 2>/dev/null || true
-        echo "=== df ==="
-        df -h 2>/dev/null || true
-        echo "=== units failed ==="
-        systemctl --failed --no-pager 2>/dev/null || true
-        echo "=== kvm ==="
-        ls -l /dev/kvm 2>/dev/null || true
-        echo "=== virsh ==="
-        virsh list --all 2>/dev/null || true
-    } > "${snap}/system.txt" 2>&1 || true
-
-    journalctl -b --no-pager -n 2000 > "${snap}/journalctl-boot.txt" 2>&1 || true
-
-    ufw status verbose > "${snap}/ufw-status.txt" 2>&1 || true
-    sshd -T > "${snap}/sshd-T.txt" 2>&1 || true
-    aa-status > "${snap}/apparmor-status.txt" 2>&1 || true
-
-    {
-        echo "collect_install_logs: $(date -Iseconds)"
-    } > "${snap}/COLLECTED.txt"
-
-    if [[ -n "${HF_LOG_SYS:-}" && "${HF_LOG_SYS}" != "${HF_LOG_DIR}" ]]; then
-        mkdir -p "${HF_LOG_SYS}"
-        cp -a "${HF_LOG_DIR}/." "${HF_LOG_SYS}/" 2>/dev/null || true
-    fi
+    local f
+    for f in /var/log/aide/aide.log /var/lib/aide/aide.log /opt/high-fortress-user/cron/security_logs; do
+        if [[ -f "$f" ]]; then
+            tail -n 200 "$f" > "${snap}/$(basename "$f").tail.txt" 2>/dev/null || true
+        fi
+    done
 }
 
 # Vrai si « pro status » indique que la machine est déjà rattachée à Ubuntu Pro.

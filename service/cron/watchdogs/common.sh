@@ -81,7 +81,8 @@ def format_named(name, text):
         picked = [ln for ln in lines if re.search(r"warning|infected|rootkit|suspect", ln, re.I)]
         return clip(picked or lines)
     if "clam" in low:
-        picked = [ln for ln in lines if re.search(r"FOUND|virus|infect", ln, re.I)]
+        picked = [ln for ln in lines if re.search(
+            r"FOUND|virus|infect|Signature|Fichier|Emplacement|Quarantaine", ln, re.I)]
         return clip(picked or lines)
     return clip(lines)
 
@@ -114,6 +115,9 @@ log_alert() {
     elif [[ "${HFU_DEBSUMS_IGNORE:-}" == "1" && -n "${LOG_FILE:-}" ]]; then
         note="Si les lignes de ce journal sont des faux positifs que vous reconnaissez, et qu'aucune ne révèle une anomalie, exécutez la commande ci-dessous. Elle enregistre ces fichiers. Le prochain contrôle de debsums ne les signalera plus."
         note_cmd="sudo bash ${HFU_BASE}/bin/debsums-ignore-log.sh '${LOG_FILE}'"
+    elif [[ -n "${HFU_CLAMAV_QUARANTINE:-}" ]]; then
+        note="Le fichier a été retiré de son emplacement d'origine. Pour l'afficher sans le remettre en place, copiez la commande ci-dessous."
+        note_cmd="$(python3 -c 'import shlex, sys; print("sudo ls -la -- " + shlex.quote(sys.argv[1]))' "${HFU_CLAMAV_QUARANTINE}")"
     fi
     if [[ "${HF_MAIL_ALERTS:-0}" == "1" && -n "${WATCHDOG_MAIL:-}" && -x "${HFU_BASE}/cron/bin/send.sh" ]]; then
         TITLE="Alerte ${module}" \
