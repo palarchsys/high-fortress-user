@@ -21,7 +21,7 @@ export SERVER_TYPE
 # shellcheck disable=SC2155
 readonly DIR_SCRIPT_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 
-source "${DIR_INSTALL_PATH}/lib.sh"
+source "${DIR_INSTALL_PATH}/core/lib.sh"
 source "${DIR_INSTALL_PATH}/global.conf"
 
 require_root
@@ -71,7 +71,7 @@ if ubuntu_pro_attached; then
     success "Ubuntu Pro : déjà attachée"
 else
     if [[ -z "${UBUNTU_PRO_TOKEN// /}" ]]; then
-        error "Ubuntu Pro : jeton manquant dans secrets.conf. Relancer : bash ${DIR_INSTALL_PATH}/configure.sh"
+        error "Ubuntu Pro : jeton manquant dans secrets.conf. Relancer : bash ${DIR_INSTALL_PATH}/hf configure"
     fi
     attach_out=$(pro attach "${UBUNTU_PRO_TOKEN}" 2>&1) && attach_rc=0 || attach_rc=$?
     if [[ "${attach_rc}" -eq 0 ]]; then

@@ -36,25 +36,34 @@ export CONTENT
 export NOTE="${NOTE:-}"
 export NOTE_CMD="${NOTE_CMD:-}"
 
-MAIL_CONTENT="$(python3 - << PY
-import html, os, re
-from pathlib import Path
-tpl = Path(${SCRIPT_DIR@Q}, "mail.html").read_text(encoding="utf-8")
-for key in ("TITLE", "PROJECT_NAME", "HOSTNAME", "DATE", "MODULE_NAME"):
-    tpl = tpl.replace("\${" + key + "}", html.escape(os.environ.get(key, ""), quote=False))
-tpl = tpl.replace("\${CONTENT}", html.escape(os.environ.get("CONTENT", ""), quote=False))
-note = os.environ.get("NOTE", "").strip()
-note_cmd = os.environ.get("NOTE_CMD", "").strip()
-if note and note_cmd:
-    tpl = tpl.replace("\${NOTE}", html.escape(note, quote=False))
-    tpl = tpl.replace("\${NOTE_CMD}", html.escape(note_cmd, quote=False))
-else:
-    tpl = re.sub(r"<!--NOTE_START-->.*?<!--NOTE_END-->", "", tpl, count=1, flags=re.S)
-print(tpl, end="")
-PY
-)"
+_mail_sh=""
+for _candidate in \
+    "${CONFIG_BASE_DIR:-}/src/core/mail.sh" \
+    "${DIR_INSTALL_PATH:-}/core/mail.sh" \
+    "${DIR_INSTALL_PATH:-}/../core/mail.sh" \
+    "${SCRIPT_DIR}/../../../core/mail.sh" \
+    "${SCRIPT_DIR}/../../../../core/mail.sh" \
+    "${SCRIPT_DIR}/../core/mail.sh" \
+    "${SCRIPT_DIR}/../../core/mail.sh" \
+    "${SCRIPT_DIR}/../../src/core/mail.sh"
+do
+    if [[ -n "${_candidate}" && -f "${_candidate}" ]]; then
+        _mail_sh="${_candidate}"
+        break
+    fi
+done
+if [[ -z "${_mail_sh}" ]]; then
+    echo "Mail non envoyé (${MODULE_NAME}) : core/mail.sh introuvable." >&2
+    exit 0
+fi
+# shellcheck disable=SC1090
+source "${_mail_sh}"
 
-if ! printf '%s' "${MAIL_CONTENT}" | grep -q '<pre'; then
+tpl="$(hf_mail_template_file "${SCRIPT_DIR}")" || {
+    echo "Mail non envoyé (${MODULE_NAME}) : modèle HTML introuvable." >&2
+    exit 0
+}
+if ! MAIL_CONTENT="$(hf_render_mail "${tpl}")"; then
     echo "Mail non envoyé (${MODULE_NAME}) : modèle HTML invalide." >&2
     exit 0
 fi

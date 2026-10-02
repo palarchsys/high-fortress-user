@@ -46,14 +46,14 @@ La première question porte sur le jeton Ubuntu Pro. Il s'affiche en astérisque
 
 Ensuite, `configure.sh` demande si les alertes e-mail sont activées (`o` ou `n`). Avec `n`, les contrôles du poste se lancent quand même, sans envoyer de message. Avec `o`, quatre champs sont demandés, vides, sans valeur proposée : le serveur `hôte:port`, le login, le mot de passe d'application, et l'adresse From. Les alertes partent vers cette adresse From. `swaks` envoie un essai. S'il est accepté, l'installation continue. S'il est refusé, un message l'indique et la question `o` / `n` revient.
 
-Pour recontrôler les fichiers sans relancer l'installation : `sudo bash /opt/high-fortress-user/src/configure.sh --check`.
+Pour recontrôler les fichiers sans relancer l'installation : `sudo /opt/high-fortress-user/src/hf check`.
 
 Si vous avez déjà cloné le dossier vous-même :
 
 ```bash
 git clone https://github.com/palarchsys/high-fortress-user.git
 cd high-fortress-user
-sudo bash configure.sh
+sudo ./hf configure
 ```
 
 `secrets.conf` contient le jeton et le mot de passe d'envoi. Il reste sur la machine, lisible par root seulement. Ne le copiez pas dans un message, un ticket ou un dépôt public.
@@ -95,6 +95,10 @@ sudo bash configure.sh
 | CrowdSec | Lit les journaux SSH et système, et bloque l'adresse attaquante dans le pare-feu pendant 24 heures. |
 | E-mail | Si les alertes sont activées, chaque message part vers l'adresse From. Sinon les contrôles écrivent leur journal et n'envoient rien. |
 | Journaux | `/var/log/high-fortress-user/` et `/opt/high-fortress-user/cron/`. |
+
+## Style des e-mails
+
+Les messages HTML sont les fichiers du dossier `template/`. Celui qui part est `mail.html`, sauf si `MAIL_TEMPLATE` dans `global.conf` nomme un autre fichier `.html` de ce dossier. Pour changer le style, éditez ces fichiers, ou ajoutez-en un et changez `MAIL_TEMPLATE`. Les textes `TITLE`, `PROJECT_NAME`, `HOSTNAME`, `DATE`, `MODULE_NAME`, `CONTENT`, `NOTE` et `NOTE_CMD` sont remplacés à l'envoi. Le bloc entre `<!--NOTE_START-->` et `<!--NOTE_END-->` disparaît lorsqu'il n'y a pas de note. L'édition est prise au prochain envoi, sans réinstaller.
 
 ## E-mail AIDE
 
@@ -159,18 +163,18 @@ sudo bash /opt/high-fortress-user/src/verify/boot.sh
 Lynis a déjà tourné à la fin de l'installation. Pour le relancer vous-même :
 
 ```bash
-sudo bash /opt/high-fortress-user/src/lynis.sh
+sudo /opt/high-fortress-user/src/hf lynis
 ```
 
 ## En cas de blocage
 
 | Message | Que faire |
 |---------|-----------|
-| `Configuration conforme` est absent | Relancer `configure.sh`, confirmer avec `o`, puis `--check` |
+| `Configuration conforme` est absent | Relancer `./hf configure`, confirmer avec `o`, puis `./hf check` |
 | Le jeton est refusé | Le recopier depuis le tableau de bord Ubuntu Pro, sans espace |
-| Ubuntu Pro n'attache pas la machine | Vérifier le jeton et la connexion, puis relancer `sudo bash run.sh` |
+| Ubuntu Pro n'attache pas la machine | Vérifier le jeton et la connexion, puis relancer `sudo /opt/high-fortress-user/src/hf run` |
 | Le système n'est pas Ubuntu 26.04 | Le programme ne continue pas |
-| L'empreinte de la clé Mozilla est inattendue | Vérifier la connexion, puis relancer `sudo bash run.sh` |
+| L'empreinte de la clé Mozilla est inattendue | Vérifier la connexion, puis relancer `sudo /opt/high-fortress-user/src/hf run` |
 | L'essai swaks ou l'e-mail de test ne part pas | Vérifier le serveur `hôte:port`, le login, le mot de passe d'application sans espaces, et l'adresse From. `configure.sh` redemande alors le choix `o` / `n` |
 | La base AIDE n'est pas générée | Lire `/var/log/high-fortress-user/aide-init.log`, puis relancer `sudo bash /opt/high-fortress-user/bin/aide-refresh-db.sh` une fois le message d'erreur compris |
 

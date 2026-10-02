@@ -129,6 +129,7 @@ ${excerpt}" \
         NOTE_CMD="${note_cmd}" \
         WATCHDOG_MAIL="${WATCHDOG_MAIL}" \
         PROJECT_NAME="${PROJECT_NAME:-High-Fortress User}" \
+        MAIL_TEMPLATE="${MAIL_TEMPLATE:-mail.html}" \
             bash "${HFU_BASE}/cron/bin/send.sh" || true
     fi
 }

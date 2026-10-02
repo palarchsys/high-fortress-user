@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "${ROOT}/core/launch.sh" ]]; then
+    # shellcheck disable=SC1091
+    source "${ROOT}/core/launch.sh"
+elif [[ -f "${ROOT}/../core/launch.sh" ]]; then
+    # shellcheck disable=SC1091
+    source "${ROOT}/../core/launch.sh"
+else
+    printf 'launch.sh introuvable depuis %s\n' "${ROOT}" >&2
+    exit 1
+fi
+hf_launch "${ROOT}" "$@"

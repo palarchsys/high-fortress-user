@@ -12,11 +12,11 @@
 # secrets.conf doit être en mode 600. global.conf doit porter HF_PREPARED=1.
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
-    printf 'Utilisez : bash configure.sh [--check]\n' >&2
+    printf 'Utilisez : ./hf configure [--check]\n' >&2
     exit 1
 fi
 
-HF_PRODUCT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+HF_PRODUCT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 if [[ -f "${HF_PRODUCT_ROOT}/../core/bootstrap.sh" ]]; then
     # shellcheck disable=SC1091
     source "${HF_PRODUCT_ROOT}/../core/bootstrap.sh"
@@ -84,6 +84,7 @@ hfu_config_set_builtin_defaults() {
     : "${WATCHDOG_LIMIT_IONICE:=3}"
     : "${UBUNTU_PRO_TOKEN:=}"
     : "${HF_MAIL_ALERTS:=0}"
+    : "${MAIL_TEMPLATE:=mail.html}"
     : "${POSTFIX_SMTP_LOGIN:=}"
     : "${POSTFIX_MAIL_ADDRESS:=}"
     : "${POSTFIX_MAIL_PASS:=}"
@@ -119,7 +120,7 @@ hfu_write_global_conf() {
 #
 # Rôle
 #   Réglages du poste, sans secret. configure.sh met HF_PREPARED à 1.
-#   Le contrôle se fait avec : bash configure.sh --check
+#   Le contrôle se fait avec : ./hf configure --check
 # =============================================================================
 
 HF_PREPARED=1
@@ -169,6 +170,9 @@ WATCHDOG_LIMIT_IONICE=${WATCHDOG_LIMIT_IONICE}
 
 # 1 = alertes e-mail. 0 = contrôles lancés, aucun envoi.
 HF_MAIL_ALERTS=${HF_MAIL_ALERTS}
+
+# Fichier HTML de template/ utilisé pour les alertes. Exemple : mail.html
+MAIL_TEMPLATE="${MAIL_TEMPLATE}"
 
 # Charge le jeton quand run.sh a défini DIR_INSTALL_PATH.
 if [[ -n "\${DIR_INSTALL_PATH:-}" && -f "\${DIR_INSTALL_PATH}/secrets.conf" ]]; then
@@ -225,7 +229,7 @@ hfu_config_scan_dollars() {
 hfu_validate_values() {
     local label_g="global.conf" label_s="secrets.conf"
 
-    [[ "${HF_PREPARED:-}" == "1" ]] || hfu_config_err "${label_g} : HF_PREPARED doit valoir 1. exemple : bash configure.sh"
+    [[ "${HF_PREPARED:-}" == "1" ]] || hfu_config_err "${label_g} : HF_PREPARED doit valoir 1. exemple : ./hf configure"
     [[ "${PROJECT_NAME:-}" =~ ^[A-Za-z0-9][A-Za-z0-9\ ._-]{0,62}$ ]] || hfu_config_err "${label_g} : PROJECT_NAME invalide (« ${PROJECT_NAME:-} »). exemple : High-Fortress User"
     [[ "${PROJECT_SLUG:-}" == "high-fortress-user" ]] || hfu_config_err "${label_g} : PROJECT_SLUG invalide (« ${PROJECT_SLUG:-} »). exemple : high-fortress-user"
     [[ "${PROJECT_VERSION:-}" =~ ^[0-9]+(\.[0-9]+){0,2}$ ]] || hfu_config_err "${label_g} : PROJECT_VERSION invalide (« ${PROJECT_VERSION:-} »). exemple : 0.2"
@@ -249,10 +253,14 @@ hfu_validate_values() {
     hfu_is_port "${WATCHDOG_LIMIT_NICE:-x}" 0 19 || hfu_config_err "${label_g} : WATCHDOG_LIMIT_NICE invalide (« ${WATCHDOG_LIMIT_NICE:-} »). exemple : 19"
     hfu_is_port "${WATCHDOG_LIMIT_IONICE:-x}" 0 7 || hfu_config_err "${label_g} : WATCHDOG_LIMIT_IONICE invalide (« ${WATCHDOG_LIMIT_IONICE:-} »). exemple : 3"
     [[ "${HF_MAIL_ALERTS:-}" =~ ^[01]$ ]] || hfu_config_err "${label_g} : HF_MAIL_ALERTS invalide (« ${HF_MAIL_ALERTS:-} »). exemple : 0 ou 1"
+    [[ "${MAIL_TEMPLATE:-mail.html}" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*\.html$ ]] || hfu_config_err "${label_g} : MAIL_TEMPLATE invalide (« ${MAIL_TEMPLATE:-} »). exemple : mail.html"
+    if [[ -n "${HF_CONFIG_ROOT:-}" && -d "${HF_CONFIG_ROOT}/template" && ! -f "${HF_CONFIG_ROOT}/template/${MAIL_TEMPLATE:-mail.html}" ]]; then
+        hfu_config_err "${label_g} : MAIL_TEMPLATE introuvable (${MAIL_TEMPLATE:-mail.html}). exemple : un fichier .html du dossier template/"
+    fi
     [[ "${CONFIG_BASE_DIR:-}" == "/opt/high-fortress-user" ]] || hfu_config_err "${label_g} : CONFIG_BASE_DIR invalide (« ${CONFIG_BASE_DIR:-} »). exemple : /opt/high-fortress-user"
     [[ "${SECRETS_DIR:-}" == "/opt/high-fortress-user/secrets" ]] || hfu_config_err "${label_g} : SECRETS_DIR invalide (« ${SECRETS_DIR:-} »). exemple : /opt/high-fortress-user/secrets"
 
-    [[ "${HF_SECRETS_PREPARED:-}" == "1" ]] || hfu_config_err "${label_s} : HF_SECRETS_PREPARED doit valoir 1. exemple : bash configure.sh"
+    [[ "${HF_SECRETS_PREPARED:-}" == "1" ]] || hfu_config_err "${label_s} : HF_SECRETS_PREPARED doit valoir 1. exemple : ./hf configure"
     hfu_is_pro_token "${UBUNTU_PRO_TOKEN:-}" || hfu_config_err "${label_s} : UBUNTU_PRO_TOKEN invalide. exemple : le jeton alphanumérique du tableau de bord Ubuntu Pro (https://ubuntu.com/pro/dashboard)"
     if [[ "${HF_MAIL_ALERTS}" == "1" ]]; then
         hfu_is_email "${POSTFIX_SMTP_LOGIN:-}" || hfu_config_err "${label_s} : POSTFIX_SMTP_LOGIN doit être une adresse e-mail (« ${POSTFIX_SMTP_LOGIN:-} »). exemple : toi@exemple.com"
@@ -278,10 +286,10 @@ hfu_require_prepared_config() {
     hfu_config_reset
 
     if [[ ! -f "${g}" ]]; then
-        hfu_config_err "global.conf absent (${g}). exemple : bash configure.sh"
+        hfu_config_err "global.conf absent (${g}). exemple : ./hf configure"
     fi
     if [[ ! -f "${s}" ]]; then
-        hfu_config_err "secrets.conf absent (${s}). exemple : bash configure.sh"
+        hfu_config_err "secrets.conf absent (${s}). exemple : ./hf configure"
     fi
     if [[ ! -f "${g}" || ! -f "${s}" ]]; then
         hfu_config_emit
@@ -289,17 +297,17 @@ hfu_require_prepared_config() {
     fi
 
     if ! bash -n "${g}" 2>/dev/null; then
-        hfu_config_err "global.conf : syntaxe shell invalide. exemple : bash configure.sh"
+        hfu_config_err "global.conf : syntaxe shell invalide. exemple : ./hf configure"
     fi
     if ! bash -n "${s}" 2>/dev/null; then
-        hfu_config_err "secrets.conf : syntaxe shell invalide. exemple : bash configure.sh"
+        hfu_config_err "secrets.conf : syntaxe shell invalide. exemple : ./hf configure"
     fi
     hfu_config_scan_dollars "${g}" "global.conf"
     hfu_config_scan_dollars "${s}" "secrets.conf"
 
     src_count="$(grep -cE '(^|[[:space:]])(source|\.)[[:space:]]' "${g}" || true)"
     if [[ "${src_count}" != "1" ]] || ! grep -q 'source "${DIR_INSTALL_PATH}/secrets.conf"' "${g}"; then
-        hfu_config_err "global.conf : la seule commande source autorisée charge secrets.conf. exemple : bash configure.sh"
+        hfu_config_err "global.conf : la seule commande source autorisée charge secrets.conf. exemple : ./hf configure"
     fi
     if grep -qE '(^|[[:space:]])(source|\.)[[:space:]]' "${s}"; then
         hfu_config_err "secrets.conf : aucune commande source. exemple : uniquement des lignes CLE=\"valeur\""
@@ -324,6 +332,7 @@ hfu_require_prepared_config() {
     source "${s}"
     set -u
 
+    HF_CONFIG_ROOT="${root}"
     hfu_validate_values
     hfu_config_emit
 }

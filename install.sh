@@ -79,20 +79,25 @@ if [[ "${keep}" == "1" ]]; then
     cp -a "${tmp}/keep/global.conf" "${tmp}/keep/secrets.conf" "${INSTALL_ROOT}/"
     chmod 600 "${INSTALL_ROOT}/secrets.conf" || true
 fi
+if [[ ! -f "${INSTALL_ROOT}/hf" ]]; then
+    printf 'hf absent après extraction.\n' >&2
+    exit 1
+fi
+chmod 755 "${INSTALL_ROOT}/hf"
 
 # Première exécution : les questions de configure.sh partent tout de suite.
 # configure.sh --check dirait « secrets.conf absent » avant toute saisie.
 if [[ "${keep}" != "1" ]]; then
     printf '\nTéléchargement terminé. Les sources sont dans %s.\n' "${INSTALL_ROOT}"
     printf 'Lancement de la configuration.\n\n'
-    exec bash "${INSTALL_ROOT}/configure.sh"
+    exec bash "${INSTALL_ROOT}/scripts/configure.sh"
 fi
 
-if ! bash "${INSTALL_ROOT}/configure.sh" --check; then
+if ! bash "${INSTALL_ROOT}/scripts/configure.sh" --check; then
     printf '\nLa configuration enregistrée ne passe plus le contrôle.\n' >&2
     printf 'Lancement des questions.\n\n' >&2
-    exec bash "${INSTALL_ROOT}/configure.sh"
+    exec bash "${INSTALL_ROOT}/scripts/configure.sh"
 fi
 
 cd "${INSTALL_ROOT}"
-exec bash "${INSTALL_ROOT}/run.sh"
+exec bash "${INSTALL_ROOT}/scripts/run.sh"
