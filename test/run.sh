@@ -137,6 +137,11 @@ for repo in server user web; do
     else
         ok "secrets:${repo}" "index propre"
     fi
+    if git -C "${MONO}/${repo}" ls-files | grep -E '(^|/)AGENTS\.md$' >/dev/null; then
+        ko "agents:${repo}" "AGENTS.md indexé"
+    else
+        ok "agents:${repo}" "aucun AGENTS.md"
+    fi
 done
 
 section "contrat SQL"

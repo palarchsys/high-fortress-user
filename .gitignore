@@ -20,6 +20,9 @@ verify-report-*.tsv
 # Lien local vers ../core. La publication copie les fichiers, pas le lien.
 /core
 
+# Lois d'agent : dépôt privé high-fortress seulement.
+AGENTS.md
+
 # Éditeurs et environnements locaux.
 .idea/
 .vscode/
