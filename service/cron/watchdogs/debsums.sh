@@ -1,16 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Fichier    : service/cron/watchdogs/debsums.sh
-# Créé le    : 2026-09-21
-# Créateur   : palarchsys
-#
-# Rôle
-#   Vérifie les sommes des paquets Ubuntu. Un fichier modifié déclenche une alerte.
-# =============================================================================
-
-# debsums -s n'écrit que les fichiers dont l'empreinte a changé.
-# Les exclusions ajoutées depuis un e-mail vivent hors de cron/bin :
-# une réinstallation recopie les scripts sans effacer cette liste.
+# File       : service/cron/watchdogs/debsums.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
 # =============================================================================
 
 set -euo pipefail

@@ -1,24 +1,12 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Fichier    : service/unbound/configure.sh
-# Créé le    : 2026-09-29
-# Créateur   : palarchsys
-#
-# Rôle
-#   service/unbound/configure.sh
-# =============================================================================
-
-# Unbound écoute 127.0.0.1 et ::1. systemd-resolved reste le résolveur
-# vu par les applications. Les liaisons ethernet et Wi-Fi ignorent le
-# DNS du DHCP (FAI). Un VPN NetworkManager garde le DNS du tunnel.
-# La liste des serveurs racine vient de dns-root-data et est rechargée
-# quand le paquet est mis à jour.
+# File       : service/unbound/configure.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
 # =============================================================================
 
 DIR_INSTALL_PATH="${1}"
 export DIR_INSTALL_PATH
-SERVER_TYPE="${2}"
-export SERVER_TYPE
 
 # shellcheck disable=SC2155
 readonly DIR_SCRIPT_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
@@ -28,6 +16,7 @@ source "${DIR_INSTALL_PATH}/global.conf"
 require_root
 
 title "Configuration Unbound (DNS local)"
+info "Configuration d'Unbound"
 
 if [[ ! -f /usr/share/dns/root.hints ]]; then
     error "dns-root-data est incomplet : /usr/share/dns/root.hints absent"
@@ -36,7 +25,6 @@ fi
 ensure_dir /etc/unbound/unbound.conf.d 755
 install -m 644 "${DIR_SCRIPT_PATH}/unbound.conf" /etc/unbound/unbound.conf.d/high-fortress-user.conf
 
-# Ne pas recopier le DNS du FAI comme forwarder Unbound.
 tee /etc/default/unbound > /dev/null << 'EOF'
 RESOLVCONF=false
 ROOT_TRUST_ANCHOR_UPDATE=true
@@ -154,4 +142,4 @@ if [[ "${resolved}" -ne 1 ]]; then
     error "La résolution locale via Unbound a échoué : ${query_out}"
 fi
 
-success "Unbound résout les noms sur le poste (serveurs racine tenus à jour)"
+success "Unbound configuré (résolution sur le poste, racines à jour)"

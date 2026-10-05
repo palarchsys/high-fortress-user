@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-
-# Suite 07 — chaque fichier cité par le routeur existe.
+# =============================================================================
+# File       : test/suites/07_router.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
+# =============================================================================
 
 hf_section "routeur"
 MONO="$(cd -- "${HF_ROOT}/.." && pwd)"

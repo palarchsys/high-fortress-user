@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-
-# Suite 04 — le poste n'exécute pas le durcissement serveur.
+# =============================================================================
+# File       : test/suites/04_forbidden.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
+# =============================================================================
 
 hf_section "interdits poste"
 MONO="$(cd -- "${HF_ROOT}/.." && pwd)"

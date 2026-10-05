@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-# Exécution des commandes et des étapes. Pas de politique produit.
+# =============================================================================
+# File       : core/exec.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
+# =============================================================================
 
 run_silent() {
     local cmd_output
@@ -14,6 +18,19 @@ run_silent() {
     error "$cmd_output"
 }
 
+run_quiet() {
+    local cmd_output
+    local exit_code=0
+
+    cmd_output=$("$@" 2>&1) || exit_code=$?
+    if [[ -n "${HF_LOG_FILE:-}" && -n "${cmd_output}" ]]; then
+        printf '%s\n' "${cmd_output}" >> "${HF_LOG_FILE}"
+    fi
+    if [[ "${exit_code}" -ne 0 ]]; then
+        error "${cmd_output:-commande échouée (rc=${exit_code})}"
+    fi
+}
+
 try_silent() {
     local cmd_output
     local exit_code=0
@@ -22,8 +39,7 @@ try_silent() {
     if [[ $exit_code -ne 0 && -n "$cmd_output" ]]; then
         debug "$cmd_output"
     fi
-    # Toujours 0 : sous set -e un return ≠ 0 tue le script. Unités métier
-    # (haveged, rng-tools-debian, …) : run_silent / is-active, pas try_silent.
+
     return 0
 }
 
@@ -37,9 +53,7 @@ run_silent_apt() {
     sleep 1
 
     while [[ $attempt -lt $max_attempts ]]; do
-        # stdin fermé et needrestart en automatique : un hook ne peut pas
-        # attendre une réponse qui ne s'affiche pas. Les lectures /dev/tty
-        # de configure.sh et debconf-set-selections ne passent pas ici.
+
         exit_code=0
         cmd_output=$(DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt-get "$@" </dev/null 2>&1) || exit_code=$?
 
@@ -53,7 +67,6 @@ run_silent_apt() {
             continue
         fi
 
-        # Index périmé : le .deb cité n'est plus sur le miroir (404).
         if [[ "${refreshed}" -eq 0 ]] && echo "$cmd_output" | grep -qE '404  Not Found|Failed to fetch|Impossible de récupérer'; then
             refreshed=1
             DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt-get update </dev/null >/dev/null 2>&1 || true
@@ -72,8 +85,18 @@ run_silent_apt() {
 
 run_steps() {
     local dir_install_path="$1"
-    local server_type="$2"
-    shift 2
+    local server_type=""
+    shift
+
+    if [[ $# -gt 0 ]]; then
+        case "$1" in
+            *.sh) ;;
+            *)
+                server_type="$1"
+                shift
+                ;;
+        esac
+    fi
     local -a steps=("$@")
 
     [[ ${#steps[@]} -eq 0 ]] && {

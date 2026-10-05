@@ -1,3 +1,9 @@
+# =============================================================================
+# File       : system/hfu-sysctl.service
+# Updated at : 2026-10-05
+# Creator    : palarchsys
+# =============================================================================
+
 [Unit]
 Description=High-Fortress User sysctl
 Documentation=file://__HF_BASE__

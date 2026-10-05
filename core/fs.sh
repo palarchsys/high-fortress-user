@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-# Fichiers et comptes. Pas de politique produit.
+# =============================================================================
+# File       : core/fs.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
+# =============================================================================
 
 add_line_if_missing() {
     local file="$1"
@@ -16,7 +20,8 @@ backup_file_once() {
     local backup="${file}.bak"
     [[ -f "$file" ]] || return 0
     [[ -f "$backup" ]] && return 0
-    cp -a "$file" "$backup" && success "Backup créé : $backup"
+    info "Création de la copie de sauvegarde de ${file}"
+    cp -a "$file" "$backup" && success "Copie de sauvegarde créée : ${backup}"
 }
 
 ensure_dir() {

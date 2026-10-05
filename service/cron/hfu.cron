@@ -1,16 +1,8 @@
 # =============================================================================
-# Fichier    : service/cron/hfu.cron
-# Créé le    : 2026-09-21
-# Créateur   : palarchsys
-#
-# Rôle
-#   Aucun contrôle planifié ici.
-#   AIDE, rkhunter, chkrootkit, ClamAV et debsums partent
-#   avec hfu-boot-scan.timer, deux minutes après le démarrage.
-#   Lynis n'est lancé que par l'utilisateur, avec lynis.sh.
-#   Ce fichier remplace l'ancienne planification du mardi et du mercredi.
+# File       : service/cron/hfu.cron
+# Updated at : 2026-10-05
+# Creator    : palarchsys
 # =============================================================================
 
-# High-Fortress User — cron.allow NON restreint (desktop).
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin

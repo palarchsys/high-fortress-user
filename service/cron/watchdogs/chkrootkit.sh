@@ -1,16 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Fichier    : service/cron/watchdogs/chkrootkit.sh
-# Créé le    : 2026-09-21
-# Créateur   : palarchsys
-#
-# Rôle
-#   Lance chkrootkit. Une trouvaille hors liste déclenche une alerte.
-# =============================================================================
-
-# chkrootkit -q écrit une ligne par trouvaille. La liste à côté de ce
-# script retire les faux positifs d'une installation fraîche. -s retire
-# les gestionnaires réseau du test « packet sniffer ».
+# File       : service/cron/watchdogs/chkrootkit.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
 # =============================================================================
 
 set -euo pipefail
@@ -21,8 +13,7 @@ LOG_FILE="${LOG_DIR}/chkrootkit-${STAMP}.log"
 ALERT_FILE="${ALERT_DIR}/chkrootkit-${STAMP}.txt"
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 IGNORE="${HERE}/chkrootkit.ignore"
-# Exclusions ajoutées depuis un e-mail. Hors de cron/bin : une
-# réinstallation recopie les scripts sans effacer cette liste.
+
 LOCAL_IGNORE="${HFU_BASE}/cron/chkrootkit.local.ignore"
 if ! command -v chkrootkit >/dev/null; then
     log_ok "chkrootkit absent — skip"

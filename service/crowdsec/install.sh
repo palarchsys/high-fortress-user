@@ -1,24 +1,19 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Fichier    : service/crowdsec/install.sh
-# Créé le    : 2026-09-28
-# Créateur   : palarchsys
-#
-# Rôle
-#   Ajoute le dépôt apt officiel packagecloud et installe CrowdSec
-#   avec le bouncer qui bloque les adresses dans le pare-feu nftables.
+# File       : service/crowdsec/install.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
 # =============================================================================
 
 DIR_INSTALL_PATH="${1}"
 export DIR_INSTALL_PATH
-SERVER_TYPE="${2}"
-export SERVER_TYPE
 
 source "${DIR_INSTALL_PATH}/core/lib.sh"
 source "${DIR_INSTALL_PATH}/global.conf"
 require_root
 
 title "Dépôt CrowdSec"
+info "Enregistrement du dépôt CrowdSec"
 install -d -m 755 /etc/apt/keyrings
 CROWDSEC_KEY="/etc/apt/keyrings/crowdsec_crowdsec-archive-keyring.gpg"
 CROWDSEC_LIST="/etc/apt/sources.list.d/crowdsec_crowdsec.list"
@@ -28,7 +23,7 @@ tee "${CROWDSEC_LIST}" > /dev/null << EOF
 deb [signed-by=${CROWDSEC_KEY}] https://packagecloud.io/crowdsec/crowdsec/any any main
 EOF
 chmod 644 "${CROWDSEC_LIST}"
-# Le dépôt Ubuntu peut proposer une version trop ancienne pour le hub.
+
 tee /etc/apt/preferences.d/crowdsec > /dev/null << 'EOF'
 Package: crowdsec*
 Pin: origin packagecloud.io
@@ -39,6 +34,7 @@ run_silent_apt update
 success "Dépôt CrowdSec enregistré"
 
 title "Installation de CrowdSec"
+info "Installation de CrowdSec"
 run_silent_apt install -y crowdsec crowdsec-firewall-bouncer-nftables
 cs_ver="$(dpkg-query -W -f '${Version}' crowdsec 2>/dev/null || true)"
 if [[ "${cs_ver}" == 1.4.* ]]; then

@@ -1,6 +1,10 @@
 # Jeton Ubuntu Pro et mot de passe d'application Gmail.
 # Écrit par configure.sh, en mode 600.
 secrets.conf
+*.env
+
+# Empreinte des comptes. Le fichier réel est sur la machine, en mode 600.
+human.tsv
 
 # Rapports de lynis.sh, et copie de l'installation
 # lorsque DEBUG_INSTALL_LOGS=1 dans global.conf.

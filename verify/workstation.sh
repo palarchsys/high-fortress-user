@@ -1,20 +1,12 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Fichier    : verify/workstation.sh
-# Créé le    : 2026-09-21
-# Créateur   : palarchsys
-#
-# Rôle
-#   verify/workstation.sh
-# =============================================================================
-
-# Check : durcissement en place, mots de passe intacts, applis préservées.
+# File       : verify/workstation.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
 # =============================================================================
 
 DIR_INSTALL_PATH="${1}"
 export DIR_INSTALL_PATH
-SERVER_TYPE="${2:-WORKSTATION}"
-export SERVER_TYPE
 
 source "${DIR_INSTALL_PATH}/core/lib.sh"
 source "${DIR_INSTALL_PATH}/global.conf"
@@ -44,8 +36,6 @@ mkdir -p "$(dirname "${REPORT}")"
 
 title "Contrats (mots de passe, applis)"
 
-# Hash des comptes : on n'a jamais appelé chpasswd. Vérifier que shadow
-# root et user ont un hash non vide (compte pas verrouillé par nous).
 root_hash="$(awk -F: '$1=="root"{print $2}' /etc/shadow)"
 user_hash="$(awk -F: -v u="${CURRENT_USER}" '$1==u{print $2}' /etc/shadow)"
 if [[ -z "${root_hash}" ]]; then
@@ -61,7 +51,6 @@ else
     ok "compte ${CURRENT_USER} : hash intact (HFU n'appelle jamais chpasswd)"
 fi
 
-# chage : MAXDAYS ne doit pas avoir été forcé à 90 par nous
 maxdays="$(LANG=C LC_ALL=C chage -l "${CURRENT_USER}" 2>/dev/null | awk -F: '/Maximum/{gsub(/ /,"",$2); print $2}')"
 if [[ "${maxdays}" == "90" ]]; then
     wn "chage MAXDAYS=90 sur ${CURRENT_USER} (n'a pas été posé par ce script ; état antérieur ?)"
@@ -89,7 +78,6 @@ for bin in brave-browser thunderbird steam discord keepassxc; do
     fi
 done
 
-# Compilateurs doivent rester world-exec si présents
 for b in gcc g++ cc make; do
     if command -v "${b}" >/dev/null 2>&1; then
         mode="$(stat -c '%a' "$(command -v "${b}")")"
@@ -128,7 +116,7 @@ fi
 if LANG=C LC_ALL=C ufw status verbose | grep -qiE 'Default: deny \(incoming\), allow \(outgoing\)'; then
     ok "UFW outgoing ALLOW"
 else
-    # fallback parse
+
     if ufw status verbose | grep -qi 'Outgoing: allow'; then
         ok "UFW outgoing ALLOW"
     else
@@ -207,8 +195,6 @@ else
     ok "alertes e-mail coupées"
 fi
 
-# Les paquets installés ensuite ont pu modifier une unité. On recharge
-# systemd avant de lire l'état, sinon systemctl signale « changed on disk ».
 systemctl daemon-reload >/dev/null 2>&1 || true
 
 for svc in apparmor fail2ban auditd clamav-daemon clamav-freshclam unattended-upgrades unbound; do
@@ -273,9 +259,7 @@ if ! command -v pro >/dev/null 2>&1; then
     ko "ubuntu-pro-client absent"
 elif ubuntu_pro_attached; then
     ok "Ubuntu Pro attaché"
-    # Le texte de « pro status » change selon la langue. Le JSON est stable.
-    # « warning » signifie que le service est allumé mais qu'un redémarrage
-    # est encore nécessaire (cas habituel de Livepatch juste après l'activation).
+
     while IFS=$'\t' read -r svc_name svc_status svc_detail; do
         case "${svc_status}" in
             enabled|active)
@@ -316,7 +300,7 @@ if command -v lynis >/dev/null 2>&1; then
     else
         wn "custom.prf manquant"
     fi
-    info "Audit Lynis (quick)..."
+    info "Audit Lynis (quick)"
     lynis audit system --quick --no-colors --auditor high-fortress-user-verify > "${HF_LOG_DIR:-/tmp}/lynis-verify.txt" 2>&1 || true
     score="$(awk -F= '/hardening_index=/{print $2}' /var/log/lynis-report.dat 2>/dev/null | tail -1)"
     if [[ "${score}" =~ ^[0-9]+$ ]]; then
@@ -347,9 +331,7 @@ if dpkg-query -W -f '${Status}' discord 2>/dev/null | grep -q 'install ok'; then
 else
     ko "Discord absent"
 fi
-# Vencord écrit son réglage dans ~/.config/Vencord et remplace le
-# client téléchargé dans ~/.config/discord/app-*/resources (fichier _app.asar).
-# Il n'y a rien à chercher dans /usr/share/discord : ce dossier n'a que le lanceur.
+
 vencord_marker="$(find "${CURRENT_HOME}/.config/discord" -path '*/resources/_app.asar' -print -quit 2>/dev/null || true)"
 if [[ -d "${CURRENT_HOME}/.config/Vencord" || -n "${vencord_marker}" ]]; then
     ok "Vencord présent"
@@ -384,7 +366,9 @@ if dpkg-query -W -f '${Status}' keepassxc 2>/dev/null | grep -q 'install ok' \
 else
     ko "KeePassXC absent"
 fi
+
 title "Sources APT"
+info "Contrôle du poste"
 if [[ -f /etc/apt/sources.list ]]; then
     if grep -q 'high-fortress' /etc/apt/sources.list; then
         ko "sources.list a été réécrit"
@@ -406,7 +390,6 @@ ok "dépôt Lynis CISOfy ajouté uniquement (lynis.list)"
 chmod 644 "${REPORT}" 2>/dev/null || true
 step_off "Check : ${PASS} OK / ${WARNN} WARN / ${FAIL} FAIL"
 info "Rapport : ${REPORT}"
-
 if [[ "${FAIL}" -gt 0 ]]; then
     echo "" >&2
     grep '^- FAIL' "${REPORT}" | while IFS= read -r line; do

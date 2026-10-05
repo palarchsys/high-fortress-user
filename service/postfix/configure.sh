@@ -1,22 +1,12 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Fichier    : service/postfix/configure.sh
-# Créé le    : 2026-09-28
-# Créateur   : palarchsys
-#
-# Rôle
-#   service/postfix/configure.sh
-# =============================================================================
-
-# Relais SMTP authentifié en TLS, écoute limitée à la machine.
-# Le login SMTP et l'adresse From peuvent différer. Les alertes
-# partent vers From. L'hôte saisi hôte:port devient [hôte]:port.
+# File       : service/postfix/configure.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
 # =============================================================================
 
 DIR_INSTALL_PATH="${1}"
 export DIR_INSTALL_PATH
-SERVER_TYPE="${2}"
-export SERVER_TYPE
 
 source "${DIR_INSTALL_PATH}/core/lib.sh"
 source "${DIR_INSTALL_PATH}/global.conf"
@@ -28,6 +18,7 @@ if [[ "${HF_MAIL_ALERTS:-0}" != "1" ]]; then
 fi
 
 title "Identifiants SMTP"
+info "Enregistrement de la carte SASL"
 relay_host="${POSTFIX_MAIL_SMTP%:*}"
 relay_port="${POSTFIX_MAIL_SMTP##*:}"
 relayhost="[${relay_host}]:${relay_port}"
@@ -41,11 +32,13 @@ chmod 600 /etc/postfix/sasl_passwd /etc/postfix/sasl_passwd.db
 success "Carte SASL enregistrée (lecture root seulement)"
 
 title "Nom de courrier"
+info "Configuration du nom de courrier"
 printf '%s\n' "$(hostname -f)" > /etc/mailname
 chmod 644 /etc/mailname
-success "mailname = $(hostname -f)"
+success "mailname enregistré ($(hostname -f))"
 
 title "Relais et réécriture de l'expéditeur"
+info "Configuration du relais et de l'expéditeur"
 postconf -e "myhostname = $(hostname -f)"
 postconf -e "myorigin = /etc/mailname"
 postconf -e "relayhost = ${relayhost}"
@@ -59,14 +52,15 @@ postconf -e "inet_protocols = all"
 postconf -e "default_transport = smtp"
 postconf -e "smtpd_banner = ${PROJECT_NAME} ESMTP"
 postconf -e "disable_vrfy_command = yes"
-# Table regexp : Postfix lit le fichier texte, pas une base postmap.
+
 printf '/.*/ %s\n' "${POSTFIX_MAIL_ADDRESS}" > /etc/postfix/sender_canonical
 chmod 644 /etc/postfix/sender_canonical
 postconf -e "sender_canonical_maps = regexp:/etc/postfix/sender_canonical"
-success "Tout expéditeur local part comme ${POSTFIX_MAIL_ADDRESS}"
+success "Expéditeur local réécrit, tout part comme ${POSTFIX_MAIL_ADDRESS}"
 
+info "Redémarrage de Postfix"
 run_silent systemctl restart postfix
 if ! systemctl is-active --quiet postfix; then
     error "Postfix n'est pas actif après la configuration."
 fi
-success "Postfix actif, écoute limitée à localhost"
+success "Postfix activé, écoute limitée à localhost"

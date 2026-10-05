@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# core/mail.sh — modèles HTML des deux installeurs.
-# L'opérateur dépose un ou plusieurs fichiers .html dans template/.
-# MAIL_TEMPLATE (global.conf) choisit le fichier envoyé. Défaut : mail.html.
-# Chaque send.sh garde sa politique : alertes, masquage, objet, pièce jointe.
+# =============================================================================
+# File       : core/mail.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
+# =============================================================================
 
 hf_mail_template_name_ok() {
     [[ "${1:-}" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*\.html$ ]]
@@ -16,18 +17,19 @@ hf_mail_die() {
     exit 1
 }
 
-# Copie tous les .html de template/ vers le dossier cron installé.
-# Le fichier nommé par MAIL_TEMPLATE doit faire partie de la copie.
 hf_install_mail_templates() {
     local dest="$1"
     local src="${DIR_INSTALL_PATH:?}/template"
     local chosen="${MAIL_TEMPLATE:-mail.html}"
     local f base n=0
-    local glob_state
+    local nullglob_was=0
     [[ -d "${dest}" ]] || hf_mail_die "dossier d'installation des modèles absent (${dest})"
     [[ -d "${src}" ]] || hf_mail_die "dossier template absent (${src})"
     hf_mail_template_name_ok "${chosen}" || hf_mail_die "MAIL_TEMPLATE invalide (${chosen}). exemple : mail.html"
-    glob_state="$(shopt -p nullglob)"
+
+    if shopt -q nullglob; then
+        nullglob_was=1
+    fi
     shopt -s nullglob
     for f in "${src}/"*.html; do
         base="$(basename -- "${f}")"
@@ -36,13 +38,13 @@ hf_install_mail_templates() {
         chmod 644 "${dest}/${base}"
         n=$((n + 1))
     done
-    eval "${glob_state}"
+    if [[ "${nullglob_was}" -eq 0 ]]; then
+        shopt -u nullglob
+    fi
     [[ "${n}" -ge 1 ]] || hf_mail_die "aucun fichier .html dans ${src}"
     [[ -f "${dest}/${chosen}" ]] || hf_mail_die "modèle ${chosen} absent de ${src}"
 }
 
-# Nom du modèle. global.conf gagne sur la variable d'environnement,
-# pour qu'une édition du fichier soit prise au prochain envoi.
 hf_mail_resolve_name() {
     local here="${1:-}"
     local conf line
@@ -71,7 +73,6 @@ hf_mail_resolve_name() {
     printf '%s\n' "mail.html"
 }
 
-# Chemin du modèle à rendre. Les sources (template/) passent avant la copie cron.
 hf_mail_template_file() {
     local here="${1:-}"
     local name dir
@@ -97,8 +98,6 @@ hf_mail_template_file() {
     return 1
 }
 
-# Rend le HTML sur stdout. HF_MAIL_REDACT=1 masque clés et secrets dans le corps.
-# Code 1 si le fichier manque ou si le résultat n'a pas de balise pre.
 hf_render_mail() {
     local template="$1"
     [[ -f "${template}" ]] || return 1

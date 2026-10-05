@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# Audit Lynis. Un seul corps pour les deux produits.
-# Usage : bash core/lynis.sh <racine du produit> [auditeur]
-# Sans auditeur : PROJECT_SLUG de global.conf, sinon high-fortress.
+# =============================================================================
+# File       : core/lynis.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
+# =============================================================================
+
 set -euo pipefail
 
 root="${1:-}"
@@ -32,4 +35,6 @@ chmod 640 /var/log/lynis.log /var/log/lynis-report.dat 2>/dev/null || true
     echo "=== warnings ==="; grep -E "^warning\[\]=" /var/log/lynis-report.dat || true
     echo "=== suggestions ==="; grep -E "^suggestion\[\]=" /var/log/lynis-report.dat || true
 } > "${out}/summary.txt"
-printf 'Rapport : %s\n' "${out}"
+# shellcheck disable=SC1091
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/log.sh"
+printf 'Rapport : %s\n' "$(hf_disp_path "${out}")"

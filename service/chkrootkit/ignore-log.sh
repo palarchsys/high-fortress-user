@@ -1,19 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Fichier    : service/chkrootkit/ignore-log.sh
-# Créé le    : 2026-09-28
-# Créateur   : palarchsys
-#
-# Rôle
-#   Enregistre comme faux positifs les lignes d'un journal chkrootkit.
-# =============================================================================
-
-# Copié vers /opt/high-fortress-user/bin/chkrootkit-ignore-log.sh.
-# L'e-mail d'alerte indique cette commande, avec le journal joint.
-# Les lignes sont ajoutées à cron/chkrootkit.local.ignore. Ce fichier
-# reste en place quand l'installateur recopie les contrôles.
-# Une ligne est comparée telle quelle : une détection différente
-# (autre numéro de processus, autre date) produit encore une alerte.
+# File       : service/chkrootkit/ignore-log.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
 # =============================================================================
 
 set -euo pipefail

@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# Résolution de core/ pour le monodépôt (../core) et pour une archive
-# publiée (./core à la racine du produit). HF_PRODUCT_ROOT est cette racine.
+# =============================================================================
+# File       : core/bootstrap.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
+# =============================================================================
 
 hf_source_core() {
     local name="$1"

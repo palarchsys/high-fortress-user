@@ -1,14 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-# core/lib.sh — fonctions des deux installeurs
-# =============================================================================
-# Sourcé par run.sh et par chaque étape. set -euo pipefail s'applique
-# au script appelant. Les noms historiques sont conservés.
-#
-# Le poste est SERVER_TYPE=WORKSTATION ou PROJECT_SLUG=high-fortress-user.
-# Les collecteurs de l'autre produit s'arrêtent tout de suite : log.sh
-# appelle les deux. assert_no_password_mutation n'est appelée par aucun
-# script du serveur. hf_chpasswd reste dans server/system/configure.sh.
+# File       : core/lib.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
 # =============================================================================
 
 set -euo pipefail
@@ -36,15 +30,12 @@ hf_source_core log.sh
 hf_source_core exec.sh
 hf_source_core fs.sh
 
-# Vrai seulement pour le poste. Lit global.conf si les variables
-# ne sont pas encore chargées, pour ne pas lancer le collecteur serveur.
 hf_is_workstation() {
     [[ "${SERVER_TYPE:-}" == "WORKSTATION" || "${PROJECT_SLUG:-}" == "high-fortress-user" ]] && return 0
     [[ -n "${HF_PRODUCT_ROOT:-}" && -f "${HF_PRODUCT_ROOT}/global.conf" ]] || return 1
     grep -qE '^(SERVER_TYPE="WORKSTATION"|PROJECT_SLUG="high-fortress-user")$' "${HF_PRODUCT_ROOT}/global.conf"
 }
 
-# Échoue si un bind TCP hôte occupe déjà le port (Docker userland-proxy / 127.0.0.1).
 assert_localhost_port_free() {
     local port="$1"
     local line
@@ -73,7 +64,7 @@ get_matrix_admin_access_token() {
         error "MATRIX_ADMIN_USER ou MATRIX_ADMIN_PASSWORD vide."
     fi
 
-    info "Connexion à $url avec $user ..."
+    info "Récupération du jeton Matrix de ${user}"
 
     local payload
     payload=$(jq -n --arg user "$user" --arg pass "$pass" \
@@ -91,12 +82,9 @@ get_matrix_admin_access_token() {
         error "Échec de récupération du token !"
     fi
 
-    success "Token récupéré avec succès !"
+    success "Jeton Matrix récupéré"
 }
 
-
-# Snapshot propre au serveur (docker, nginx, pare-feu applicatif).
-# Le tronc commun est dans core/log.sh. On ne retire aucun collecteur.
 hf_collect_product_logs() {
     local snap="$1"
     if hf_is_workstation; then
@@ -115,7 +103,7 @@ hf_collect_product_logs() {
         local cid cname
         for cid in $(docker ps -aq 2>/dev/null); do
             cname=$(docker inspect -f '{{.Name}}' "$cid" 2>/dev/null | sed 's#^/##')
-            docker logs --tail 400 "$cid" > "${snap}/docker-logs/${cname:-$cid}.log" 2>&1 || true
+            docker logs --tail 2000 "$cid" > "${snap}/docker-logs/${cname:-$cid}.log" 2>&1 || true
         done
     fi
 
@@ -132,20 +120,17 @@ hf_collect_product_logs() {
         cp -a /etc/nginx/sites-enabled/. "${snap}/etc/nginx-sites-enabled/" 2>/dev/null || true
     fi
 
-    # Compose générés (pas les .env secrets)
     if [[ -n "${DOCKER_BASE_DIR:-}" && -d "${DOCKER_BASE_DIR}" ]]; then
         mkdir -p "${snap}/docker-compose"
         find "${DOCKER_BASE_DIR}" -name 'docker-compose.yml' -exec cp -a {} "${snap}/docker-compose/" \; 2>/dev/null || true
         find "${snap}/docker-compose" -name '*.env' -delete 2>/dev/null || true
     fi
-}
 
-# Le paquet Ubuntu npm n'est pas installé (il entraîne gcc). S'il est quand
-# même présent, ou si corepack l'est, on les réserve au compte SSH.
-# Le mode 500 et dpkg-statoverride survivent à apt upgrade ; run.sh rappelle
-# la fonction après l'upgrade. Node.js n'est pas modifié.
-# Le répertoire du code est inclus : sinon « node …/npm-cli.js » contourne
-# le lanceur.
+    hf_copy_unit_journals "${snap}" \
+        nginx docker containerd fail2ban crowdsec crowdsec-firewall-bouncer \
+        auditd clamav-daemon clamav-freshclam clamonacc postfix ssh redis-server cron apparmor \
+        || true
+}
 
 hf_statoverride_user_exec() {
     local path="$1"
@@ -168,6 +153,7 @@ hf_lock_npm_to_main_user() {
     [[ -n "${MAIN_USER:-}" && -n "${MAIN_GROUP:-}" ]] || error "npm : MAIN_USER ou MAIN_GROUP vide"
     getent passwd "${MAIN_USER}" >/dev/null || error "npm : compte ${MAIN_USER} introuvable"
     getent group "${MAIN_GROUP}" >/dev/null || error "npm : groupe ${MAIN_GROUP} introuvable"
+    info "Réservation de npm pour ${MAIN_USER}"
 
     local listed="" real="" root="" locked=0
     while IFS= read -r listed; do
@@ -208,7 +194,7 @@ hf_lock_npm_to_main_user() {
         hf_statoverride_user_exec "${root}"
         locked=1
     fi
-    # corepack sait lancer npm. Son arbre est réservé au même compte.
+
     if [[ "${have_corepack}" -eq 1 && -d /usr/share/nodejs/corepack ]]; then
         hf_statoverride_user_exec /usr/share/nodejs/corepack
         locked=1
@@ -235,14 +221,6 @@ hf_lock_npm_to_main_user() {
     [[ "${locked}" -eq 1 ]] || return 0
     success "npm réservé à ${MAIN_USER}"
 }
-
-# -----------------------------------------------------------------------------
-# Deux accès.
-# PROD (MODE_TEST=0 et MODE_DEV=0) : https://<nom>, Nginx, Cloudflare.
-# TEST ou DEV (l'un des deux à 1) : http://127.0.0.1:<port>.
-# global.conf garde les URL https. Cette fonction ne réécrit pas le fichier.
-# À appeler après source global.conf, avant envsubst.
-# -----------------------------------------------------------------------------
 
 hf_local_browser() {
     [[ "${MODE_TEST:-0}" == "1" || "${MODE_DEV:-0}" == "1" ]]
@@ -274,7 +252,6 @@ hf_apply_runtime_urls() {
     export HF_LIVEKIT_URL HF_JWT_URL WG_HOST HF_WG_UI_URL
 }
 
-# Clés Turnstile publiques « always pass » (Cloudflare). Inutile hors mode test.
 mode_test_use_turnstile_keys() {
     [[ "${MODE_TEST:-0}" == "1" ]] || return 0
     TURNSTILE_SITE_KEY="1x00000000000000000000AA"
@@ -282,10 +259,10 @@ mode_test_use_turnstile_keys() {
     export TURNSTILE_SITE_KEY TURNSTILE_SECRET_KEY
 }
 
-# Retire un ancien bloc qui faisait résoudre les noms vers le loopback.
 mode_test_strip_hosts() {
     [[ -f /etc/hosts ]] || return 0
     grep -q '# BEGIN high-fortress MODE_TEST' /etc/hosts || return 0
+    info "Retrait des noms de domaine de /etc/hosts"
     local tmp
     tmp="$(mktemp)"
     awk '
@@ -299,12 +276,11 @@ mode_test_strip_hosts() {
     success "Noms de domaine retirés de /etc/hosts"
 }
 
-# Certificat seulement pour que nginx -t passe : Certbot ne tourne pas.
-# Le navigateur n'ouvre pas ces noms.
 mode_test_prepare_local() {
     [[ "${MODE_TEST:-0}" == "1" ]] || return 0
 
     local live="/etc/letsencrypt/live/${DOMAIN}"
+    info "Préparation de l'accès local MODE_TEST"
     mkdir -p "${live}"
     openssl req -x509 -nodes -newkey rsa:2048 -days 365 \
         -keyout "${live}/privkey.pem" \
@@ -315,21 +291,13 @@ mode_test_prepare_local() {
 
     mode_test_strip_hosts
     if [[ -f /usr/local/share/ca-certificates/high-fortress-mode-test.crt ]]; then
+        info "Retrait du certificat de test du magasin système"
         rm -f /usr/local/share/ca-certificates/high-fortress-mode-test.crt
         update-ca-certificates >/dev/null || true
         success "Certificat de test retiré du magasin système"
     fi
-    success "MODE_TEST : Nginx a un certificat local. Le navigateur utilise http://127.0.0.1"
+    success "Accès local MODE_TEST prêt, navigateur sur http://127.0.0.1"
 }
-
-# -----------------------------------------------------------------------------
-# Secrets : uniquement secrets.conf, produit par configure.sh.
-# L'installateur ne demande rien. Voir hf_require_prepared_config.
-# -----------------------------------------------------------------------------
-
-# -----------------------------------------------------------------------------
-# Détection workstation
-# -----------------------------------------------------------------------------
 
 detect_current_user() {
     local u="${SUDO_USER:-${HFU_USER:-}}"
@@ -357,10 +325,6 @@ detect_os() {
     fi
 }
 
-# Vrai pour un compte ouvert par l'installateur Ubuntu.
-# Un compte de service peut avoir un uid élevé : libvirt-qemu est en 64055,
-# avec le dossier /nonexistent et le shell nologin. Il n'entre pas dans
-# la comparaison, sinon son apparition en cours d'installation est un échec.
 hfu_is_desktop_account() {
     local uid="$1" home="$2" shell="$3"
     [[ "${uid}" -ge 1000 && "${uid}" -lt 60000 ]] || return 1
@@ -371,8 +335,6 @@ hfu_is_desktop_account() {
     return 0
 }
 
-# Empreinte des comptes du bureau.
-# Comparée en fin de script : uid, gid, gecos, home, shell, groupes, hash shadow, chage.
 write_human_account_table() {
     local dest="$1"
     local name uid gid gecos home shell groups shadow_fp maxdays
@@ -399,25 +361,14 @@ snapshot_human_accounts() {
     mkdir -p /var/lib/high-fortress-user/accounts
     chmod 700 /var/lib/high-fortress-user/accounts
     write_human_account_table "${HFU_ACCOUNT_SNAPSHOT}"
-    # Empreinte shadow : uniquement sur la machine, mode 600.
-    # Jamais dans la copie du dossier partagé.
-    if [[ -n "${HF_LOG_SYS:-}" ]]; then
-        mkdir -p "${HF_LOG_SYS}/accounts"
-        chmod 700 "${HF_LOG_SYS}/accounts"
-        cp -a "${HFU_ACCOUNT_SNAPSHOT}" "${HF_LOG_SYS}/accounts/human.tsv"
-        chmod 600 "${HF_LOG_SYS}/accounts/human.tsv"
-    fi
+
     local n
     n="$(wc -l < "${HFU_ACCOUNT_SNAPSHOT}" | tr -d ' ')"
     if [[ "${n}" -lt 1 ]]; then
         error "Aucun compte de bureau sous /home : l'installateur Ubuntu doit avoir créé les utilisateurs."
     fi
-    success "Empreinte de ${n} compte(s) humain(s) enregistrée (non modifiés ensuite)"
 }
 
-# Retire les groupes libvirt et kvm de la colonne des groupes.
-# Le paquet libvirt-daemon-system les ajoute aux membres de sudo :
-# uid, home, shell et mot de passe restent comparés tels quels.
 hfu_strip_virt_groups() {
     awk -F '\t' 'BEGIN { OFS = "\t" } {
         n = split($7, g, ",")
@@ -432,7 +383,6 @@ hfu_strip_virt_groups() {
     }'
 }
 
-# Affiche un diff et retourne 1 si un compte humain a changé.
 human_accounts_drift() {
     local current baseline="${HFU_ACCOUNT_SNAPSHOT}" norm_base norm_now
     [[ -f "${baseline}" ]] || {
@@ -485,7 +435,6 @@ app_present() {
     return 1
 }
 
-# Refuse toute mutation de mot de passe (garde-fou global).
 assert_no_password_mutation() {
     case "$*" in
         *chpasswd*|*passwd\ *|*" usermod -p "*|*chage*)
@@ -494,8 +443,6 @@ assert_no_password_mutation() {
     esac
 }
 
-
-# Snapshot propre au poste. Pas de jeton Ubuntu Pro dans le fichier.
 hfu_collect_product_logs() {
     local snap="$1"
     hf_is_workstation || return 0
@@ -510,17 +457,13 @@ hfu_collect_product_logs() {
         pro status 2>&1 | sed -E 's/[A-Za-z0-9]{20,}/[redacted]/g' > "${snap}/ubuntu-pro.txt" || true
     fi
 
-    local f
-    for f in /var/log/aide/aide.log /var/lib/aide/aide.log /opt/high-fortress-user/cron/security_logs; do
-        if [[ -f "$f" ]]; then
-            tail -n 200 "$f" > "${snap}/$(basename "$f").tail.txt" 2>/dev/null || true
-        fi
-    done
+    hf_copy_unit_journals "${snap}" \
+        unbound fail2ban crowdsec crowdsec-firewall-bouncer \
+        auditd clamav-daemon clamav-freshclam clamonacc postfix ssh cron \
+        unattended-upgrades apparmor \
+        || true
 }
 
-# Vrai si « pro status » indique que la machine est déjà rattachée à Ubuntu Pro.
-# Le jeton reste obligatoire dans secrets.conf : ce test sert seulement à
-# ne pas rappeler pro attach quand le rattachement est déjà fait.
 ubuntu_pro_attached() {
     command -v pro >/dev/null 2>&1 || return 1
     local st

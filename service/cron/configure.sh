@@ -1,21 +1,12 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Fichier    : service/cron/configure.sh
-# Créé le    : 2026-09-21
-# Créateur   : palarchsys
-#
-# Rôle
-#   service/cron/configure.sh
-# =============================================================================
-
-# Watchdogs en root via /etc/cron.d. PAS de cron.allow restrictif
-# (l'utilisateur desktop garde crontab). PAS d'utilisateur cronexecutor.
+# File       : service/cron/configure.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
 # =============================================================================
 
 DIR_INSTALL_PATH="${1}"
 export DIR_INSTALL_PATH
-SERVER_TYPE="${2}"
-export SERVER_TYPE
 
 # shellcheck disable=SC2155
 readonly DIR_SCRIPT_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
@@ -26,6 +17,7 @@ require_root
 
 title "Watchdogs cron (root, cron.allow non restreint)"
 
+info "Installation des watchdogs (démarrage plafonné à ${WATCHDOG_CPU_LIMIT}% CPU)"
 ensure_dir "${CONFIG_BASE_DIR}/cron/bin" 755
 ensure_dir "${CONFIG_BASE_DIR}/cron/cron_logs" 750
 ensure_dir "${CONFIG_BASE_DIR}/cron/security_logs" 750
@@ -35,8 +27,7 @@ cp -a "${DIR_SCRIPT_PATH}/watchdogs/." "${CONFIG_BASE_DIR}/cron/bin/"
 chmod 750 "${CONFIG_BASE_DIR}/cron/bin/"*.sh
 hf_source_core mail.sh
 hf_install_mail_templates "${CONFIG_BASE_DIR}/cron/bin"
-# Destinataire des alertes, sans le mot de passe SMTP.
-# HF_MAIL_ALERTS=0 : les contrôles tournent, send.sh n'est pas appelé.
+
 umask 077
 cat > "${CONFIG_BASE_DIR}/cron/mail.conf" << EOF
 HF_MAIL_ALERTS="${HF_MAIL_ALERTS:-0}"
@@ -49,14 +40,12 @@ chmod 600 "${CONFIG_BASE_DIR}/cron/mail.conf"
 chown -R root:root "${CONFIG_BASE_DIR}/cron"
 
 export PROJECT_SLUG CONFIG_BASE_DIR
-# envsubst the cron file
+
 sed "s|\${CONFIG_BASE_DIR}|${CONFIG_BASE_DIR}|g" "${DIR_SCRIPT_PATH}/hfu.cron" \
     > "/etc/cron.d/${PROJECT_SLUG}"
 chown root:root "/etc/cron.d/${PROJECT_SLUG}"
 chmod 600 "/etc/cron.d/${PROJECT_SLUG}"
 
-# Les contrôles se suivent. Le plafond reste 20 % pour toute la passe,
-# sans le multiplier par le nombre de cœurs.
 install -d -m 755 /etc/systemd/system
 tee /etc/systemd/system/hfu-boot-scan.service > /dev/null << EOF
 [Unit]
@@ -86,10 +75,9 @@ WantedBy=timers.target
 EOF
 chmod 644 /etc/systemd/system/hfu-boot-scan.service /etc/systemd/system/hfu-boot-scan.timer
 run_silent systemctl daemon-reload
-# enable sans démarrage immédiat : la passe part au prochain démarrage,
-# deux minutes après l'arrivée du système, sans bloquer l'ouverture de session.
+
 run_silent systemctl enable hfu-boot-scan.timer
-success "Passe au démarrage plafonnée à ${WATCHDOG_CPU_LIMIT} % du processeur (CPUQuota=${WATCHDOG_CPU_LIMIT}%)"
+success "Démarrage plafonné à ${WATCHDOG_CPU_LIMIT}% CPU"
 
 info "crontab utilisateur : non touché (pas de cron.allow)."
 success "Watchdogs installés dans ${CONFIG_BASE_DIR}/cron/bin"

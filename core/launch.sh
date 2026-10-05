@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# Lanceur commun. hf à la racine du produit appelle hf_launch.
-# Les commandes restent dans scripts/. La racine garde global.conf.
+# =============================================================================
+# File       : core/launch.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
+# =============================================================================
 
 hf_launch() {
     local root="$1"

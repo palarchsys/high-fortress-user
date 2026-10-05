@@ -1,28 +1,19 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Fichier    : service/unattended-upgrades/configure.sh
-# Créé le    : 2026-09-21
-# Créateur   : palarchsys
-#
-# Rôle
-#   service/unattended-upgrades/configure.sh
-# =============================================================================
-
-# Sécurité Ubuntu + ESM, et le dépôt Mozilla de Thunderbird.
-# Pas -updates (peut changer Mesa / Proton en session).
-# Brave, Steam et Discord ne sont pas dans ces origines.
+# File       : service/unattended-upgrades/configure.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
 # =============================================================================
 
 DIR_INSTALL_PATH="${1}"
 export DIR_INSTALL_PATH
-SERVER_TYPE="${2}"
-export SERVER_TYPE
 
 source "${DIR_INSTALL_PATH}/core/lib.sh"
 source "${DIR_INSTALL_PATH}/global.conf"
 require_root
 
 title "Configuration unattended-upgrades (security only)"
+info "Configuration d'unattended-upgrades (security only)"
 ensure_dir /etc/apt/apt.conf.d 755
 
 tee /etc/apt/apt.conf.d/20auto-upgrades > /dev/null << 'EOF'
@@ -40,8 +31,6 @@ Unattended-Upgrade::Allowed-Origins {
         "${distro_id}ESM:${distro_codename}-infra-security";
         "thunderbird-deb:thunderbird-deb";
 };
-# Thunderbird est mis à jour depuis le dépôt Mozilla. Les autres
-# clients tiers ne sont pas dans ces origines.
 Unattended-Upgrade::Package-Blacklist {
 };
 Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
@@ -50,4 +39,4 @@ Unattended-Upgrade::Automatic-Reboot "false";
 EOF
 
 run_silent systemctl enable --now unattended-upgrades
-success "unattended-upgrades : security only, reboot auto OFF"
+success "unattended-upgrades configuré (security only, reboot auto OFF)"

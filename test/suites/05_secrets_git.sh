@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-
-# Suite 05 — secrets et AGENTS.md hors des dépôts produits.
+# =============================================================================
+# File       : test/suites/05_secrets_git.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
+# =============================================================================
 
 hf_section "secrets hors git"
 MONO="$(cd -- "${HF_ROOT}/.." && pwd)"

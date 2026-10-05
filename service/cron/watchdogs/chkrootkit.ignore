@@ -1,23 +1,19 @@
-# Faux positifs d'une installation fraîche (chkrootkit 0.58b).
-# Une expression Python par ligne. Pas de ligne vide :
-# une ligne vide retirerait toute la sortie.
-#
-# basename, date, dirname, echo, env : coreutils signalés INFECTED
-# alors que les paquets Ubuntu sont intacts.
+# =============================================================================
+# File       : service/cron/watchdogs/chkrootkit.ignore
+# Updated at : 2026-10-05
+# Creator    : palarchsys
+# =============================================================================
+
 ^Checking `(basename|date|dirname|echo|env)'\.\.\. INFECTED$
 
-# Fichiers cachés livrés par les paquets (noyau, fail2ban, Ruby, firmware, libc).
 ^/usr/lib/modules/\S+/vdso/\.build-id(\s|$)
 ^/usr/lib/python3/dist-packages/fail2ban/tests/
 ^/usr/lib/ruby/vendor_ruby/rubygems/.*\.document(\s|$)
 ^/usr/lib/firmware/.*/\.notice\.zst(\s|$)
 ^/usr/lib/debug/\.build-id(\s|$)
 
-# /proc/<pid>/stack existe pour chaque processus. Le numéro change.
 ^/proc/[0-9]+/stack$
 
-# NetworkManager écoute le réseau. Le nom d'interface et le PID changent.
 PACKET SNIFFER\(.*/(NetworkManager|wpa_supplicant|systemd-networkd)\[
 
-# Rotations de wtmp. Les dates changent à chaque démarrage.
-^[0-9]+ deletion\(s\) between 
+^[0-9]+ deletion\(s\) between

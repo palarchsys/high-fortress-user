@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-
-# Suite 06 — le SQL serveur est la copie du SQL web.
+# =============================================================================
+# File       : test/suites/06_sql_contract.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
+# =============================================================================
 
 hf_section "contrat SQL"
 MONO="$(cd -- "${HF_ROOT}/.." && pwd)"

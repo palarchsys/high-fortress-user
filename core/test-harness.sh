@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# core/test-harness.sh — banc d'essai commun aux deux installeurs.
-# Aucune politique. Les suites du produit appellent hf_pass / hf_fail /
-# hf_warn / hf_skip. Un lib.sh de produit, s'il existe, ajoute ses aides.
+# =============================================================================
+# File       : core/test-harness.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
+# =============================================================================
 
 hf_ts() { date '+%Y-%m-%d %H:%M:%S'; }
 
@@ -54,7 +56,6 @@ hf_section() {
 
 have_cmd() { command -v "$1" >/dev/null 2>&1; }
 
-# Source le global.conf du produit comme données (affectations).
 hf_load_project_conf() {
     # shellcheck disable=SC1091
     set +u
@@ -62,7 +63,6 @@ hf_load_project_conf() {
     set -u
 }
 
-# ${FOO} encore présents, hors variables runtime laissées au service.
 hf_leftover_envsubst() {
     local file="$1"
     grep -oE '\$\{[A-Z_][A-Z0-9_]*\}' "$file" 2>/dev/null | sort -u || true
