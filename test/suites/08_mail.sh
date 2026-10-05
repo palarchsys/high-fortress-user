@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-
-# Suite 08 — dossier template/ et rendu commun. Le style HTML du poste reste le sien.
+# =============================================================================
+# File       : test/suites/08_mail.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
+# =============================================================================
 
 hf_section "modèle éditable"
 MONO="$(cd -- "${HF_ROOT}/.." && pwd)"
@@ -31,6 +34,19 @@ if DIR_INSTALL_PATH="${stage}" MAIL_TEMPLATE="autre.html" hf_install_mail_templa
     hf_pass "mail.install-many" "tous les .html de template/ sont copiés"
 else
     hf_fail "mail.install-many" "la copie des modèles a échoué"
+fi
+mkdir -p "${stage}/dest-e"
+
+if DIR_INSTALL_PATH="${stage}" MAIL_TEMPLATE="mail.html" bash -c '
+    set -euo pipefail
+    # shellcheck disable=SC1090
+    source "$1"
+    hf_install_mail_templates "$2"
+' bash "${mail_sh}" "${stage}/dest-e" \
+   && [[ -f "${stage}/dest-e/mail.html" ]]; then
+    hf_pass "mail.install-set-e" "la copie survit à set -e quand nullglob est inactif"
+else
+    hf_fail "mail.install-set-e" "la copie quitte sous set -e sans écrire le modèle"
 fi
 rm -rf "${stage}"
 

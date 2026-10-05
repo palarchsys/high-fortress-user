@@ -1,14 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Fichier    : service/cron/watchdogs/send.sh
-# Créé le    : 2026-09-28
-# Créateur   : palarchsys
-#
-# Rôle
-#   Envoi d'une alerte HTML via la commande mail (Postfix local).
-#   Variables : DIR ou chemin du script, MODULE_NAME, CONTENT, TITLE,
-#   WATCHDOG_MAIL, PROJECT_NAME.
-#   Un corps vide n'est pas envoyé.
+# File       : service/cron/watchdogs/send.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
 # =============================================================================
 
 set -euo pipefail

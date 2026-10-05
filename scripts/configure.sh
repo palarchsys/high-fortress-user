@@ -1,19 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Fichier    : configure.sh
-# Créé le    : 2026-09-28
-# Créateur   : palarchsys
-#
-# Rôle
-#   configure.sh — écrit global.conf et secrets.conf, puis lance run.sh
-# =============================================================================
-
-#   sudo ./hf configure     questions, puis l'installation
-#   ./hf check              contrôle les fichiers, code 0 si conformes
-#
-# Jeton : https://ubuntu.com/pro/dashboard
-# Les alertes e-mail sont au choix. Le mot de passe demandé est celui
-# d'application du fournisseur, jamais le mot de passe du compte.
+# File       : scripts/configure.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
 # =============================================================================
 
 set -euo pipefail
@@ -35,8 +24,6 @@ Un mot de passe s'affiche en astérisques, puis une seconde ligne demande la con
 EOF
 }
 
-# Affiche une étoile par caractère. Retour arrière efface une étoile.
-# Entrée termine. Le texte réel reste dans la variable.
 hfu_read_stars() {
     local __out="$1"
     local char="" buf=""
@@ -59,17 +46,12 @@ hfu_read_stars() {
     printf -v "${__out}" '%s' "${buf}"
 }
 
-# Libellé en bleu, deux-points alignés avec la ligne Confirmation.
 hfu_secret_line() {
     local label="$1" dest="$2" width="$3"
     printf '         \e[34m%*s\e[0m : ' "${width}" "${label}" >&2
     hfu_read_stars "${dest}"
 }
 
-# __kind : pro_token | email | secret | smtp
-# Un secret s'affiche en astérisques et se confirme sur la ligne suivante.
-# Entrée vide reprend la valeur déjà connue, sans la réafficher.
-# Les champs e-mail sont posés à vide avant l'appel : rien n'est proposé.
 hfu_prompt() {
     local __var="$1" __label="$2" __example="$3" __default="$4" __kind="$5" __hint="$6"
     local value="" confirm="" attempt current="" width
@@ -110,6 +92,7 @@ hfu_prompt() {
             email) hfu_is_email "${value}" && ok=1 ;;
             secret) hfu_is_secret "${value}" && ok=1 ;;
             smtp) hfu_is_smtp "${value}" && ok=1 ;;
+            bool01) [[ "${value}" =~ ^[01]$ ]] && ok=1 ;;
         esac
         if [[ "${ok}" == "1" ]]; then
             printf -v "${__var}" '%s' "${value}"
@@ -127,6 +110,7 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
 fi
 
 if [[ "${1:-}" == "--check" ]]; then
+    info "Contrôle de la configuration"
     if hfu_require_prepared_config "${DIR_SCRIPT}"; then
         success "Configuration conforme"
         exit 0
@@ -139,7 +123,6 @@ if [[ -n "${1:-}" || $# -gt 0 ]]; then
     exit 2
 fi
 
-# curl | sudo bash a déjà lu le script sur l'entrée standard.
 if [[ ! -t 0 ]]; then
     if [[ ! -r /dev/tty ]]; then
         error "Pas de terminal pour les questions. Lancez : sudo bash ${DIR_SCRIPT}/hf configure"
@@ -152,9 +135,6 @@ clear
 
 hfu_config_set_builtin_defaults
 
-# Relit un fichier déjà écrit pour proposer ses valeurs.
-# DIR_INSTALL_PATH est retiré le temps du chargement : sinon global.conf
-# tenterait de lire secrets.conf avant que ce script ne l'ait demandé.
 _saved_dir_set=0
 _saved_dir=""
 if [[ -n "${DIR_INSTALL_PATH+x}" ]]; then
@@ -193,7 +173,6 @@ hfu_prompt UBUNTU_PRO_TOKEN \
     pro_token \
     "Lettres et chiffres seulement, entre 6 et 100, sans espace."
 
-# Les champs mail ne reprennent jamais une valeur déjà enregistrée.
 hfu_clear_mail() {
     POSTFIX_SMTP_LOGIN=""
     POSTFIX_MAIL_ADDRESS=""
@@ -202,8 +181,6 @@ hfu_clear_mail() {
     WATCHDOG_MAIL=""
 }
 
-# Essai d'envoi. Succès : sortie 0 et un code SMTP 250. Le mot de passe
-# n'est pas affiché.
 hfu_swaks_probe() {
     local out="" rc=0 safe=""
     if ! command -v swaks >/dev/null 2>&1; then
@@ -239,6 +216,7 @@ while true; do
     case "${mail_choice,,}" in
         Y|y)
             hfu_clear_mail
+
             title "Serveur SMTP"
             info "Forme hôte:port, par exemple smtp-mail.outlook.com:587."
             hfu_prompt POSTFIX_MAIL_SMTP \
@@ -247,6 +225,7 @@ while true; do
                 "" \
                 smtp \
                 "Indiquez le serveur et le port, sans crochets. Exemple : smtp-mail.outlook.com:587."
+
             title "Login SMTP"
             info "Adresse email servant de login."
             hfu_prompt POSTFIX_SMTP_LOGIN \
@@ -255,14 +234,16 @@ while true; do
                 "" \
                 email \
                 "Indiquez l'adresse e-mail du compte SMTP."
+
             title "Mot de passe d'application"
-            info "Les espaces sont retirés. Une seconde ligne demande la confirmation."
+            info "Espaces retirés. La ligne suivante confirme."
             hfu_prompt POSTFIX_MAIL_PASS \
                 "Password" \
                 "mot-de-passe-application" \
                 "" \
                 secret \
                 "Mot de passe d'application : au moins 8 caractères, sans espace."
+
             title "Expéditeur"
             info "Les alertes partent vers cette même adresse."
             hfu_prompt POSTFIX_MAIL_ADDRESS \
@@ -272,8 +253,9 @@ while true; do
                 email \
                 "Indiquez l'adresse e-mail expéditeur."
             WATCHDOG_MAIL="${POSTFIX_MAIL_ADDRESS}"
+
             title "Essai d'envoi"
-            info "swaks vérifie le serveur, le login, le mot de passe d'application et l'expéditeur."
+            info "Essai d'envoi (swaks vérifie serveur, login, mot de passe et expéditeur)"
             if hfu_swaks_probe; then
                 HF_MAIL_ALERTS=1
                 success "Essai d'envoi accepté."
@@ -283,6 +265,7 @@ while true; do
             info "Retour au choix des alertes."
             ;;
         n|non)
+            info "Coupure des alertes e-mail"
             hfu_clear_mail
             HF_MAIL_ALERTS=0
             success "Alertes e-mail coupées. Les contrôles partiront sans envoi."
@@ -294,6 +277,17 @@ while true; do
     esac
 done
 
+title "Mode test"
+info "1 : pas de retrait. 0 : question en fin d'installation."
+info "Entrée conserve la valeur en cours (1 par défaut)."
+hfu_prompt MODE_TEST \
+    "Mode test" \
+    "1" \
+    "${MODE_TEST:-1}" \
+    bool01 \
+    "Indiquez 0 ou 1."
+
+info "Enregistrement de la configuration"
 hfu_write_global_conf "${DIR_SCRIPT}/global.conf"
 hfu_write_secrets_conf "${DIR_SCRIPT}/secrets.conf"
 

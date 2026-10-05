@@ -1,26 +1,12 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Fichier    : system/snap-remove.sh
-# Créé le    : 2026-09-28
-# Créateur   : palarchsys
-#
-# Rôle
-#   Retire les snaps Firefox et Thunderbird. snapd reste installé.
+# File       : system/snap-remove.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
 # =============================================================================
 
-# Le reste du bureau s'appuie sur snapd (thèmes, boutique, montages).
-# Seuls Firefox et Thunderbird en sont retirés : le navigateur du poste
-# est Brave, le courrier vient du dépôt Mozilla. Le paquet Ubuntu de
-# chacun est une enveloppe qui réinstallerait le snap ; il est purgé,
-# et firefox est bloqué. snapd n'est ni purgé ni interdit.
-#
-# Sur une relance, ClamAV est suspendu le temps du retrait : le
-# démontage du dossier privé sous /tmp échoue s'il est surveillé.
-# =============================================================================
 DIR_INSTALL_PATH="${1}"
 export DIR_INSTALL_PATH
-SERVER_TYPE="${2}"
-export SERVER_TYPE
 
 source "${DIR_INSTALL_PATH}/core/lib.sh"
 source "${DIR_INSTALL_PATH}/global.conf"
@@ -63,14 +49,12 @@ export APT_LISTCHANGES_FRONTEND=none
 
 hfu_pause_onaccess
 if [[ "${HFU_ONACCESS_PAUSED}" -eq 1 ]]; then
-    info "Surveillance ClamAV en pause le temps de démonter ces deux snaps."
+    info "ClamAV en pause le temps de démonter les snaps."
 fi
 
 repair_log="${HF_LOG_DIR:-/var/log/high-fortress-user}/snap-remove.log"
 mkdir -p "$(dirname "${repair_log}")"
 
-# Un passage précédent a pu interdire snapd. On retire cet interdit
-# avant toute autre action, pour que le paquet puisse rester ou revenir.
 rm -f /etc/apt/preferences.d/no-snap.pref
 apt-mark unhold snapd >/dev/null 2>&1 || true
 if ! dpkg-query -W -f '${Status}' snapd 2>/dev/null | grep -q 'install ok'; then
@@ -88,13 +72,14 @@ for name in firefox thunderbird; do
     pkill -f "/snap/${name}/" >/dev/null 2>&1 || true
     info "Retrait du snap ${name}"
     if ! timeout 90 snap remove --purge "${name}" </dev/null >>"${repair_log}" 2>&1; then
-        warn "Retrait du snap ${name} non terminé. Détail : ${repair_log}"
+        warn "Retrait du snap ${name} non terminé"
     else
         success "Snap ${name} retiré"
     fi
 done
 
 for pkg in firefox thunderbird; do
+    info "Contrôle du paquet de transition ${pkg}"
     ver="$(dpkg-query -W -f '${Version}' "${pkg}" 2>/dev/null || true)"
     if [[ "${ver}" == *snap* ]]; then
         info "Purge du paquet de transition ${pkg}"
@@ -102,12 +87,15 @@ for pkg in firefox thunderbird; do
         success "Paquet de transition ${pkg} retiré"
     fi
 done
+info "Contrôle du blocage du paquet firefox"
 if apt-mark showhold 2>/dev/null | grep -qx firefox; then
     info "Paquet firefox déjà bloqué"
 else
+    info "Blocage du paquet firefox"
     apt-mark hold firefox >/dev/null
     success "Paquet firefox bloqué"
 fi
 
+info "Fin du retrait des snaps Firefox et Thunderbird"
 hfu_resume_onaccess
 success "snapd conservé, Firefox et Thunderbird snaps retirés"

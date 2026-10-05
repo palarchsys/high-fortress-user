@@ -1,16 +1,10 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Fichier    : service/cron/watchdogs/common.sh
-# Créé le    : 2026-09-21
-# Créateur   : palarchsys
-#
-# Rôle
-#   Fonctions partagées : journal local, puis envoi de l'e-mail d'alerte.
+# File       : service/cron/watchdogs/common.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
 # =============================================================================
 
-# Fonctions partagées des contrôles planifiés.
-# Une alerte est écrite sur disque. L'e-mail part seulement si mail.conf
-# a HF_MAIL_ALERTS=1 et un destinataire.
 set -euo pipefail
 HFU_BASE="${HFU_BASE:-/opt/high-fortress-user}"
 LOG_DIR="${HFU_BASE}/cron/security_logs"
@@ -23,8 +17,6 @@ if [[ -f "${HFU_BASE}/cron/mail.conf" ]]; then
 fi
 log_ok()  { printf '%s %s\n' "$(date -Iseconds)" "$*" | tee -a "${LOG_FILE}"; }
 
-# Prépare le texte de l'e-mail : résumé, puis le journal remis en forme.
-# Les mots de passe, jetons et clés privées sont remplacés par [masqué].
 hfu_alert_excerpt() {
     python3 - "${1:-}" << 'PY'
 import re
@@ -103,8 +95,7 @@ log_alert() {
         module="$(basename "${LOG_FILE}" | sed -E 's/-[0-9]{8}-.*//')"
     fi
     module="${module:-contrôle}"
-    # Second bloc de l'e-mail, sous le journal.
-    # AIDE : recalculer la base. chkrootkit / debsums : enregistrer ces lignes.
+
     local note="" note_cmd=""
     if [[ "${HFU_AIDE_REFRESH:-}" == "1" ]]; then
         note="Si ce journal correspond à des changements attendus (une mise à jour, un logiciel que vous avez installé, un fichier que vous avez modifié) et qu'il ne révèle pas d'anomalie, exécutez la commande ci-dessous. Elle recalcule la base de référence AIDE à partir du disque actuel."

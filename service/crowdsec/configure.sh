@@ -1,26 +1,21 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Fichier    : service/crowdsec/configure.sh
-# Créé le    : 2026-09-28
-# Créateur   : palarchsys
-#
-# Rôle
-#   CrowdSec lit les journaux SSH et système, puis le bouncer nftables
-#   refuse les adresses qui attaquent. L'API reste sur la machine.
+# File       : service/crowdsec/configure.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
 # =============================================================================
 
 DIR_INSTALL_PATH="${1}"
 export DIR_INSTALL_PATH
-SERVER_TYPE="${2}"
-export SERVER_TYPE
 
 source "${DIR_INSTALL_PATH}/core/lib.sh"
 source "${DIR_INSTALL_PATH}/global.conf"
 require_root
 
 title "Collections CrowdSec"
+info "Installation des collections CrowdSec"
 run_silent cscli hub update
-# Poste sans site web : pas de scénarios nginx ni HTTP.
+
 run_silent cscli collections install --force \
     crowdsecurity/linux \
     crowdsecurity/sshd \
@@ -30,6 +25,7 @@ run_silent cscli collections install --force \
 success "Collections linux, sshd, postfix et liste blanche installées"
 
 title "Durée de blocage"
+info "Configuration de la durée de blocage"
 tee /etc/crowdsec/profiles.yaml > /dev/null << 'EOF'
 name: default_ip_remediation
 filters:
@@ -47,9 +43,10 @@ decisions:
     duration: 24h
 on_success: break
 EOF
-success "Blocage de 24 h"
+success "Blocage de 24 h posé"
 
 title "Journaux lus par CrowdSec"
+info "Configuration des journaux lus par CrowdSec"
 {
     echo "source: journalctl"
     echo "journalctl_filter:"
@@ -85,9 +82,10 @@ EOF
     fi
 } > /etc/crowdsec/acquisitions.yaml
 chmod 644 /etc/crowdsec/acquisitions.yaml
-success "Journaux SSH, système et courrier"
+success "Journaux SSH, système et courrier configurés"
 
 title "Bouncer pare-feu"
+info "Liaison du bouncer nftables à l'API locale"
 cscli bouncers delete firewall-bouncer >/dev/null 2>&1 || true
 raw="$(cscli bouncers add firewall-bouncer 2>&1)"
 key="$(printf '%s\n' "${raw}" | grep -oE '[A-Za-z0-9/=+]{40,}' | tail -n1)"
@@ -101,8 +99,7 @@ fi
 sed -i "s|^[[:space:]]*api_key:.*|api_key: ${key}|" "${bouncer_cfg}"
 success "Bouncer nftables relié à l'API locale"
 
-# -e 1 est déjà dans 99-high-fortress-user.rules. Le répéter ici
-# fait échouer le chargement (« Rule exists »).
+info "Activation de CrowdSec et du bouncer"
 printf '%s\n' '-a always,exit -F arch=b64 -F dir=/etc/crowdsec -F perm=wa -F key=crowdsec-config' \
     > /etc/audit/rules.d/hfu-crowdsec.rules
 chmod 640 /etc/audit/rules.d/hfu-crowdsec.rules
@@ -112,4 +109,4 @@ run_silent systemctl enable --now crowdsec
 run_silent systemctl enable --now crowdsec-firewall-bouncer
 run_silent systemctl restart crowdsec
 run_silent systemctl restart crowdsec-firewall-bouncer
-success "CrowdSec et le bouncer sont actifs"
+success "CrowdSec et le bouncer activés"

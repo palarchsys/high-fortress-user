@@ -46,7 +46,11 @@ La première question porte sur le jeton Ubuntu Pro. Il s'affiche en astérisque
 
 Ensuite, `configure.sh` demande si les alertes e-mail sont activées (`o` ou `n`). Avec `n`, les contrôles du poste se lancent quand même, sans envoyer de message. Avec `o`, quatre champs sont demandés, vides, sans valeur proposée : le serveur `hôte:port`, le login, le mot de passe d'application, et l'adresse From. Les alertes partent vers cette adresse From. `swaks` envoie un essai. S'il est accepté, l'installation continue. S'il est refusé, un message l'indique et la question `o` / `n` revient.
 
+La dernière question est le mode test. `1` termine l'installation sans proposer de supprimer ce dossier. `0` pose la question à la fin. Entrée conserve la valeur déjà enregistrée, ou `1` si rien n'a encore été choisi.
+
 Pour recontrôler les fichiers sans relancer l'installation : `sudo /opt/high-fortress-user/src/hf check`.
+
+`MODE_TEST` vaut `1` par défaut : l'installation se termine sans demander de supprimer ce dossier. Avec `MODE_TEST` à `0`, la question est posée. `Y` retire l'installeur et les journaux. Sous `src/` il reste `global.conf` et `core/mail.sh`. Les services, les secrets et les contrôles planifiés restent en place. `N` termine sans rien effacer. Après `Y`, `hf`, Lynis et la vérification ne sont plus dans ce dossier.
 
 Si vous avez déjà cloné le dossier vous-même :
 
@@ -68,6 +72,7 @@ sudo ./hf configure
 | Login | L'adresse e-mail utilisée pour l'authentification SMTP |
 | Password | Le mot de passe d'application, sans espaces |
 | From | L'adresse expéditeur. Les alertes arrivent sur cette même adresse |
+| Mode test | `1` pour terminer sans supprimer l'installeur, `0` pour poser la question à la fin |
 
 ## Logiciels installés
 

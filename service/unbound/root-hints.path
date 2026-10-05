@@ -1,3 +1,9 @@
+# =============================================================================
+# File       : service/unbound/root-hints.path
+# Updated at : 2026-10-05
+# Creator    : palarchsys
+# =============================================================================
+
 [Unit]
 Description=Recharge Unbound quand la liste des serveurs racine DNS change
 

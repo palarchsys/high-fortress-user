@@ -1,18 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Fichier    : service/cron/watchdogs/clamav.sh
-# Créé le    : 2026-09-21
-# Créateur   : palarchsys
-#
-# Rôle
-#   Parcourt ce que la surveillance continue ne voit pas.
-# =============================================================================
-
-# Appelé par la passe de démarrage, sous le même plafond processeur
-# et la même classe d'entrées-sorties que AIDE, rkhunter et chkrootkit.
-# Les Téléchargements et le Bureau restent à clamonacc : ce parcours
-# les saute. Si clamd tourne, clamdscan lui envoie les fichiers au lieu
-# d'ouvrir une seconde base de signatures.
+# File       : service/cron/watchdogs/clamav.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
 # =============================================================================
 
 set -euo pipefail
@@ -26,7 +16,6 @@ if ! command -v clamscan >/dev/null && ! command -v clamdscan >/dev/null; then
     exit 0
 fi
 
-# Chemins déjà couverts à l'ouverture par clamonacc.
 onaccess=()
 if [[ -f /etc/clamav/clamd.conf ]]; then
     while read -r _ path; do
@@ -34,7 +23,6 @@ if [[ -f /etc/clamav/clamd.conf ]]; then
     done < <(awk '/^OnAccessIncludePath[[:space:]]/{print $1, $2}' /etc/clamav/clamd.conf)
 fi
 
-# Morceaux de chemin écartés, comme le passage historique du lundi.
 prune_names=(
     .steam Steam .local/share/Steam .cache snap
     proc sys dev
@@ -63,7 +51,7 @@ set +e
 if clamdscan --ping 3 >/dev/null 2>&1; then
     xargs -0 -r -n 80 clamdscan --fdpass --infected < "${file_list}" >> "${LOG_FILE}" 2>&1
     rc=$?
-    # xargs rend 123 quand clamdscan signale un fichier (code 1).
+
     if [[ "${rc}" -eq 123 ]] && grep -q 'FOUND' "${LOG_FILE}"; then
         rc=1
     fi

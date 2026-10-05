@@ -1,18 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Fichier    : verify/chkrootkit-fp.sh
-# Créé le    : 2026-09-28
-# Créateur   : palarchsys
-#
-# Rôle
-#   Script temporaire. Après une installation fraîche et un redémarrage,
-#   il relance chkrootkit exactement comme la passe de démarrage
-#   (chkrootkit -q) et affiche toute la sortie. Ces lignes sont les
-#   faux positifs du poste terminé : elles servent à écrire la liste
-#   d'exclusion de l'installateur.
-#
-# Lancer, une fois la machine redémarrée :
-#   sudo bash verify/chkrootkit-fp.sh
+# File       : verify/chkrootkit-fp.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
 # =============================================================================
 
 set +e

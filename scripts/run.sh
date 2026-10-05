@@ -1,29 +1,12 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Fichier    : run.sh
-# Créé le    : 2026-09-21
-# Créateur   : palarchsys
-#
-# Rôle
-#   run.sh — installation du poste Ubuntu 26.04
-# =============================================================================
-
-# Point d'entrée root. Les questions sont posées par configure.sh.
-# Ce script refuse de démarrer si global.conf et secrets.conf ne sont
-# pas conformes (./hf check).
-#
-# Ordre :
-#   1. Snaps Firefox et Thunderbird seulement ; snapd reste
-#   2. Réglages du poste, Postfix, SSH
-#   3. Pile de sécurité, dont ClamAV en continu et Unbound en DNS local
-#   4. Logiciels du bureau, puis leurs profils AppArmor
-#   5. Purge des paquets résiduels, check, base AIDE, e-mail
-#
-# Les comptes créés par l'installateur Ubuntu et les dépôts APT déjà
-# présents ne sont pas modifiés.
+# File       : scripts/run.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
 # =============================================================================
 
 # shellcheck disable=SC2155
+
 DIR_INSTALL_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." &>/dev/null && pwd)"
 export DIR_INSTALL_PATH
 
@@ -49,14 +32,12 @@ chmod 755 "${DIR_INSTALL_PATH}/hf"
 detect_os
 detect_current_user
 detect_ssh_port
-SERVER_TYPE="WORKSTATION"
-export SERVER_TYPE
 
 violet "═════════════════════════════════════════════════════════════════════════════════"
 violet " High-Fortress User — durcissement workstation                                   "
 violet "═════════════════════════════════════════════════════════════════════════════════"
 
-title "Contrat (non négociable)"
+title "Nouvelles règles"
 echo "   Utilisateur courant : ${CURRENT_USER}  (home ${CURRENT_HOME})"
 echo "   Port SSH détecté    : ${SSH_PORT}"
 echo "   OS                  : ${OS_PRETTY}"
@@ -77,11 +58,7 @@ echo ""
 
 init_install_log
 snapshot_human_accounts
-trap collect_install_logs EXIT
-
-# -----------------------------------------------------------------------------
-# Étapes
-# -----------------------------------------------------------------------------
+trap hf_install_exit EXIT
 
 STEP_SYSTEM_INSTALL=(
     "system/install.sh"
@@ -119,49 +96,49 @@ STEP_SECURITY_CONFIGURE=(
     "service/cron/configure.sh"
 )
 
-# 1. Firefox et Thunderbird quittent Snap. snapd et les autres snaps restent.
-run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "system/snap-remove.sh"
-# 2. Base du poste, avant la surveillance continue.
-run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "${STEP_SYSTEM_INSTALL[@]}"
-run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "${STEP_SYSTEM_CONFIGURE[@]}"
+run_steps "${DIR_INSTALL_PATH}" "system/snap-remove.sh"
+run_steps "${DIR_INSTALL_PATH}" "${STEP_SYSTEM_PURGE[@]}"
+
+run_steps "${DIR_INSTALL_PATH}" "${STEP_SYSTEM_INSTALL[@]}"
+run_steps "${DIR_INSTALL_PATH}" "${STEP_SYSTEM_CONFIGURE[@]}"
 if [[ "${HF_MAIL_ALERTS:-0}" == "1" ]]; then
-    run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "service/postfix/install.sh"
-    run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "service/postfix/configure.sh"
+    run_steps "${DIR_INSTALL_PATH}" "service/postfix/install.sh"
+    run_steps "${DIR_INSTALL_PATH}" "service/postfix/configure.sh"
 fi
-run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "${STEP_SSH_CONFIGURE[@]}"
-# 3. Pile de sécurité. ClamAV surveille /tmp à partir d'ici.
-run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "${STEP_SECURITY_INSTALL[@]}"
-run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "${STEP_SECURITY_CONFIGURE[@]}"
-# 4. Logiciels du bureau. Les profils userns visent ces binaires.
-run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "service/desktop/install.sh"
-run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "service/apparmor/userns.sh"
-run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "${STEP_SYSTEM_PURGE[@]}"
+run_steps "${DIR_INSTALL_PATH}" "${STEP_SSH_CONFIGURE[@]}"
+
+run_steps "${DIR_INSTALL_PATH}" "${STEP_SECURITY_INSTALL[@]}"
+run_steps "${DIR_INSTALL_PATH}" "${STEP_SECURITY_CONFIGURE[@]}"
+
+run_steps "${DIR_INSTALL_PATH}" "service/desktop/install.sh"
+run_steps "${DIR_INSTALL_PATH}" "service/apparmor/userns.sh"
 
 try_silent sysctl --system
 
-# Lynis retire 25 points (PKGS-7392) tant qu'apt-check voit un
-# correctif de sécurité. On les installe avant l'audit, y compris
-# ceux encore en déploiement progressif.
 title "Correctifs de sécurité"
+info "Installation des correctifs de sécurité"
 export DEBIAN_FRONTEND=noninteractive
 export NEEDRESTART_MODE=a
 run_silent_apt update
 run_silent_apt -o APT::Get::Always-Include-Phased-Updates=true upgrade -y --with-new-pkgs
 success "Correctifs de sécurité installés"
 
-run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "verify/workstation.sh"
+HF_PURGE_RC_ONLY=1 bash "${DIR_INSTALL_PATH}/system/purge.sh" "${DIR_INSTALL_PATH}"
 
-# Dernière écriture de l'installation. Brave, Thunderbird,
-# les profils AppArmor, les scripts de contrôle et la purge sont
-# déjà sur le disque. Le check n'écrit que des journaux dans
-# /var/log, hors du périmètre AIDE. L'e-mail de test part ensuite.
-run_steps "${DIR_INSTALL_PATH}" "${SERVER_TYPE}" "service/aide/init-db.sh"
+HF_REAPPLY_LOCKS=1 bash "${DIR_INSTALL_PATH}/system/purge.sh" "${DIR_INSTALL_PATH}"
+run_steps "${DIR_INSTALL_PATH}" "service/rkhunter/init-db.sh"
+
+run_steps "${DIR_INSTALL_PATH}" "verify/workstation.sh"
+
+run_steps "${DIR_INSTALL_PATH}" "service/aide/init-db.sh"
 
 if [[ "${HF_MAIL_ALERTS:-0}" == "1" ]]; then
+
     title "E-mail de test"
     if [[ -z "${WATCHDOG_MAIL:-}" ]]; then
         error "WATCHDOG_MAIL est vide : l'e-mail de fin d'installation ne peut pas partir."
     fi
+    info "Envoi de l'e-mail de test à ${WATCHDOG_MAIL}"
     export TITLE="Installation terminée"
     export MODULE_NAME="Installation"
     export PROJECT_NAME
@@ -180,10 +157,9 @@ fi
 
 step_off "Installation terminée"
 
-info "Utilisateur intact : ${CURRENT_USER} (mot de passe non modifié)"
-info "Journaux           : ${HF_LOG_DIR}"
-info "Audit Lynis        : sudo bash ${DIR_INSTALL_PATH}/hf lynis"
-echo ""
+info "${CURRENT_USER} : mot de passe inchangé"
+info "Journaux : ${HF_LOG_DIR}"
+info "Lynis : sudo bash hf lynis"
 reboot_needed=0
 [[ -f /var/run/reboot-required ]] && reboot_needed=1
 if command -v needrestart >/dev/null 2>&1; then
@@ -195,4 +171,4 @@ fi
 if [[ "${reboot_needed}" -eq 1 ]]; then
     info "Un reboot est recommandé (noyau / libc)."
 fi
-echo ""
+hf_offer_remove_installer

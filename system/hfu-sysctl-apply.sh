@@ -1,17 +1,10 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Fichier    : system/hfu-sysctl-apply.sh
-# Créé le    : 2026-09-28
-# Créateur   : palarchsys
-#
-# Rôle
-#   Applique le fichier sysctl du poste au démarrage.
+# File       : system/hfu-sysctl-apply.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
 # =============================================================================
 
-# Certaines clés du profil Lynis n'existent pas, ou sont en lecture
-# seule, sur le noyau de la machine. Elles sont ignorées. Le service
-# reste réussi : une clé refusée ne doit pas marquer le démarrage.
-# =============================================================================
 set -u
 conf="/etc/sysctl.d/99-zzz-high-fortress-user.conf"
 [[ -f "${conf}" ]] || exit 0
@@ -24,8 +17,7 @@ while IFS= read -r line || [[ -n "${line}" ]]; do
     key="${key%"${key##*[![:space:]]}"}"
     val="${line#*=}"
     val="${val#"${val%%[![:space:]]*}"}"
-    # Le message de sysctl est dans la langue du système. On ne le
-    # lit pas : une clé absente de /proc/sys n'existe pas sur ce noyau.
+
     proc="/proc/sys/${key//.//}"
     if [[ ! -e "${proc}" ]]; then
         printf 'ignoré: %s absent\n' "${key}" >&2
@@ -36,7 +28,7 @@ while IFS= read -r line || [[ -n "${line}" ]]; do
     if [[ "${current}" == "${val}" ]]; then
         continue
     fi
-    # Lecture seule ou valeur refusée : le démarrage continue.
+
     printf 'ignoré: %s\n' "${err}" >&2
 done < "${conf}"
 exit 0

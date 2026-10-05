@@ -1,19 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Fichier    : service/debsums/ignore-log.sh
-# Créé le    : 2026-09-29
-# Créateur   : palarchsys
-#
-# Rôle
-#   Enregistre comme faux positifs les lignes d'un journal debsums.
-# =============================================================================
-
-# Copié vers /opt/high-fortress-user/bin/debsums-ignore-log.sh.
-# L'e-mail d'alerte indique cette commande, avec le journal joint.
-# Les lignes sont ajoutées à cron/debsums.local.ignore. Ce fichier
-# reste en place quand l'installateur recopie les contrôles.
-# Une ligne est comparée telle quelle : un autre fichier produit
-# encore une alerte.
+# File       : service/debsums/ignore-log.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
 # =============================================================================
 
 set -euo pipefail

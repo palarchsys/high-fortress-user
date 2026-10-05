@@ -1,16 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Fichier    : verify/boot.sh
-# Créé le    : 2026-09-28
-# Créateur   : palarchsys
-#
-# Rôle
-#   Relit, après un redémarrage, l'état des services de sécurité et les
-#   derniers journaux. La sortie est faite pour être copiée telle quelle.
-#   Aucun mot de passe ni jeton n'est affiché.
-#
-# Lancer :
-#   sudo bash verify/boot.sh
+# File       : verify/boot.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
 # =============================================================================
 
 set +e

@@ -1,29 +1,20 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Fichier    : service/auditd/configure.sh
-# Créé le    : 2026-09-21
-# Créateur   : palarchsys
-#
-# Rôle
-#   service/auditd/configure.sh
+# File       : service/auditd/configure.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
 # =============================================================================
 
 DIR_INSTALL_PATH="${1}"
 export DIR_INSTALL_PATH
-SERVER_TYPE="${2}"
-export SERVER_TYPE
 
 source "${DIR_INSTALL_PATH}/core/lib.sh"
 source "${DIR_INSTALL_PATH}/global.conf"
 require_root
 
 title "Configuration auditd"
-# Trois fichiers, dans l'ordre de lecture :
-#   00  efface les règles précédentes, tampon, et ignore une ligne
-#       que ce noyau refuse (sinon le chargement s'arrête et vide tout)
-#   50  surveillance des fichiers sensibles, forme syscall
-#       (la forme -w affiche « Old style watch rules are slower »)
-#   99  active l'audit, une seule fois
+info "Configuration d'auditd"
+
 install -d -m 750 /etc/audit/rules.d
 rm -f /etc/audit/rules.d/"${PROJECT_SLUG}".rules
 hfu_audit_watch() {
@@ -64,7 +55,6 @@ run_silent systemctl enable auditd
 if ! systemctl is-active --quiet auditd; then
     run_silent systemctl start auditd
 fi
-# Un seul chargement. enable --now puis augenrules puis restart
-# rejouait les mêmes règles : « Rule exists », puis plus aucune règle.
+
 run_silent augenrules --load
-success "auditd actif"
+success "auditd activé"

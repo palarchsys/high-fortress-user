@@ -1,11 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Fichier    : service/cron/watchdogs/aide.sh
-# Créé le    : 2026-09-21
-# Créateur   : palarchsys
-#
-# Rôle
-#   Compare la base AIDE au disque. Un écart déclenche une alerte et un e-mail.
+# File       : service/cron/watchdogs/aide.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
 # =============================================================================
 
 set -euo pipefail
@@ -22,9 +19,7 @@ set +e
 aide --config=/etc/aide/aide.conf --check > "${LOG_FILE}" 2>&1
 rc=$?
 set -e
-# AIDE additionne ses trouvailles : 1 fichier ajouté, 2 retiré, 4 modifié.
-# 7 signifie donc les trois à la fois. Ce n'est pas une panne.
-# Un code à partir de 8 signale une erreur du programme.
+
 if [[ "${rc}" -eq 0 ]]; then
     log_ok "AIDE: aucun changement"
 elif [[ "${rc}" -ge 1 && "${rc}" -le 7 ]]; then

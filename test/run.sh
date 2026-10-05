@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# test/run.sh — même lanceur pour les deux installeurs.
-# Les contrôles sont dans test/suites/. Les assertions sont dans core/test-harness.sh.
-# Usage : bash test/run.sh [--profile MATRIX|LIVEKIT|WIREGUARD|ALL|WORKSTATION]
-# Code 0 si aucun FAIL. Rapport : test/output/<horodatage>/summary.md
+# =============================================================================
+# File       : test/run.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
+# =============================================================================
 
 set -euo pipefail
 

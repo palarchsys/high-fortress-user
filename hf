@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+# =============================================================================
+# File       : hf
+# Updated at : 2026-10-05
+# Creator    : palarchsys
+# =============================================================================
+
 set -euo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 if [[ -f "${ROOT}/core/launch.sh" ]]; then

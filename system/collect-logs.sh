@@ -1,11 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-# system/collect-logs.sh — snapshot manuel des journaux du poste
-# =============================================================================
-# Usage : sudo bash system/collect-logs.sh
-# HF_DEBUG_INSTALL_LOGS=1 ou DEBUG_INSTALL_LOGS=1 → logs/ dans le dépôt.
-# Sinon → /var/log/high-fortress-user/.
-# L'empreinte des comptes (human.tsv) reste sur la machine, en mode 600.
+# File       : system/collect-logs.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
 # =============================================================================
 
 DIR_INSTALL_PATH="${1:-}"

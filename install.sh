@@ -1,24 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Fichier    : install.sh
-# Créé le    : 2026-09-21
-# Créateur   : palarchsys
-#
-# Rôle
-#   install.sh — télécharge le dépôt public et lance run.sh
-# =============================================================================
-
-# Commande :
-#   sudo apt-get install git curl swaks -y
-#   curl -fsSL https://raw.githubusercontent.com/palarchsys/high-fortress-user/main/install.sh | sudo bash
-#
-# Le script :
-#   1. installe curl et tar ;
-#   2. télécharge l'archive de la branche main ;
-#   3. la place dans /opt/high-fortress-user/src (ou HF_INSTALL_ROOT) ;
-#   4. conserve un global.conf et un secrets.conf déjà préparés ;
-#   5. lance configure.sh. run.sh ne part que si la configuration
-#      est déjà enregistrée et que son contrôle réussit.
+# File       : install.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
 # =============================================================================
 
 set -euo pipefail
@@ -48,7 +32,6 @@ if [[ -z "${extracted}" || ! -f "${extracted}/global.conf" ]]; then
     exit 1
 fi
 
-# CONFIG_BASE_DIR vient du global.conf de l'archive, pas d'une valeur en dur.
 config_base="$(
     unset DIR_INSTALL_PATH
     set +u
@@ -85,8 +68,6 @@ if [[ ! -f "${INSTALL_ROOT}/hf" ]]; then
 fi
 chmod 755 "${INSTALL_ROOT}/hf"
 
-# Première exécution : les questions de configure.sh partent tout de suite.
-# configure.sh --check dirait « secrets.conf absent » avant toute saisie.
 if [[ "${keep}" != "1" ]]; then
     printf '\nTéléchargement terminé. Les sources sont dans %s.\n' "${INSTALL_ROOT}"
     printf 'Lancement de la configuration.\n\n'

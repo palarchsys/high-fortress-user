@@ -1,16 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Fichier    : service/aide/refresh-db.sh
-# Créé le    : 2026-09-28
-# Créateur   : palarchsys
-#
-# Rôle
-#   Recalcule la base de référence AIDE et la met en service.
-# =============================================================================
-
-# Copié vers /opt/high-fortress-user/bin/aide-refresh-db.sh.
-# L'e-mail d'alerte AIDE indique cette commande lorsque le journal
-# ne montre que des changements attendus.
+# File       : service/aide/refresh-db.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
 # =============================================================================
 
 set -euo pipefail
@@ -23,7 +15,7 @@ if [[ ! -f /etc/aide/aide.conf ]]; then
     exit 1
 fi
 printf 'Calcul de la nouvelle base AIDE. Cela peut prendre plusieurs minutes.\n'
-# AIDE refuse d'écraser un fichier de sortie déjà présent.
+
 rm -f /var/lib/aide/aide.db.new /var/lib/aide/aide.db.new.gz
 set +e
 aide --config=/etc/aide/aide.conf --init

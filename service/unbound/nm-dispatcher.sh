@@ -1,12 +1,8 @@
 #!/bin/bash
 # =============================================================================
-# Fichier    : service/unbound/nm-dispatcher.sh
-# Créé le    : 2026-09-29
-# Créateur   : palarchsys
-#
-# Rôle
-#   Sur une liaison ethernet ou Wi-Fi, pointe systemd-resolved vers
-#   Unbound. Un VPN conserve le DNS fourni par le tunnel.
+# File       : service/unbound/nm-dispatcher.sh
+# Updated at : 2026-10-05
+# Creator    : palarchsys
 # =============================================================================
 
 interface="${1:-}"
