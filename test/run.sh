@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : test/run.sh
-# Updated at : 2026-10-05
+# Updated at : 2026-10-07
 # Creator    : palarchsys
 # =============================================================================
 
@@ -33,7 +33,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "${PROFILE}" ]]; then
-    if [[ -f "${HF_ROOT}/global.conf" ]] && grep -qE '^(SERVER_TYPE="WORKSTATION"|PROJECT_SLUG="high-fortress-user")$' "${HF_ROOT}/global.conf"; then
+    if [[ -f "${HF_ROOT}/config/global.conf" ]] && grep -qE '^(SERVER_TYPE="WORKSTATION"|PROJECT_SLUG="high-fortress-user")$' "${HF_ROOT}/config/global.conf"; then
         PROFILE="WORKSTATION"
     else
         PROFILE="ALL"
@@ -49,7 +49,7 @@ case "${PROFILE}" in
 esac
 
 product_ws=0
-if [[ -f "${HF_ROOT}/global.conf" ]] && grep -qE '^(SERVER_TYPE="WORKSTATION"|PROJECT_SLUG="high-fortress-user")$' "${HF_ROOT}/global.conf"; then
+if [[ -f "${HF_ROOT}/config/global.conf" ]] && grep -qE '^(SERVER_TYPE="WORKSTATION"|PROJECT_SLUG="high-fortress-user")$' "${HF_ROOT}/config/global.conf"; then
     product_ws=1
 fi
 if [[ "${product_ws}" -eq 1 && "${PROFILE}" != "WORKSTATION" ]]; then

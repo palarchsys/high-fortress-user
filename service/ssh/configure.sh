@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/ssh/configure.sh
-# Updated at : 2026-10-05
+# Updated at : 2026-10-07
 # Creator    : palarchsys
 # =============================================================================
 
@@ -12,7 +12,7 @@ export DIR_INSTALL_PATH
 readonly DIR_SCRIPT_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 
 source "${DIR_INSTALL_PATH}/core/lib.sh"
-source "${DIR_INSTALL_PATH}/global.conf"
+source "${DIR_INSTALL_PATH}/config/global.conf"
 
 require_root
 detect_ssh_port

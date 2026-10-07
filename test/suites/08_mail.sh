@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : test/suites/08_mail.sh
-# Updated at : 2026-10-05
+# Updated at : 2026-10-07
 # Creator    : palarchsys
 # =============================================================================
 
@@ -10,7 +10,7 @@ MONO="$(cd -- "${HF_ROOT}/.." && pwd)"
 mail_sh="${MONO}/core/mail.sh"
 tpl="${HF_ROOT}/template/mail.html"
 
-if grep -q '^MAIL_TEMPLATE="mail.html"$' "${HF_ROOT}/global.conf" \
+if grep -q '^MAIL_TEMPLATE="mail.html"$' "${HF_ROOT}/config/global.conf" \
    && grep -q 'hf_install_mail_templates' "${HF_ROOT}/service/cron/configure.sh" \
    && grep -q 'hf_render_mail' "${HF_ROOT}/service/cron/watchdogs/send.sh" \
    && ! grep -q 'HF_MAIL_REDACT=1' "${HF_ROOT}/service/cron/watchdogs/send.sh" \

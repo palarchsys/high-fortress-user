@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/configure.sh
-# Updated at : 2026-10-05
+# Updated at : 2026-10-07
 # Creator    : palarchsys
 # =============================================================================
 
@@ -12,7 +12,7 @@ export DIR_INSTALL_PATH
 readonly DIR_SCRIPT_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 
 source "${DIR_INSTALL_PATH}/core/lib.sh"
-source "${DIR_INSTALL_PATH}/global.conf"
+source "${DIR_INSTALL_PATH}/config/global.conf"
 require_root
 
 title "Watchdogs cron (root, cron.allow non restreint)"
@@ -27,6 +27,10 @@ cp -a "${DIR_SCRIPT_PATH}/watchdogs/." "${CONFIG_BASE_DIR}/cron/bin/"
 chmod 750 "${CONFIG_BASE_DIR}/cron/bin/"*.sh
 hf_source_core mail.sh
 hf_install_mail_templates "${CONFIG_BASE_DIR}/cron/bin"
+mail_src="$(readlink -f "${DIR_INSTALL_PATH}/core/mail.sh")"
+[[ -f "${mail_src}" ]] || error "core/mail.sh introuvable (${DIR_INSTALL_PATH}/core/mail.sh)"
+cp -f "${mail_src}" "${CONFIG_BASE_DIR}/cron/bin/mail.sh"
+chmod 750 "${CONFIG_BASE_DIR}/cron/bin/mail.sh"
 
 umask 077
 cat > "${CONFIG_BASE_DIR}/cron/mail.conf" << EOF

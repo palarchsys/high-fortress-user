@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/send.sh
-# Updated at : 2026-10-05
+# Updated at : 2026-10-06
 # Creator    : palarchsys
 # =============================================================================
 
@@ -32,6 +32,8 @@ export NOTE_CMD="${NOTE_CMD:-}"
 
 _mail_sh=""
 for _candidate in \
+    "${SCRIPT_DIR}/mail.sh" \
+    "${CONFIG_BASE_DIR:-}/cron/bin/mail.sh" \
     "${CONFIG_BASE_DIR:-}/src/core/mail.sh" \
     "${DIR_INSTALL_PATH:-}/core/mail.sh" \
     "${DIR_INSTALL_PATH:-}/../core/mail.sh" \

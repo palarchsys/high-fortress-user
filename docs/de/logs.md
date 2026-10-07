@@ -1,0 +1,26 @@
+[Vollständiges README](README.md)
+
+# Journale
+
+`<source>` ist `/opt/high-fortress-user/src` nach dem Curl-Installer oder das Klonverzeichnis. `YYYYMMDD-HHMMSS` ist der Stempel `date +%Y%m%d-%H%M%S`.
+
+| Pfad                                                                           | Wer schreibt                        | Wann                                                                                                                            |
+| ------------------------------------------------------------------------------ | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| <source>/logs/install-YYYYMMDD-HHMMSS-user/install.log                         | scripts/run.sh via init_install_log | Während der Installation.                                                                                                       |
+| <source>/logs/install-YYYYMMDD-HHMMSS-user/errors.log                          | error()                             | Wenn ein Schritt fehlschlägt.                                                                                                   |
+| <source>/logs/install-YYYYMMDD-HHMMSS-user/meta.txt                            | init_install_log                    | Wenn das Journalverzeichnis entsteht.                                                                                           |
+| <source>/logs/install-YYYYMMDD-HHMMSS-user/steps/INDEX.tsv                     | step_on                             | Bei jedem Installationsschritt.                                                                                                 |
+| <source>/logs/install-YYYYMMDD-HHMMSS-user/aide-init.log                       | service/aide/init-db.sh             | Wenn die Basis zum ersten Mal gebaut wird. Ausweichpfad, wenn HF_LOG_DIR leer ist: `/var/log/high-fortress-user/aide-init.log`. |
+| /opt/high-fortress-user/cron/security_logs/aide-YYYYMMDD-HHMMSS.log            | aide.sh                             | Startprüfung, wenn AIDE läuft.                                                                                                  |
+| /opt/high-fortress-user/cron/security_logs/rkhunter-YYYYMMDD-HHMMSS.log        | rkhunter.sh                         | Startprüfung.                                                                                                                   |
+| /opt/high-fortress-user/cron/security_logs/chkrootkit-YYYYMMDD-HHMMSS.log      | chkrootkit.sh                       | Startprüfung.                                                                                                                   |
+| /opt/high-fortress-user/cron/security_logs/clamav-YYYYMMDD-HHMMSS.log          | clamav.sh                           | Startprüfung.                                                                                                                   |
+| /opt/high-fortress-user/cron/security_logs/clamav-onaccess-YYYYMMDD-HHMMSS.log | clamav-event.sh                     | Wenn die Zugriffsprüfung eine echte Datei findet. Ein Sperrname beendet das Skript, bevor diese Datei geschrieben wird.                                       |
+| /opt/high-fortress-user/cron/security_logs/debsums-YYYYMMDD-HHMMSS.log         | debsums.sh                          | Startprüfung.                                                                                                                   |
+| /opt/high-fortress-user/cron/alerts/<tool>-YYYYMMDD-HHMMSS.txt                 | log_alert                           | Im selben Moment wie das Sicherheitsjournal, nur wenn ein Alarm entsteht.                                                       |
+| /var/log/clamav/clamonacc.log                                                  | clamonacc                           | Während der Zugriffsdienst läuft.                                                                                               |
+| /var/log/lynis.log                                                             | lynis                               | Während `hf lynis` oder `verify/workstation.sh`. Modus 640.                                                                     |
+| /var/log/lynis-report.dat                                                      | lynis                               | Derselbe Lauf. Modus 640.                                                                                                       |
+| <source>/logs/lynis-<stamp>/                                                   | core/lynis.sh                       | Wenn Sie `sudo ./hf lynis` starten.                                                                                             |
+| <source>/logs/verify-report-WORKSTATION-YYYYMMDD-HHMMSS.md                     | verify/workstation.sh               | Während der Arbeitsplatzprüfung, unter HF_LOG_DIR wenn diese Variable gesetzt ist.                                              |
+| systemd journal, unit hfu-boot-scan.service                                    | systemd                             | Jede Startprüfung.                                                                                                              |

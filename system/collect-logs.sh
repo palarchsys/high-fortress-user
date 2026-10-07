@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : system/collect-logs.sh
-# Updated at : 2026-10-05
+# Updated at : 2026-10-07
 # Creator    : palarchsys
 # =============================================================================
 
@@ -14,7 +14,7 @@ export DIR_INSTALL_PATH
 # shellcheck disable=SC1091
 source "${DIR_INSTALL_PATH}/core/lib.sh"
 # shellcheck disable=SC1091
-source "${DIR_INSTALL_PATH}/global.conf"
+source "${DIR_INSTALL_PATH}/config/global.conf"
 
 require_root
 hf_collect_manual

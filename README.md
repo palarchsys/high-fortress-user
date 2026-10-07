@@ -1,186 +1,24 @@
 # High-Fortress User
 
-High-Fortress User prépare un poste Ubuntu 26.04 pour un usage quotidien. Il active les mises à jour de sécurité Ubuntu Pro, règle le pare-feu et les contrôles du système, installe les logiciels du bureau, puis, si vous l'avez demandé, envoie un e-mail de confirmation.
+High-Fortress User prepares an Ubuntu 26.04 workstation. It installs the desktop programs, the local DNS resolver, the firewall, and the security checks.
 
-Le compte créé pendant l'installation d'Ubuntu reste tel quel : le nom, le mot de passe, le dossier personnel et l'interpréteur de commandes ne changent pas.
-
-## Avant de commencer
-
-Il vous faut :
-
-- un ordinateur sous Ubuntu 26.04, de préférence une installation neuve, avec une session graphique et une connexion à Internet ;
-- le droit d'administration (`sudo`) ;
-- un compte [Ubuntu Pro](https://ubuntu.com/pro) et son jeton, copié depuis le [tableau de bord](https://ubuntu.com/pro/dashboard) ;
-- si vous activez les alertes : un compte e-mail chez le fournisseur de votre choix, et un mot de passe d'application de ce fournisseur.
-
-## Ubuntu Pro
-
-Le jeton rattache l'ordinateur à votre compte Ubuntu Pro. Le programme active ensuite :
-
-| Élément | Rôle |
-|---------|------|
-| ESM Infra | Correctifs de sécurité du dépôt principal, au-delà du support standard |
-| ESM Apps | Correctifs de sécurité du dépôt universe |
-| Livepatch | Certains correctifs du noyau, appliqués sans redémarrage |
-| Mises à jour automatiques | Installation quotidienne des correctifs de sécurité Ubuntu, ESM et Thunderbird |
-
-Les mises à jour ordinaires, hors sécurité, restent proposées par la mise à jour logicielle d'Ubuntu. Aucun redémarrage n'est lancé automatiquement.
-
-## Mot de passe d'application
-
-Les alertes utilisent un mot de passe d'application créé chez votre fournisseur de mail. Le mot de passe habituel du compte e-mail ne doit pas être saisi ici : il resterait dans la configuration du poste.
-Chaque fournisseur a sa propre page pour créer ce mot de passe (souvent après une validation en deux étapes). Copiez-le sans espaces lorsque `configure.sh` demande `Password`.
-
-## Installation
-
-Prévoyez du temps : le téléchargement des paquets et le calcul de la base d'intégrité des fichiers prennent plusieurs minutes. Laissez la session ouverte jusqu'au message de fin.
-
-Cette commande installe curl, télécharge le programme dans `/opt/high-fortress-user/src`, puis lance la configuration :
+The Ubuntu account already created on the machine is not replaced. The installer does not create a second account.
 
 ```bash
-sudo apt-get install git curl swaks -y
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl git swaks tar
 curl -fsSL https://raw.githubusercontent.com/palarchsys/high-fortress-user/main/install.sh | sudo bash
 ```
 
-La première question porte sur le jeton Ubuntu Pro. Il s'affiche en astérisques, puis une ligne Confirmation redemande la même saisie. Entrée conserve un jeton déjà enregistré.
+## Documentation
 
-Ensuite, `configure.sh` demande si les alertes e-mail sont activées (`o` ou `n`). Avec `n`, les contrôles du poste se lancent quand même, sans envoyer de message. Avec `o`, quatre champs sont demandés, vides, sans valeur proposée : le serveur `hôte:port`, le login, le mot de passe d'application, et l'adresse From. Les alertes partent vers cette adresse From. `swaks` envoie un essai. S'il est accepté, l'installation continue. S'il est refusé, un message l'indique et la question `o` / `n` revient.
+Click a flag to open all the information.
 
-La dernière question est le mode test. `1` termine l'installation sans proposer de supprimer ce dossier. `0` pose la question à la fin. Entrée conserve la valeur déjà enregistrée, ou `1` si rien n'a encore été choisi.
-
-Pour recontrôler les fichiers sans relancer l'installation : `sudo /opt/high-fortress-user/src/hf check`.
-
-`MODE_TEST` vaut `1` par défaut : l'installation se termine sans demander de supprimer ce dossier. Avec `MODE_TEST` à `0`, la question est posée. `Y` retire l'installeur et les journaux. Sous `src/` il reste `global.conf` et `core/mail.sh`. Les services, les secrets et les contrôles planifiés restent en place. `N` termine sans rien effacer. Après `Y`, `hf`, Lynis et la vérification ne sont plus dans ce dossier.
-
-Si vous avez déjà cloné le dossier vous-même :
-
-```bash
-git clone https://github.com/palarchsys/high-fortress-user.git
-cd high-fortress-user
-sudo ./hf configure
-```
-
-`secrets.conf` contient le jeton et le mot de passe d'envoi. Il reste sur la machine, lisible par root seulement. Ne le copiez pas dans un message, un ticket ou un dépôt public.
-
-## Ce que configure.sh demande
-
-| Question | Ce qu'il faut répondre |
-|----------|------------------------|
-| Jeton Ubuntu Pro | La valeur affichée sur le tableau de bord Ubuntu Pro, sans espace |
-| Alertes | `o` pour les activer, `n` pour les laisser coupées |
-| Serveur | `hôte:port` du SMTP, par exemple `smtp-mail.outlook.com:587` |
-| Login | L'adresse e-mail utilisée pour l'authentification SMTP |
-| Password | Le mot de passe d'application, sans espaces |
-| From | L'adresse expéditeur. Les alertes arrivent sur cette même adresse |
-| Mode test | `1` pour terminer sans supprimer l'installeur, `0` pour poser la question à la fin |
-
-## Logiciels installés
-
-| Logiciel | Origine |
-|----------|---------|
-| Brave | Dépôt apt publié sur [brave.com/linux](https://brave.com/linux/). C'est le navigateur du poste. Firefox est retiré. |
-| Thunderbird | Dépôt apt Mozilla, suite `thunderbird-deb` |
-| KeePassXC | Dépôt Ubuntu |
-| Discord | Paquet `.deb` publié sur [discord.com/download](https://discord.com/download) |
-| Vencord | Installeur officiel, [vencord.dev](https://vencord.dev/download/), appliqué à ce Discord |
-
-## Ce que le poste fait après l'installation
-
-| Sujet | Comportement |
-|-------|----------------|
-| Pare-feu | Les connexions entrantes sont refusées. Les connexions sortantes sont autorisées. |
-| DNS | Unbound résout les noms sur le poste, sans passer par le DNS du FAI. Les applications n'ont rien à régler. Un VPN, une fois connecté, utilise le DNS du tunnel. La liste des serveurs racine est tenue à jour avec les paquets Ubuntu. |
-| SSH | La connexion root est interdite. Le mot de passe de votre compte habituel reste accepté. Le nombre d'essais est limité. Fail2Ban bloque une adresse après plusieurs échecs. |
-| Comptes | Les comptes déjà créés restent tels quels. Un nouveau mot de passe, le jour où vous en choisissez un, doit respecter une longueur minimale. |
-| Noyau | Les paquets réseau douteux sont filtrés, les vidages mémoire des programmes sont désactivés, les adresses du noyau sont masquées. IPv6 reste actif. |
-| AppArmor | Le réglage d'Ubuntu est conservé. Un profil est ajouté seulement lorsqu'un logiciel en a besoin pour son bac à sable et qu'il n'en a pas déjà un. |
-| ClamAV | En continu sur les dossiers Téléchargements et Bureau, jusqu'à 25 Mo par fichier. Une installation lancée par l'administrateur n'est pas retenue. À chaque démarrage, un parcours complémentaire couvre le reste de `/tmp`, `/home` et `/opt`, en dehors de ces deux dossiers. |
-| Contrôles au démarrage | AIDE, rkhunter, chkrootkit, le parcours ClamAV et debsums. Ils utilisent au plus 20 % du processeur et une priorité basse, deux minutes après le démarrage. |
-| Lynis | Lancé une fois à la fin de l'installation. Le score doit être d'au moins 80. Il ne fait pas partie des contrôles au démarrage. |
-| CrowdSec | Lit les journaux SSH et système, et bloque l'adresse attaquante dans le pare-feu pendant 24 heures. |
-| E-mail | Si les alertes sont activées, chaque message part vers l'adresse From. Sinon les contrôles écrivent leur journal et n'envoient rien. |
-| Journaux | `/var/log/high-fortress-user/` et `/opt/high-fortress-user/cron/`. |
-
-## Style des e-mails
-
-Les messages HTML sont les fichiers du dossier `template/`. Celui qui part est `mail.html`, sauf si `MAIL_TEMPLATE` dans `global.conf` nomme un autre fichier `.html` de ce dossier. Pour changer le style, éditez ces fichiers, ou ajoutez-en un et changez `MAIL_TEMPLATE`. Les textes `TITLE`, `PROJECT_NAME`, `HOSTNAME`, `DATE`, `MODULE_NAME`, `CONTENT`, `NOTE` et `NOTE_CMD` sont remplacés à l'envoi. Le bloc entre `<!--NOTE_START-->` et `<!--NOTE_END-->` disparaît lorsqu'il n'y a pas de note. L'édition est prise au prochain envoi, sans réinstaller.
-
-## E-mail AIDE
-
-Au démarrage, AIDE compare le disque à la photo prise à la fin de l'installation. Un fichier ajouté, retiré ou modifié produit un e-mail.
-
-L'e-mail contient d'abord le journal. En dessous, un second bloc donne la commande complète. Copiez-la telle quelle : rien n'est à modifier.
-
-```bash
-sudo bash /opt/high-fortress-user/bin/aide-refresh-db.sh
-```
-
-La commande recalcule la photo à partir du disque actuel. Le calcul peut prendre plusieurs minutes. Elle affiche `Base de référence AIDE enregistrée.` lorsqu'elle a réussi. Le démarrage suivant ne signale plus ces changements.
-
-Ouvrez l'e-mail reçu et copiez la commande du second bloc. Si une ligne du journal vous est inconnue, ne lancez pas cette commande. Conservez l'e-mail et relisez le chemin indiqué.
-
-L'e-mail de fin d'installation, lorsqu'il est demandé, est un essai d'envoi. Son objet indique que l'installation s'est terminée. Il ne contient pas ce second bloc.
-
-## E-mail chkrootkit
-
-Au démarrage, chkrootkit cherche des signes connus de compromission. Une ligne absente de la liste d'exclusion produit un e-mail.
-
-L'e-mail contient d'abord le journal. En dessous, un second bloc donne la commande complète. Copiez-la telle quelle : rien n'est à modifier.
-
-```bash
-sudo bash /opt/high-fortress-user/bin/chkrootkit-ignore-log.sh '/opt/high-fortress-user/cron/security_logs/chkrootkit-DATE.log'
-```
-
-La commande enregistre ces lignes dans `/opt/high-fortress-user/cron/chkrootkit.local.ignore`. Elle affiche le nombre de détections enregistrées. Le démarrage suivant ne signale plus ces lignes exactes. Une ligne différente, par exemple un autre numéro de processus, produit un nouvel e-mail. Une réinstallation du poste conserve ce fichier.
-
-Ouvrez l'e-mail reçu et copiez la commande du second bloc : le nom réel du journal de cette alerte y est déjà écrit. L'exemple ci-dessus montre seulement la forme. Si une ligne du journal vous est inconnue, ne lancez pas cette commande. Conservez l'e-mail et relisez le chemin indiqué.
-
-## E-mail debsums
-
-Au démarrage, debsums compare les fichiers des paquets Ubuntu à leurs empreintes. Un fichier modifié ou manquant produit un e-mail.
-
-L'e-mail contient d'abord le journal. En dessous, un second bloc donne la commande complète. Copiez-la telle quelle : rien n'est à modifier.
-
-```bash
-sudo bash /opt/high-fortress-user/bin/debsums-ignore-log.sh '/opt/high-fortress-user/cron/security_logs/debsums-DATE.log'
-```
-
-La commande enregistre ces lignes dans `/opt/high-fortress-user/cron/debsums.local.ignore`. Elle affiche le nombre de détections enregistrées. Le démarrage suivant ne signale plus ces lignes exactes. Une ligne différente, par exemple un autre fichier, produit un nouvel e-mail. Une réinstallation du poste conserve ce fichier.
-
-Ouvrez l'e-mail reçu et copiez la commande du second bloc : le nom réel du journal de cette alerte y est déjà écrit. L'exemple ci-dessus montre seulement la forme. Si une ligne du journal vous est inconnue, ne lancez pas cette commande. Conservez l'e-mail et relisez le chemin indiqué.
-
-## Après l'installation
-
-Un redémarrage est souvent utile lorsque le noyau ou des bibliothèques ont été mis à jour. Ouvrez ensuite Brave, Discord et KeePassXC depuis le menu des applications. Discord démarre avec Vencord.
-
-Pour relire l'état du poste :
-
-```bash
-sudo bash /opt/high-fortress-user/src/verify/workstation.sh
-```
-
-Après un redémarrage, ce script relit les services et les journaux du démarrage. La sortie est prévue pour être copiée :
-
-```bash
-sudo bash /opt/high-fortress-user/src/verify/boot.sh
-```
-
-Lynis a déjà tourné à la fin de l'installation. Pour le relancer vous-même :
-
-```bash
-sudo /opt/high-fortress-user/src/hf lynis
-```
-
-## En cas de blocage
-
-| Message | Que faire |
-|---------|-----------|
-| `Configuration conforme` est absent | Relancer `./hf configure`, confirmer avec `o`, puis `./hf check` |
-| Le jeton est refusé | Le recopier depuis le tableau de bord Ubuntu Pro, sans espace |
-| Ubuntu Pro n'attache pas la machine | Vérifier le jeton et la connexion, puis relancer `sudo /opt/high-fortress-user/src/hf run` |
-| Le système n'est pas Ubuntu 26.04 | Le programme ne continue pas |
-| L'empreinte de la clé Mozilla est inattendue | Vérifier la connexion, puis relancer `sudo /opt/high-fortress-user/src/hf run` |
-| L'essai swaks ou l'e-mail de test ne part pas | Vérifier le serveur `hôte:port`, le login, le mot de passe d'application sans espaces, et l'adresse From. `configure.sh` redemande alors le choix `o` / `n` |
-| La base AIDE n'est pas générée | Lire `/var/log/high-fortress-user/aide-init.log`, puis relancer `sudo bash /opt/high-fortress-user/bin/aide-refresh-db.sh` une fois le message d'erreur compris |
-
-Les journaux de l'installation sont dans `/var/log/high-fortress-user/`.
+<table width="100%">
+  <tr>
+    <td width="25%"><a href="docs/en/README.md"><img src="docs/flags/en.svg" alt="English" width="100%"></a></td>
+    <td width="25%"><a href="docs/fr/README.md"><img src="docs/flags/fr.svg" alt="Français" width="100%"></a></td>
+    <td width="25%"><a href="docs/de/README.md"><img src="docs/flags/de.svg" alt="Deutsch" width="100%"></a></td>
+    <td width="25%"><a href="docs/es/README.md"><img src="docs/flags/es.svg" alt="Español" width="100%"></a></td>
+  </tr>
+</table>

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : scripts/configure.sh
-# Updated at : 2026-10-05
+# Updated at : 2026-10-07
 # Creator    : palarchsys
 # =============================================================================
 
@@ -142,20 +142,20 @@ if [[ -n "${DIR_INSTALL_PATH+x}" ]]; then
     _saved_dir="${DIR_INSTALL_PATH}"
     unset DIR_INSTALL_PATH || true
 fi
-if [[ -f "${DIR_SCRIPT}/global.conf" ]]; then
+if [[ -f "${DIR_SCRIPT}/config/global.conf" ]]; then
     set +u
     # shellcheck disable=SC1091
-    source "${DIR_SCRIPT}/global.conf"
+    source "${DIR_SCRIPT}/config/global.conf"
     set -u
 fi
 if [[ "${_saved_dir_set}" == "1" ]]; then
     DIR_INSTALL_PATH="${_saved_dir}"
 fi
 unset _saved_dir _saved_dir_set
-if [[ -f "${DIR_SCRIPT}/secrets.conf" ]]; then
+if [[ -f "${DIR_SCRIPT}/config/secrets.conf" ]]; then
     set +u
     # shellcheck disable=SC1091
-    source "${DIR_SCRIPT}/secrets.conf"
+    source "${DIR_SCRIPT}/config/secrets.conf"
     set -u
 fi
 
@@ -272,7 +272,7 @@ while true; do
             break
             ;;
         *)
-            warn "Répondez o ou n."
+            warn "Répondez Y ou n."
             ;;
     esac
 done
@@ -288,8 +288,9 @@ hfu_prompt MODE_TEST \
     "Indiquez 0 ou 1."
 
 info "Enregistrement de la configuration"
-hfu_write_global_conf "${DIR_SCRIPT}/global.conf"
-hfu_write_secrets_conf "${DIR_SCRIPT}/secrets.conf"
+mkdir -p "${DIR_SCRIPT}/config"
+hfu_write_global_conf "${DIR_SCRIPT}/config/global.conf"
+hfu_write_secrets_conf "${DIR_SCRIPT}/config/secrets.conf"
 
 if ! hfu_require_prepared_config "${DIR_SCRIPT}"; then
     error "Les fichiers écrits ne passent pas le contrôle."

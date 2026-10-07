@@ -1,0 +1,26 @@
+[README completo](README.md)
+
+# Diarios
+
+`<source>` es `/opt/high-fortress-user/src` después del instalador curl, o el directorio del clon. `YYYYMMDD-HHMMSS` es la marca `date +%Y%m%d-%H%M%S`.
+
+| Ruta                                                                           | Quién escribe                       | Cuándo                                                                                                                              |
+| ------------------------------------------------------------------------------ | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| <source>/logs/install-YYYYMMDD-HHMMSS-user/install.log                         | scripts/run.sh via init_install_log | Durante la instalación.                                                                                                             |
+| <source>/logs/install-YYYYMMDD-HHMMSS-user/errors.log                          | error()                             | Cuando un paso falla.                                                                                                               |
+| <source>/logs/install-YYYYMMDD-HHMMSS-user/meta.txt                            | init_install_log                    | Cuando se crea el directorio del diario.                                                                                            |
+| <source>/logs/install-YYYYMMDD-HHMMSS-user/steps/INDEX.tsv                     | step_on                             | En cada paso de instalación.                                                                                                        |
+| <source>/logs/install-YYYYMMDD-HHMMSS-user/aide-init.log                       | service/aide/init-db.sh             | Cuando la base se construye por primera vez. Ruta de reserva si HF_LOG_DIR está vacío: `/var/log/high-fortress-user/aide-init.log`. |
+| /opt/high-fortress-user/cron/security_logs/aide-YYYYMMDD-HHMMSS.log            | aide.sh                             | Pasada de arranque, cuando AIDE se ejecuta.                                                                                         |
+| /opt/high-fortress-user/cron/security_logs/rkhunter-YYYYMMDD-HHMMSS.log        | rkhunter.sh                         | Pasada de arranque.                                                                                                                 |
+| /opt/high-fortress-user/cron/security_logs/chkrootkit-YYYYMMDD-HHMMSS.log      | chkrootkit.sh                       | Pasada de arranque.                                                                                                                 |
+| /opt/high-fortress-user/cron/security_logs/clamav-YYYYMMDD-HHMMSS.log          | clamav.sh                           | Pasada de arranque.                                                                                                                 |
+| /opt/high-fortress-user/cron/security_logs/clamav-onaccess-YYYYMMDD-HHMMSS.log | clamav-event.sh                     | Cuando el análisis al acceso encuentra un archivo real. Un nombre de cerrojo sale antes de escribir este archivo.                                          |
+| /opt/high-fortress-user/cron/security_logs/debsums-YYYYMMDD-HHMMSS.log         | debsums.sh                          | Pasada de arranque.                                                                                                                 |
+| /opt/high-fortress-user/cron/alerts/<tool>-YYYYMMDD-HHMMSS.txt                 | log_alert                           | En el mismo momento que el diario de seguridad, solo cuando se levanta una alerta.                                                  |
+| /var/log/clamav/clamonacc.log                                                  | clamonacc                           | Mientras el servicio al acceso está en marcha.                                                                                      |
+| /var/log/lynis.log                                                             | lynis                               | Durante `hf lynis` o `verify/workstation.sh`. Modo 640.                                                                             |
+| /var/log/lynis-report.dat                                                      | lynis                               | La misma pasada. Modo 640.                                                                                                          |
+| <source>/logs/lynis-<stamp>/                                                   | core/lynis.sh                       | Cuando usted lanza `sudo ./hf lynis`.                                                                                               |
+| <source>/logs/verify-report-WORKSTATION-YYYYMMDD-HHMMSS.md                     | verify/workstation.sh               | Durante la verificación del puesto, bajo HF_LOG_DIR cuando esa variable está fijada.                                                |
+| systemd journal, unit hfu-boot-scan.service                                    | systemd                             | Cada pasada de arranque.                                                                                                            |
