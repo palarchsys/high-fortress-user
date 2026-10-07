@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : core/lynis.sh
-# Updated at : 2026-10-05
+# Updated at : 2026-10-07
 # Creator    : palarchsys
 # =============================================================================
 
@@ -13,8 +13,8 @@ if [[ -z "${root}" || ! -d "${root}" ]]; then
     printf 'usage: lynis.sh <racine> [auditeur]\n' >&2
     exit 2
 fi
-if [[ -z "${auditor}" && -f "${root}/global.conf" ]]; then
-    auditor="$(awk -F= '/^PROJECT_SLUG=/{gsub(/["'\'']/, "", $2); gsub(/[[:space:]]/, "", $2); print $2; exit}' "${root}/global.conf")"
+if [[ -z "${auditor}" && -f "${root}/config/global.conf" ]]; then
+    auditor="$(awk -F= '/^PROJECT_SLUG=/{gsub(/["'\'']/, "", $2); gsub(/[[:space:]]/, "", $2); print $2; exit}' "${root}/config/global.conf")"
 fi
 auditor="${auditor:-high-fortress}"
 if [[ "${EUID}" -ne 0 ]]; then

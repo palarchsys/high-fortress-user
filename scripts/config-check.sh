@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : scripts/config-check.sh
-# Updated at : 2026-10-05
+# Updated at : 2026-10-07
 # Creator    : palarchsys
 # =============================================================================
 
@@ -101,7 +101,7 @@ hfu_write_global_conf() {
     local dest="$1"
     cat > "${dest}" << EOF
 # =============================================================================
-# File       : global.conf
+# File       : config/global.conf
 # Updated at : 2026-10-05
 # Creator    : palarchsys
 # =============================================================================
@@ -146,9 +146,9 @@ HF_MAIL_ALERTS=${HF_MAIL_ALERTS}
 
 MAIL_TEMPLATE="${MAIL_TEMPLATE}"
 
-if [[ -n "\${DIR_INSTALL_PATH:-}" && -f "\${DIR_INSTALL_PATH}/secrets.conf" ]]; then
+if [[ -n "\${DIR_INSTALL_PATH:-}" && -f "\${DIR_INSTALL_PATH}/config/secrets.conf" ]]; then
     # shellcheck disable=SC1091
-    source "\${DIR_INSTALL_PATH}/secrets.conf"
+    source "\${DIR_INSTALL_PATH}/config/secrets.conf"
 fi
 EOF
     chmod 644 "${dest}"
@@ -161,7 +161,7 @@ hfu_write_secrets_conf() {
     umask 077
     cat > "${dest}" << EOF
 # =============================================================================
-# File       : secrets.conf
+# File       : config/secrets.conf
 # Updated at : 2026-10-05
 # Creator    : palarchsys
 # =============================================================================
@@ -248,8 +248,8 @@ hfu_validate_values() {
 
 hfu_require_prepared_config() {
     local root="$1"
-    local g="${root}/global.conf"
-    local s="${root}/secrets.conf"
+    local g="${root}/config/global.conf"
+    local s="${root}/config/secrets.conf"
     local mode src_count
 
     hfu_config_reset
@@ -275,7 +275,7 @@ hfu_require_prepared_config() {
     hfu_config_scan_dollars "${s}" "secrets.conf"
 
     src_count="$(grep -cE '(^|[[:space:]])(source|\.)[[:space:]]' "${g}" || true)"
-    if [[ "${src_count}" != "1" ]] || ! grep -q 'source "${DIR_INSTALL_PATH}/secrets.conf"' "${g}"; then
+    if [[ "${src_count}" != "1" ]] || ! grep -q 'source "${DIR_INSTALL_PATH}/config/secrets.conf"' "${g}"; then
         hfu_config_err "global.conf : la seule commande source autorisée charge secrets.conf. exemple : ./hf configure"
     fi
     if grep -qE '(^|[[:space:]])(source|\.)[[:space:]]' "${s}"; then
@@ -284,7 +284,7 @@ hfu_require_prepared_config() {
 
     mode="$(stat -c '%a' "${s}" 2>/dev/null || echo '')"
     if [[ "${mode}" != "600" && "${mode}" != "400" ]]; then
-        hfu_config_err "secrets.conf : permissions ${mode:-inconnues}, attendu 600. exemple : chmod 600 secrets.conf"
+        hfu_config_err "secrets.conf : permissions ${mode:-inconnues}, attendu 600. exemple : chmod 600 config/secrets.conf"
     fi
 
     if [[ ${#HFU_CONFIG_ERRORS[@]} -gt 0 ]]; then

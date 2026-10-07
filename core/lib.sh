@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : core/lib.sh
-# Updated at : 2026-10-05
+# Updated at : 2026-10-07
 # Creator    : palarchsys
 # =============================================================================
 
@@ -32,8 +32,8 @@ hf_source_core fs.sh
 
 hf_is_workstation() {
     [[ "${SERVER_TYPE:-}" == "WORKSTATION" || "${PROJECT_SLUG:-}" == "high-fortress-user" ]] && return 0
-    [[ -n "${HF_PRODUCT_ROOT:-}" && -f "${HF_PRODUCT_ROOT}/global.conf" ]] || return 1
-    grep -qE '^(SERVER_TYPE="WORKSTATION"|PROJECT_SLUG="high-fortress-user")$' "${HF_PRODUCT_ROOT}/global.conf"
+    [[ -n "${HF_PRODUCT_ROOT:-}" && -f "${HF_PRODUCT_ROOT}/config/global.conf" ]] || return 1
+    grep -qE '^(SERVER_TYPE="WORKSTATION"|PROJECT_SLUG="high-fortress-user")$' "${HF_PRODUCT_ROOT}/config/global.conf"
 }
 
 assert_localhost_port_free() {

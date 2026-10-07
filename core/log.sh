@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : core/log.sh
-# Updated at : 2026-10-05
+# Updated at : 2026-10-07
 # Creator    : palarchsys
 # =============================================================================
 
@@ -377,7 +377,7 @@ hf_remove_installer_tree() {
     else
         return 2
     fi
-    conf="${root}/global.conf"
+    conf="${root}/config/global.conf"
     [[ -f "${conf}" ]] || return 2
     tmp="$(mktemp -d)" || return 2
     if ! install -m 644 -- "${conf}" "${tmp}/global.conf" \
@@ -388,8 +388,8 @@ hf_remove_installer_tree() {
     back="$(pwd -P 2>/dev/null || true)"
     cd / || { rm -rf -- "${tmp}"; return 1; }
     rm -rf -- "${root}" || rm_rc=$?
-    if ! install -d -m 755 -- "${base}/src" "${base}/src/core" \
-        || ! install -m 644 -- "${tmp}/global.conf" "${base}/src/global.conf" \
+    if ! install -d -m 755 -- "${base}/src" "${base}/src/core" "${base}/src/config" \
+        || ! install -m 644 -- "${tmp}/global.conf" "${base}/src/config/global.conf" \
         || ! install -m 644 -- "${tmp}/mail.sh" "${base}/src/core/mail.sh"; then
         rm -rf -- "${tmp}"
         if [[ -n "${back}" && -d "${back}" ]]; then
@@ -401,11 +401,11 @@ hf_remove_installer_tree() {
     if [[ -n "${back}" && -d "${back}" ]]; then
         cd -- "${back}" || true
     fi
-    if [[ "${rm_rc}" -ne 0 || -e "${root}/hf" || -e "${root}/secrets.conf" || -e "${root}/scripts/run.sh" ]]; then
+    if [[ "${rm_rc}" -ne 0 || -e "${root}/hf" || -e "${root}/config/secrets.conf" || -e "${root}/scripts/run.sh" ]]; then
         return 3
     fi
-    [[ -f "${base}/src/global.conf" && -f "${base}/src/core/mail.sh" ]] || return 4
-    [[ ! -e "${base}/src/secrets.conf" || "${root}" != "${base}/src" ]] || return 3
+    [[ -f "${base}/src/config/global.conf" && -f "${base}/src/core/mail.sh" ]] || return 4
+    [[ ! -e "${base}/src/config/secrets.conf" || "${root}" != "${base}/src" ]] || return 3
     return 0
 }
 

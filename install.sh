@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : install.sh
-# Updated at : 2026-10-05
+# Updated at : 2026-10-07
 # Creator    : palarchsys
 # =============================================================================
 
@@ -27,8 +27,8 @@ curl -fsSL "${REPO_URL}/archive/refs/heads/${BRANCH}.tar.gz" -o "${tmp}/src.tar.
 mkdir -p "${tmp}/extract"
 tar -xzf "${tmp}/src.tar.gz" -C "${tmp}/extract"
 extracted="$(find "${tmp}/extract" -mindepth 1 -maxdepth 1 -type d | head -1)"
-if [[ -z "${extracted}" || ! -f "${extracted}/global.conf" ]]; then
-    echo "Archive GitHub invalide (global.conf absent)." >&2
+if [[ -z "${extracted}" || ! -f "${extracted}/config/global.conf" ]]; then
+    echo "Archive GitHub invalide (config/global.conf absent)." >&2
     exit 1
 fi
 
@@ -36,7 +36,7 @@ config_base="$(
     unset DIR_INSTALL_PATH
     set +u
     # shellcheck disable=SC1091
-    source "${extracted}/global.conf"
+    source "${extracted}/config/global.conf"
     printf '%s\n' "${CONFIG_BASE_DIR}"
 )"
 if [[ -z "${config_base}" || "${config_base}" != /opt/* || "${config_base}" == *..* || "${config_base}" == *[[:space:]]* ]]; then
@@ -51,16 +51,17 @@ fi
 
 mkdir -p "${INSTALL_ROOT}"
 keep=""
-if [[ -f "${INSTALL_ROOT}/global.conf" ]] && grep -q '^HF_PREPARED=1$' "${INSTALL_ROOT}/global.conf" && [[ -f "${INSTALL_ROOT}/secrets.conf" ]]; then
+if [[ -f "${INSTALL_ROOT}/config/global.conf" ]] && grep -q '^HF_PREPARED=1$' "${INSTALL_ROOT}/config/global.conf" && [[ -f "${INSTALL_ROOT}/config/secrets.conf" ]]; then
     mkdir -p "${tmp}/keep"
-    cp -a "${INSTALL_ROOT}/global.conf" "${INSTALL_ROOT}/secrets.conf" "${tmp}/keep/"
+    cp -a "${INSTALL_ROOT}/config/global.conf" "${INSTALL_ROOT}/config/secrets.conf" "${tmp}/keep/"
     keep=1
 fi
 rm -rf "${INSTALL_ROOT:?}"/*
 cp -a "${extracted}/." "${INSTALL_ROOT}/"
 if [[ "${keep}" == "1" ]]; then
-    cp -a "${tmp}/keep/global.conf" "${tmp}/keep/secrets.conf" "${INSTALL_ROOT}/"
-    chmod 600 "${INSTALL_ROOT}/secrets.conf" || true
+    mkdir -p "${INSTALL_ROOT}/config"
+    cp -a "${tmp}/keep/global.conf" "${tmp}/keep/secrets.conf" "${INSTALL_ROOT}/config/"
+    chmod 600 "${INSTALL_ROOT}/config/secrets.conf" || true
 fi
 if [[ ! -f "${INSTALL_ROOT}/hf" ]]; then
     printf 'hf absent après extraction.\n' >&2

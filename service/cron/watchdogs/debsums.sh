@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/debsums.sh
-# Updated at : 2026-10-05
+# Updated at : 2026-10-07
 # Creator    : palarchsys
 # =============================================================================
 
@@ -21,15 +21,16 @@ fi
 set +e
 debsums -s > "${LOG_FILE}" 2>&1
 set -e
-if [[ -f "${IGNORE}" || -f "${LOCAL_IGNORE}" ]]; then
-    python3 - "${LOG_FILE}" "${IGNORE}" "${LOCAL_IGNORE}" << 'PY'
+python3 - "${LOG_FILE}" "${IGNORE}" "${LOCAL_IGNORE}" "${HFU_BASE}" << 'PY'
+import hashlib
 import re
 import sys
 from pathlib import Path
 
-log_path = sys.argv[1]
+log_path = Path(sys.argv[1])
+base = Path(sys.argv[4])
 patterns = []
-for ignore_path in sys.argv[2:]:
+for ignore_path in sys.argv[2:4]:
     path = Path(ignore_path)
     if not path.is_file():
         continue
@@ -42,17 +43,32 @@ for ignore_path in sys.argv[2:]:
         except re.error:
             continue
 
+stamp = base / "cron" / "rkhunter-mirrors.sha256"
+mirror = Path("/var/lib/rkhunter/db/mirrors.dat")
+saved = ""
+current = ""
+if stamp.is_file() and mirror.is_file():
+    parts = stamp.read_text(errors="replace").split()
+    saved = parts[0] if parts else ""
+    current = hashlib.sha256(mirror.read_bytes()).hexdigest()
+
 def ignored(line):
-    return any(p.search(line) for p in patterns)
+    if any(p.search(line) for p in patterns):
+        return True
+    if saved and current == saved and re.search(
+        r"^debsums: changed file /var/lib/rkhunter/db/mirrors\.dat \(from rkhunter package\)\s*$",
+        line,
+    ):
+        return True
+    return False
 
 kept = [
     line
-    for line in Path(log_path).read_text(errors="replace").splitlines()
+    for line in log_path.read_text(errors="replace").splitlines()
     if line.strip() and not ignored(line)
 ]
-Path(log_path).write_text(("\n".join(kept) + "\n") if kept else "")
+log_path.write_text(("\n".join(kept) + "\n") if kept else "")
 PY
-fi
 if [[ -s "${LOG_FILE}" ]]; then
     HFU_DEBSUMS_IGNORE=1 \
         log_alert "debsums : fichiers modifiés (voir ${LOG_FILE})"

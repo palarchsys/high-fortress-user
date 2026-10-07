@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : scripts/run.sh
-# Updated at : 2026-10-05
+# Updated at : 2026-10-07
 # Creator    : palarchsys
 # =============================================================================
 
@@ -23,7 +23,7 @@ readonly DIR_INSTALL_PATH
 clear
 
 # shellcheck disable=SC1091
-source "${DIR_INSTALL_PATH}/global.conf"
+source "${DIR_INSTALL_PATH}/config/global.conf"
 # shellcheck disable=SC1091
 source "${DIR_INSTALL_PATH}/core/lib.sh"
 

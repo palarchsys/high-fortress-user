@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : core/test-harness.sh
-# Updated at : 2026-10-05
+# Updated at : 2026-10-07
 # Creator    : palarchsys
 # =============================================================================
 
@@ -59,7 +59,7 @@ have_cmd() { command -v "$1" >/dev/null 2>&1; }
 hf_load_project_conf() {
     # shellcheck disable=SC1091
     set +u
-    source "${HF_ROOT}/global.conf"
+    source "${HF_ROOT}/config/global.conf"
     set -u
 }
 

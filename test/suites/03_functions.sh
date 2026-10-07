@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : test/suites/03_functions.sh
-# Updated at : 2026-10-05
+# Updated at : 2026-10-07
 # Creator    : palarchsys
 # =============================================================================
 
@@ -48,8 +48,8 @@ need_fn hf_render_mail "${MONO}/core/mail.sh"
 need_fn hf_install_mail_templates "${MONO}/core/mail.sh"
 
 hf_section "mode test du poste"
-if grep -q '^MODE_TEST=1$' "${HF_ROOT}/global.conf" \
-   && ! grep -q '^SERVER_TYPE=' "${HF_ROOT}/global.conf" \
+if grep -q '^MODE_TEST=1$' "${HF_ROOT}/config/global.conf" \
+   && ! grep -q '^SERVER_TYPE=' "${HF_ROOT}/config/global.conf" \
    && grep -q '^MODE_TEST=${MODE_TEST}$' "${HF_ROOT}/scripts/config-check.sh" \
    && ! grep -q 'SERVER_TYPE' "${HF_ROOT}/scripts/config-check.sh" \
    && grep -q 'hfu_prompt MODE_TEST' "${HF_ROOT}/scripts/configure.sh" \
@@ -133,16 +133,16 @@ if timeout 3 bash -c '
     [[ -z "${SERVER_TYPE:-}" ]]
     work="$(mktemp -d)"
     trap "rm -rf -- \"${work}\"" EXIT
-    mkdir -p "${work}/inst/scripts" "${work}/base"
+    mkdir -p "${work}/inst/scripts" "${work}/inst/config" "${work}/base"
     printf x > "${work}/inst/hf"
     printf x > "${work}/inst/scripts/run.sh"
-    printf C > "${work}/inst/global.conf"
+    printf C > "${work}/inst/config/global.conf"
     inst="$(cd -- "${work}/inst" && pwd -P)"
     base="$(cd -- "${work}/base" && pwd -P)"
     out="$(DIR_INSTALL_PATH="${inst}" CONFIG_BASE_DIR="${base}" hf_offer_remove_installer 2>&1)"
     [[ "${out}" != *[Ss]upprimer* ]]
-    [[ -f "${inst}/hf" && -f "${inst}/global.conf" ]]
-' bash "${MONO}/core/log.sh" "${HF_ROOT}/global.conf"; then
+    [[ -f "${inst}/hf" && -f "${inst}/config/global.conf" ]]
+' bash "${MONO}/core/log.sh" "${HF_ROOT}/config/global.conf"; then
     hf_pass "user.mode-test.skip" "MODE_TEST=1 termine sans question"
 else
     hf_fail "user.mode-test.skip" "la question de suppression part encore"

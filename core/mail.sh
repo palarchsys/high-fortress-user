@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : core/mail.sh
-# Updated at : 2026-10-05
+# Updated at : 2026-10-07
 # Creator    : palarchsys
 # =============================================================================
 
@@ -49,13 +49,13 @@ hf_mail_resolve_name() {
     local here="${1:-}"
     local conf line
     local -a confs=()
-    [[ -n "${DIR_INSTALL_PATH:-}" ]] && confs+=("${DIR_INSTALL_PATH}/global.conf")
-    [[ -n "${CONFIG_BASE_DIR:-}" ]] && confs+=("${CONFIG_BASE_DIR}/src/global.conf")
+    [[ -n "${DIR_INSTALL_PATH:-}" ]] && confs+=("${DIR_INSTALL_PATH}/config/global.conf")
+    [[ -n "${CONFIG_BASE_DIR:-}" ]] && confs+=("${CONFIG_BASE_DIR}/src/config/global.conf")
     if [[ -n "${here}" ]]; then
         confs+=(
-            "${here}/../../src/global.conf"
-            "${here}/../../../global.conf"
-            "${here}/../global.conf"
+            "${here}/../../src/config/global.conf"
+            "${here}/../../../config/global.conf"
+            "${here}/../config/global.conf"
         )
     fi
     for conf in "${confs[@]}"; do

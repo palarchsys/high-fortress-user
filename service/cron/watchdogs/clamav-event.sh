@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/clamav-event.sh
-# Updated at : 2026-10-05
+# Updated at : 2026-10-07
 # Creator    : palarchsys
 # =============================================================================
 
@@ -13,6 +13,9 @@ file="${CLAM_VIRUSEVENT_FILENAME:-inconnu}"
 virus="${CLAM_VIRUSEVENT_VIRUSNAME:-inconnu}"
 base="$(basename -- "${file}")"
 [[ -n "${base}" && "${base}" != "/" ]] || base="inconnu"
+case "${base}" in
+    .clamav-quarantine-lock.*) exit 0 ;;
+esac
 
 quarantine="/var/lib/clamav/quarantine/${base}"
 LOG_FILE="${LOG_DIR}/clamav-onaccess-${STAMP}.log"
