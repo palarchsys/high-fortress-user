@@ -1,18 +1,37 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : test/suites/06_sql_contract.sh
-# Updated at : 2026-10-05
+# Updated at : 2026-10-14
 # Creator    : palarchsys
 # =============================================================================
 
 hf_section "contrat SQL"
-MONO="$(cd -- "${HF_ROOT}/.." && pwd)"
-sql_web="${MONO}/web/backend/app/db/sql/001_tables.sql"
-sql_server="${MONO}/server/docker/web/sql/001_tables.sql"
-if [[ ! -f "${sql_web}" || ! -f "${sql_server}" ]]; then
-    hf_fail "sql.present" "un des deux SQL est absent"
-elif cmp -s "${sql_web}" "${sql_server}"; then
-    hf_pass "sql.match" "001_tables.sql identique"
+root=""
+here="${HF_ROOT}"
+while [[ "${here}" != "/" ]]; do
+    if [[ -f "${here}/agents/laws/server.md" ]]; then
+        root="${here}"
+        break
+    fi
+    here="$(dirname -- "${here}")"
+done
+
+sql_server=""
+sql_web=""
+law=""
+if [[ -n "${root}" ]]; then
+    sql_server="${root}/src/server/docker/web/sql/001_tables.sql"
+    sql_web="${root}/src/web/backend/app/db/sql/001_tables.sql"
+    law="${root}/agents/laws/server.md"
+fi
+
+if [[ -z "${root}" ]]; then
+    hf_fail "sql.contract" "agents/laws/server.md introuvable au-dessus du produit"
+elif [[ -f "${sql_server}" || -f "${sql_web}" ]]; then
+    hf_fail "sql.contract" "001_tables.sql est revenu dans server ou src/web"
+elif ! grep -qF 'high-fortress-web' "${law}" \
+    || ! grep -qF 'ne crée pas les tables' "${law}"; then
+    hf_fail "sql.contract" "la loi serveur doit laisser les tables à high-fortress-web"
 else
-    hf_fail "sql.match" "diffère — recopier avec : cp web/backend/app/db/sql/001_tables.sql server/docker/web/sql/001_tables.sql"
+    hf_pass "sql.contract" "tables générées par high-fortress-web, aucune copie dans server ni src/web"
 fi

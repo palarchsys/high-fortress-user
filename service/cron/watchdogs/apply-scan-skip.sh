@@ -10,6 +10,19 @@ HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
 source "${HERE}/scan-skip-lib.sh"
 
+hfu_scan_skip_restart_services() {
+    local unit
+    if systemctl cat clamav-daemon.service >/dev/null 2>&1; then
+        systemctl restart clamav-daemon
+    fi
+    for unit in clamav-clamonacc.service clamonacc.service; do
+        if systemctl cat "${unit}" >/dev/null 2>&1; then
+            systemctl restart "${unit}"
+            return 0
+        fi
+    done
+}
+
 hfu_scan_skip_collect
 if [[ ${#HFU_SCAN_SKIP_BAD[@]} -gt 0 ]]; then
     install -d -m 750 "${HFU_BASE}/cron/security_logs"
@@ -62,9 +75,7 @@ PY
 )"
     if [[ "${changed}" == "changed" ]]; then
         cat "${tmp}" > "${conf}"
-        if systemctl is-active --quiet clamav-daemon 2>/dev/null; then
-            systemctl reload clamav-daemon 2>/dev/null || systemctl restart clamav-daemon
-        fi
+        hfu_scan_skip_restart_services
     fi
     rm -f "${tmp}"
     trap - EXIT

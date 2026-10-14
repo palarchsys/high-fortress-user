@@ -24,7 +24,7 @@ Cada fila es un archivo que el instalador escribe, con el modo que el script fij
 | /etc/systemd/system/hfu-boot-scan.timer                 | Lanza la pasada 2 minutos después del arranque.                                                          | 644                          |
 | /etc/systemd/system/hfu-idle-scan.service               | Análisis diferido de las rutas excluidas.                                                                | 644                          |
 | /etc/systemd/system/hfu-idle-scan.timer                 | Lanza ese análisis 15 minutos después del arranque y después cada hora.                                  | 644                          |
-| /opt/high-fortress-user/bin/scan-skip.sh                | Lista, añade o quita una ruta excluida y reescribe el bloque ClamAV.                                     | 755                          |
+| /opt/high-fortress-user/bin/scan-skip.sh                | Lista, añade o quita una ruta excluida y reinicia ClamAV cuando el bloque cambia.                         | 755                          |
 | /opt/high-fortress-user/cron/scan-skip.paths            | Rutas excluidas. Se crea solo cuando el archivo no existe.                                               | 644                          |
 | /opt/high-fortress-user/cron/scan-skip.stamp            | Sello de tiempo del análisis diferido.                                                                   | 644                          |
 | /opt/high-fortress-user/cron/scan-skip.seen             | Pares de firma y ruta ya enviados por el análisis diferido.                                              | 600                          |

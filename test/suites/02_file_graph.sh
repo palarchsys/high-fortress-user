@@ -104,8 +104,15 @@ if [[ -f "${skip_lib}" && -f "${skip_apply}" && -f "${skip_cmd}" && -f "${skip_i
    && ! grep -q '.config/discord' "${skip_lib}" \
    && ! grep -q '.thunderbird' "${skip_lib}" \
    && grep -qF "printf '%s\\n' / /home /opt /tmp /etc /usr /var /boot /root" "${skip_lib}" \
+   && grep -q '# home=' "${skip_lib}" \
+   && grep -qF '/var/jeux/*' "${skip_lib}" \
    && grep -q 'BEGIN High-Fortress User scan-skip' "${skip_apply}" \
    && grep -q 'OnAccessExcludePath' "${skip_apply}" \
+   && grep -q 'systemctl restart clamav-daemon' "${skip_apply}" \
+   && grep -q 'clamav-clamonacc.service' "${skip_apply}" \
+   && ! grep -q 'systemctl reload' "${skip_apply}" \
+   && grep -q 'HFU_SCAN_SKIP_HOME' "${HF_ROOT}/service/clamav/configure.sh" \
+   && grep -q 'HFU_SCAN_SKIP_HOME' "${HF_ROOT}/service/cron/configure.sh" \
    && awk '
         /apply-scan-skip\.sh/ { apply = NR }
         /aide\.sh/ { if (apply && !aide) aide = NR }

@@ -130,6 +130,7 @@ if ! systemctl is-active --quiet "${clam_unit}"; then
     error "clamonacc ne reste pas actif. Détail : ${HF_LOG_DIR:-/var/log/high-fortress-user}/clamonacc.log"
 fi
 export HFU_BASE="${CONFIG_BASE_DIR}"
+export HFU_SCAN_SKIP_HOME="${CURRENT_HOME}"
 # shellcheck disable=SC1091
 source "${DIR_INSTALL_PATH}/service/cron/watchdogs/scan-skip-lib.sh"
 hfu_scan_skip_ensure_file "${CURRENT_HOME}"

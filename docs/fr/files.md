@@ -24,7 +24,7 @@ Chaque ligne est un fichier que l'installeur écrit, avec le mode que le script 
 | /etc/systemd/system/hfu-boot-scan.timer                 | Lance la passe 2 minutes après le démarrage.                                                                      | 644                          |
 | /etc/systemd/system/hfu-idle-scan.service               | Analyse différée des chemins exclus.                                                                              | 644                          |
 | /etc/systemd/system/hfu-idle-scan.timer                 | Lance cette analyse 15 minutes après le démarrage, puis toutes les heures.                                        | 644                          |
-| /opt/high-fortress-user/bin/scan-skip.sh                | Liste, ajoute ou retire un chemin exclu, puis réécrit le bloc ClamAV.                                            | 755                          |
+| /opt/high-fortress-user/bin/scan-skip.sh                | Liste, ajoute ou retire un chemin exclu, puis relance ClamAV lorsque le bloc change.                             | 755                          |
 | /opt/high-fortress-user/cron/scan-skip.paths            | Chemins exclus. Créé seulement lorsque le fichier est absent.                                                     | 644                          |
 | /opt/high-fortress-user/cron/scan-skip.stamp            | Tampon de date de l'analyse différée.                                                                             | 644                          |
 | /opt/high-fortress-user/cron/scan-skip.seen             | Couples signature et chemin déjà envoyés par l'analyse différée.                                                  | 600                          |

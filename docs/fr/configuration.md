@@ -55,15 +55,15 @@ Le fichier est écrit dans `config/`, à côté de `global.conf`, mode `600`, pr
 | Nom                           | Défaut                                    | Effet                                                                      |
 | ----------------------------- | ----------------------------------------- | -------------------------------------------------------------------------- |
 | OnAccessIncludePath           | Téléchargements et Bureau                 | `xdg-user-dir`, ou `$HOME/Downloads` et `$HOME/Desktop`.                   |
-| OnAccessExcludePath           | scan-skip.paths                           | Chemins acceptés de `/opt/high-fortress-user/cron/scan-skip.paths`. Le fichier livré liste `$HOME/.steam`, `$HOME/.local/share/Steam`, `$HOME/.cache`, `$HOME/snap` et `/var/jeux`. Brave, Thunderbird et Discord n'y sont pas. |
+| OnAccessExcludePath           | scan-skip.paths                           | Chemins acceptés sous le home de l'utilisateur, ou sous `/var/jeux`. |
 | OnAccessExcludeUname          | clamav                                    | L'utilisateur du scanner est exclu.                                        |
 | OnAccessExcludeRootUID        | yes                                       | Root est exclu de l'analyse à l'accès sur ce poste.                        |
 | OnAccessMaxFileSize           | 25M                                       | Les fichiers plus gros ne sont pas analysés à l'accès.                     |
 | OnAccessPrevention            | yes                                       | Une détection est déplacée en quarantaine.                                 |
 | quarantine                    | /var/lib/clamav/quarantine                | Mode 750, propriétaire clamav.                                             |
 | hfu-boot-scan.timer OnBootSec | 2min                                      | `Persistent=false`. Une machine déjà allumée attend le prochain démarrage. |
-| hfu-idle-scan.timer           | OnBootSec=15min, OnUnitActiveSec=1h       | `Persistent=true`. Même Nice, mêmes entrées-sorties idle et même quota CPU que la passe de démarrage. |
-| scan-skip.sh                  | /opt/high-fortress-user/bin/scan-skip.sh  | `list`, `add /chemin`, `del /chemin`. Réécrit le bloc d'exclusion ClamAV. |
+| hfu-idle-scan.timer           | OnBootSec=15min, OnUnitActiveSec=1h       | `Persistent=true`, avec le même Nice, les mêmes entrées-sorties idle et le même quota CPU que la passe de démarrage. |
+| scan-skip.sh                  | /opt/high-fortress-user/bin/scan-skip.sh  | Relance `clamav-daemon` et `clamonacc` lorsque le bloc d'exclusion change. |
 | database_in                   | /var/lib/aide/aide.db                     | `__HF_BASE__` dans `service/aide/aide.conf` devient `CONFIG_BASE_DIR`.     |
 
 ## Docker

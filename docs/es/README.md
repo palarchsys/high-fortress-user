@@ -104,7 +104,7 @@ Los valores que no se preguntan se escriben desde `hfu_config_set_builtin_defaul
 | SSH         | `PermitRootLogin no`. `PasswordAuthentication yes`. `PubkeyAuthentication yes`. Banner `/etc/ssh/sshd_banner`. `MaxAuthTries 4`.                                                                                                                                                                                                                                                                                                                                                  |
 | Núcleo      | `/etc/sysctl.d/90-high-fortress-user.conf` se copia a `/etc/sysctl.d/99-zzz-high-fortress-user.conf`. IPv6 permanece activado. Las redirecciones IPv6 y el source routing se rechazan. Los user namespaces permanecen activados. `dccp`, `sctp`, `rds` y `tipc` quedan en lista negra. Los sistemas de archivos no usados quedan en lista negra. Los volcados de núcleo quedan en 0. `PWQUALITY_MINLEN` vale 12.                                                                  |
 | AppArmor    | Los perfiles de la distribución permanecen. `service/apparmor/userns.sh` añade `hfu-brave`, `hfu-discord`, `hfu-thunderbird` y `hfu-steam` cuando Steam no está ya cubierto.                                                                                                                                                                                                                                                                                                      |
-| Controles   | `hfu-boot-scan.timer` lanza `boot-scan.sh` 2 minutos después del arranque (`OnBootSec=2min`, `Persistent=false`). La pasada lanza AIDE, rkhunter, chkrootkit, ClamAV y debsums. `Nice` vale `WATCHDOG_LIMIT_NICE` (19), `IOSchedulingClass=idle`, `CPUQuota` vale `WATCHDOG_CPU_LIMIT` (20 %). `/etc/cron.d/high-fortress-user` solo contiene `SHELL` y `PATH`. La crontab del usuario no se modifica. El correo sale solo cuando un control encuentra algo y `HF_MAIL_ALERTS=1`. `hfu-idle-scan.timer` lanza `idle-scan.sh` 15 minutos después del arranque y después cada hora (`OnBootSec=15min`, `OnUnitActiveSec=1h`, `Persistent=true`), con el mismo Nice, la misma E/S idle y la misma cuota de CPU. Esa pasada usa `clamscan` sobre las rutas aceptadas de `/opt/high-fortress-user/cron/scan-skip.paths`, salvo un directorio cuyo último componente es `.cache` o `snap`. Espera mientras `steam`, `steamwebhelper`, `lutris`, `heroic`, `wineserver` o `gamescope` está en marcha. Brave, Thunderbird y Discord permanecen en la pasada de arranque. |
+| Controles   | `hfu-boot-scan.timer` lanza `boot-scan.sh` 2 minutos después del arranque (`OnBootSec=2min`, `Persistent=false`). La pasada lanza AIDE, rkhunter, chkrootkit, ClamAV y debsums. `Nice` vale `WATCHDOG_LIMIT_NICE` (19), `IOSchedulingClass=idle`, `CPUQuota` vale `WATCHDOG_CPU_LIMIT` (20 %). `/etc/cron.d/high-fortress-user` solo contiene `SHELL` y `PATH`. La crontab del usuario no se modifica. El correo sale solo cuando un control encuentra algo y `HF_MAIL_ALERTS=1`. `hfu-idle-scan.timer` lanza el análisis diferido. Las reglas están en [surveillance.md](surveillance.md). |
 | Lynis       | `LYNIS_MIN_SCORE` vale 80. `verify/workstation.sh` acepta un `hardening_index` superior o igual a ese umbral.                                                                                                                                                                                                                                                                                                                                                                     |
 | Diarios     | Los diarios de instalación están en `<source>/logs/install-YYYYMMDD-HHMMSS-user/`. Los diarios de seguridad están en `/opt/high-fortress-user/cron/security_logs/`. El almacenamiento de journald es persistente.                                                                                                                                                                                                                                                                |
 | Paquetes    | Los snaps Firefox y Thunderbird se retiran. `snapd` se conserva. El paquete `firefox` queda retenido. En amd64 se activa la arquitectura i386. Steam no lo instala este programa.                                                                                                                                                                                                                                                                                                 |
@@ -159,7 +159,13 @@ El mensaje contiene el resumen y el extracto del diario. Este correo no añade u
 
 ### Análisis ClamAV diferido
 
-El mensaje contiene el resumen y el extracto del diario. Este correo no añade un bloque de orden. Una firma y una ruta ya guardadas en `/opt/high-fortress-user/cron/scan-skip.seen` no vuelven a enviar correo. La forma del diario es `/opt/high-fortress-user/cron/security_logs/idle-scan-YYYYMMDD-HHMMSS.log`.
+El mensaje contiene el resumen y el extracto del diario.
+
+Este correo no añade un bloque de orden.
+
+Una firma y una ruta ya guardadas en `/opt/high-fortress-user/cron/scan-skip.seen` no vuelven a enviar correo.
+
+La forma del diario es `/opt/high-fortress-user/cron/security_logs/idle-scan-YYYYMMDD-HHMMSS.log`.
 
 ### rkhunter
 
@@ -239,7 +245,21 @@ sudo bash /opt/high-fortress-user/bin/scan-skip.sh add /var/jeux/steam
 sudo bash /opt/high-fortress-user/bin/scan-skip.sh del /var/jeux/steam
 ```
 
-`list` muestra una ruta aceptada por línea. `add` muestra `Chemin ajouté : <path>`. Una ruta ya presente muestra `Ce chemin est déjà exclu : <path>`. `del` muestra `Chemin retiré : <path>`. Una ruta rechazada muestra `Chemin refusé : <path>` y el archivo no cambia. La lista entregada es `$HOME/.steam`, `$HOME/.local/share/Steam`, `$HOME/.cache`, `$HOME/snap` y `/var/jeux`. Brave, Thunderbird y Discord no están. `/`, `/home`, `/home/<user>`, Descargas y Escritorio se rechazan. La orden reescribe `/etc/clamav/clamd.conf` y solo recarga `clamav-daemon` cuando el bloque de exclusión cambia.
+| Acción | Línea mostrada |
+| --- | --- |
+| `list` | una ruta aceptada por línea |
+| `add` | `Chemin ajouté : <path>` |
+| ya presente | `Ce chemin est déjà exclu : <path>` |
+| `del` | `Chemin retiré : <path>` |
+| rechazada | `Chemin refusé : <path>` |
+
+Una ruta rechazada deja el archivo sin cambios.
+
+La orden reescribe `/etc/clamav/clamd.conf`.
+
+Reinicia `clamav-daemon`, luego `clamav-clamonacc.service` o `clamonacc.service`, cuando el bloque de exclusión cambia.
+
+Las rutas aceptadas, la lista entregada y los rechazos están en [surveillance.md](surveillance.md).
 
 ## Páginas detalladas
 

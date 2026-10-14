@@ -24,7 +24,7 @@ Jede Zeile ist eine Datei, die das Installationsprogramm schreibt, mit dem Modus
 | /etc/systemd/system/hfu-boot-scan.timer                 | Startet die Prüfung 2 Minuten nach dem Start.                                                                     | 644                          |
 | /etc/systemd/system/hfu-idle-scan.service               | Verzögerte Prüfung der ausgeschlossenen Pfade.                                                                    | 644                          |
 | /etc/systemd/system/hfu-idle-scan.timer                 | Startet diese Prüfung 15 Minuten nach dem Start, dann jede Stunde.                                                | 644                          |
-| /opt/high-fortress-user/bin/scan-skip.sh                | Listet, fügt hinzu oder entfernt einen ausgeschlossenen Pfad und schreibt den ClamAV-Block neu.                   | 755                          |
+| /opt/high-fortress-user/bin/scan-skip.sh                | Listet, fügt hinzu oder entfernt einen ausgeschlossenen Pfad und startet ClamAV neu, wenn der Block sich ändert. | 755                          |
 | /opt/high-fortress-user/cron/scan-skip.paths            | Ausgeschlossene Pfade. Wird nur angelegt, wenn die Datei fehlt.                                                   | 644                          |
 | /opt/high-fortress-user/cron/scan-skip.stamp            | Zeitstempel der verzögerten Prüfung.                                                                              | 644                          |
 | /opt/high-fortress-user/cron/scan-skip.seen             | Schon gemeldete Paare aus Signatur und Pfad der verzögerten Prüfung.                                              | 600                          |

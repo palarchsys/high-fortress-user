@@ -114,6 +114,7 @@ run_silent systemctl enable hfu-idle-scan.timer
 success "Démarrage plafonné à ${WATCHDOG_CPU_LIMIT}% CPU"
 
 export HFU_BASE="${CONFIG_BASE_DIR}"
+export HFU_SCAN_SKIP_HOME="${CURRENT_HOME}"
 # shellcheck disable=SC1091
 source "${DIR_SCRIPT_PATH}/watchdogs/scan-skip-lib.sh"
 hfu_scan_skip_ensure_file "${CURRENT_HOME}"

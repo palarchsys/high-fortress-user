@@ -26,12 +26,52 @@ hfu_scan_skip_forbidden() {
     fi
 }
 
+hfu_scan_skip_home() {
+    local line trimmed home homes=""
+    if [[ "${HFU_SCAN_SKIP_HOME:-}" =~ ^/home/[^/]+$ ]]; then
+        printf '%s\n' "${HFU_SCAN_SKIP_HOME}"
+        return 0
+    fi
+    [[ -f "${HFU_SCAN_SKIP_FILE}" ]] || return 1
+    while IFS= read -r line || [[ -n "${line}" ]]; do
+        if [[ "${line}" =~ ^[[:space:]]*#[[:space:]]*home=(/home/[^/]+)[[:space:]]*$ ]]; then
+            printf '%s\n' "${BASH_REMATCH[1]}"
+            return 0
+        fi
+    done < "${HFU_SCAN_SKIP_FILE}"
+    while IFS= read -r line || [[ -n "${line}" ]]; do
+        trimmed="${line#"${line%%[![:space:]]*}"}"
+        trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"
+        [[ -z "${trimmed}" || "${trimmed}" == \#* ]] && continue
+        if [[ "${trimmed}" =~ ^(/home/[^/]+)/ ]]; then
+            home="${BASH_REMATCH[1]}"
+            case "${homes}" in
+                *"|${home}|"*) ;;
+                *) homes="${homes}|${home}|" ;;
+            esac
+        fi
+    done < "${HFU_SCAN_SKIP_FILE}"
+    homes="${homes#|}"
+    homes="${homes%|}"
+    [[ -n "${homes}" && "${homes}" != *"|"* ]] || return 1
+    printf '%s\n' "${homes}"
+}
+
 hfu_scan_skip_accept() {
-    local norm bad
+    local norm bad home=""
     norm="$(hfu_scan_skip_norm "$1")" || return 1
+    home="$(hfu_scan_skip_home || true)"
+    if [[ "${norm}" == /var/jeux || "${norm}" == /var/jeux/* ]]; then
+        :
+    elif [[ -n "${home}" && "${norm}" == "${home}/"* ]]; then
+        :
+    else
+        return 1
+    fi
     while IFS= read -r bad; do
         [[ -z "${bad}" ]] && continue
         [[ "${norm}" == "${bad}" ]] && return 1
+        [[ "${bad}" == "${norm}/"* ]] && return 1
     done < <(hfu_scan_skip_forbidden)
     [[ "${norm}" =~ ^/home/[^/]+$ ]] && return 1
     printf '%s\n' "${norm}"
@@ -59,11 +99,12 @@ hfu_scan_skip_collect() {
 hfu_scan_skip_ensure_file() {
     local home="$1"
     [[ -f "${HFU_SCAN_SKIP_FILE}" ]] && return 0
-    [[ -n "${home}" && "${home}" == /home/* ]] || return 1
+    [[ "${home}" =~ ^/home/[^/]+$ && -d "${home}" ]] || return 1
     install -d -m 755 "${HFU_BASE}/cron"
     cat > "${HFU_SCAN_SKIP_FILE}" << EOF
 # Chemins exclus du scan bloquant et de la passe de démarrage.
-# Un chemin absolu par ligne. Brave, Thunderbird et Discord restent analysés.
+# home=${home}
+# Un chemin sous ce home, ou sous /var/jeux. Brave, Thunderbird et Discord restent analysés.
 # sudo bash ${HFU_BASE}/bin/scan-skip.sh list
 # sudo bash ${HFU_BASE}/bin/scan-skip.sh add /chemin
 # sudo bash ${HFU_BASE}/bin/scan-skip.sh del /chemin

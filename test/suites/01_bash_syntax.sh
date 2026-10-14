@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : test/suites/01_bash_syntax.sh
-# Updated at : 2026-10-05
+# Updated at : 2026-10-14
 # Creator    : palarchsys
 # =============================================================================
 
@@ -25,6 +25,10 @@ hf_cartouche_ok() {
 
 hf_section "bash -n"
 MONO="$(cd -- "${HF_ROOT}/.." && pwd)"
+find_paths=("${HF_ROOT}")
+for extra in "${MONO}/core" "${MONO}/scripts" "${MONO}/agents"; do
+    [[ -d "${extra}" ]] && find_paths+=("${extra}")
+done
 while IFS= read -r file; do
     rel="${file#"${MONO}/"}"
     if [[ "${file}" == "${HF_ROOT}/"* ]]; then
@@ -42,7 +46,7 @@ while IFS= read -r file; do
     else
         hf_fail "syntax:${rel}" "$(tr '\n' ' ' < "${HF_ARTIFACTS}/bash-n.err")"
     fi
-done < <(find "${HF_ROOT}" "${MONO}/core" "${MONO}/agents" "${MONO}/scripts" \
+done < <(find "${find_paths[@]}" \
     -name '*.sh' -type f \
     -not -path '*/test/output/*' \
     -not -path '*/node_modules/*' | sort)
