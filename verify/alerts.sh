@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : verify/alerts.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-14
 # Creator    : palarchsys
 # =============================================================================
 
@@ -9,8 +9,8 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
     cat << 'EOF'
 Usage : sudo bash verify/alerts.sh [--no-send]
 
-Contrôle la passe de démarrage qui envoie les alertes, ClamAV à l'accès,
-et le chemin du courrier. Sans --no-send, un seul message d'essai part
+Contrôle la passe de démarrage qui envoie les alertes, la passe différée,
+ClamAV à l'accès, et le chemin du courrier. Sans --no-send, un seul message d'essai part
 quand les alertes sont activées. Le sujet se termine par « Contrôle ».
 EOF
     exit 0
@@ -92,10 +92,23 @@ section "PASSE AU DEMARRAGE"
 timer_word="$(unit_word hfu-boot-scan.timer)"
 printf '%-36s %s\n' "hfu-boot-scan.timer" "${timer_word}"
 [[ "${timer_word}" == "OK" ]] || note_fail "timer de passe au démarrage ${timer_word}"
+idle_word="$(unit_word hfu-idle-scan.timer)"
+printf '%-36s %s\n' "hfu-idle-scan.timer" "${idle_word}"
+[[ "${idle_word}" == "OK" ]] || note_fail "timer de passe différée ${idle_word}"
 if [[ -x "${BIN}/boot-scan.sh" ]]; then
     note_ok "boot-scan.sh exécutable"
 else
     note_fail "boot-scan.sh absent de ${BIN}"
+fi
+if [[ -x "${BIN}/idle-scan.sh" ]]; then
+    note_ok "idle-scan.sh exécutable"
+else
+    note_fail "idle-scan.sh absent de ${BIN}"
+fi
+if [[ -x "${BASE}/bin/scan-skip.sh" && -f "${BASE}/cron/scan-skip.paths" ]]; then
+    note_ok "commande scan-skip.sh et liste des chemins"
+else
+    note_fail "scan-skip.sh ou scan-skip.paths absent"
 fi
 printf '%-16s %-12s %s\n' "Module" "Script" "Lancé par"
 for pair in "Aide aide.sh" "Rkhunter rkhunter.sh" "Chkrootkit chkrootkit.sh" "Clamav clamav.sh" "Debsums debsums.sh"; do

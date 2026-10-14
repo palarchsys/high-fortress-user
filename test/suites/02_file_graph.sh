@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : test/suites/02_file_graph.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-14
 # Creator    : palarchsys
 # =============================================================================
 
@@ -87,6 +87,43 @@ if grep -q 'clamav-quarantine-lock' "${evt}" \
     hf_pass "graph.clamav.locks" "un verrou de quarantaine sort avant le courrier"
 else
     hf_fail "graph.clamav.locks" "les verrous .clamav-quarantine-lock.* ne doivent pas envoyer de courrier"
+fi
+
+hf_section "chemins exclus du scan"
+skip_lib="${HF_ROOT}/service/cron/watchdogs/scan-skip-lib.sh"
+skip_apply="${HF_ROOT}/service/cron/watchdogs/apply-scan-skip.sh"
+skip_cmd="${HF_ROOT}/service/cron/scan-skip.sh"
+skip_idle="${HF_ROOT}/service/cron/watchdogs/idle-scan.sh"
+skip_boot="${HF_ROOT}/service/cron/watchdogs/boot-scan.sh"
+skip_clam="${HF_ROOT}/service/cron/watchdogs/clamav.sh"
+if [[ -f "${skip_lib}" && -f "${skip_apply}" && -f "${skip_cmd}" && -f "${skip_idle}" ]] \
+   && grep -q '/var/jeux' "${skip_lib}" \
+   && grep -q '/.steam' "${skip_lib}" \
+   && grep -q '/.local/share/Steam' "${skip_lib}" \
+   && ! grep -q 'BraveSoftware' "${skip_lib}" \
+   && ! grep -q '.config/discord' "${skip_lib}" \
+   && ! grep -q '.thunderbird' "${skip_lib}" \
+   && grep -qF "printf '%s\\n' / /home /opt /tmp /etc /usr /var /boot /root" "${skip_lib}" \
+   && grep -q 'BEGIN High-Fortress User scan-skip' "${skip_apply}" \
+   && grep -q 'OnAccessExcludePath' "${skip_apply}" \
+   && awk '
+        /apply-scan-skip\.sh/ { apply = NR }
+        /aide\.sh/ { if (apply && !aide) aide = NR }
+        END { exit !(apply && aide && aide > apply) }
+      ' "${skip_boot}" \
+   && ! grep -q 'clamdscan' "${skip_clam}" \
+   && grep -q 'clamscan --infected' "${skip_clam}" \
+   && grep -q 'scan-skip.sh list' "${skip_cmd}" \
+   && grep -q 'scan-skip.sh add' "${skip_cmd}" \
+   && grep -q 'scan-skip.sh del' "${skip_cmd}" \
+   && grep -q 'pgrep -x' "${skip_idle}" \
+   && grep -q 'clamscan --infected' "${skip_idle}" \
+   && grep -q 'hfu-idle-scan.timer' "${HF_ROOT}/service/cron/configure.sh" \
+   && grep -q 'High-Fortress User onaccess' "${HF_ROOT}/service/clamav/configure.sh" \
+   && ! grep -q 'OnAccessExcludePath' "${HF_ROOT}/service/clamav/configure.sh"; then
+    hf_pass "graph.scan-skip" "fichier de chemins, commande, passe différée, sans Brave ni Discord ni Thunderbird"
+else
+    hf_fail "graph.scan-skip" "les exclusions passent par scan-skip.paths et ne retirent pas Brave, Discord ni Thunderbird"
 fi
 
 hf_section "readme"

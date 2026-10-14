@@ -104,7 +104,7 @@ Values that are not asked are written from `hfu_config_set_builtin_defaults` and
 | SSH      | `PermitRootLogin no`. `PasswordAuthentication yes`. `PubkeyAuthentication yes`. Banner `/etc/ssh/sshd_banner`. `MaxAuthTries 4`.                                                                                                                                                                                                                                                                                                                           |
 | Kernel   | `/etc/sysctl.d/90-high-fortress-user.conf` is copied to `/etc/sysctl.d/99-zzz-high-fortress-user.conf`. IPv6 stays enabled. IPv6 redirects and source routing are refused. User namespaces stay enabled. `dccp`, `sctp`, `rds` and `tipc` are blacklisted. Unused filesystems are blacklisted. Core dumps are set to 0. `PWQUALITY_MINLEN` is 12.                                                                                                          |
 | AppArmor | Distribution profiles stay. `service/apparmor/userns.sh` adds `hfu-brave`, `hfu-discord`, `hfu-thunderbird`, and `hfu-steam` when Steam is not already covered.                                                                                                                                                                                                                                                                                            |
-| Checks   | `hfu-boot-scan.timer` runs `boot-scan.sh` 2 minutes after boot (`OnBootSec=2min`, `Persistent=false`). The pass runs AIDE, rkhunter, chkrootkit, ClamAV and debsums. `Nice` is `WATCHDOG_LIMIT_NICE` (19), `IOSchedulingClass=idle`, `CPUQuota` is `WATCHDOG_CPU_LIMIT` (20%). `/etc/cron.d/high-fortress-user` contains only `SHELL` and `PATH`. The user crontab is not modified. Mail is sent only when a check finds something and `HF_MAIL_ALERTS=1`. |
+| Checks   | `hfu-boot-scan.timer` runs `boot-scan.sh` 2 minutes after boot (`OnBootSec=2min`, `Persistent=false`). The pass runs AIDE, rkhunter, chkrootkit, ClamAV and debsums. `Nice` is `WATCHDOG_LIMIT_NICE` (19), `IOSchedulingClass=idle`, `CPUQuota` is `WATCHDOG_CPU_LIMIT` (20%). `/etc/cron.d/high-fortress-user` contains only `SHELL` and `PATH`. The user crontab is not modified. Mail is sent only when a check finds something and `HF_MAIL_ALERTS=1`. `hfu-idle-scan.timer` runs `idle-scan.sh` 15 minutes after boot and then every hour (`OnBootSec=15min`, `OnUnitActiveSec=1h`, `Persistent=true`), with the same Nice, idle I/O and CPU quota. That pass uses `clamscan` on the accepted paths in `/opt/high-fortress-user/cron/scan-skip.paths`, except a directory whose last component is `.cache` or `snap`. It waits while `steam`, `steamwebhelper`, `lutris`, `heroic`, `wineserver` or `gamescope` is running. Brave, Thunderbird and Discord stay in the boot scan. |
 | Lynis    | `LYNIS_MIN_SCORE` is 80. `verify/workstation.sh` accepts a `hardening_index` greater than or equal to that score.                                                                                                                                                                                                                                                                                                                                          |
 | Journals | Install journals are `<source>/logs/install-YYYYMMDD-HHMMSS-user/`. Security journals are `/opt/high-fortress-user/cron/security_logs/`. Journald storage is persistent.                                                                                                                                                                                                                                                                                   |
 | Packages | The Firefox and Thunderbird snaps are removed. `snapd` is kept. The `firefox` package is held. On amd64, the i386 architecture is enabled. Steam is not installed by this program.                                                                                                                                                                                                                                                                         |
@@ -157,6 +157,10 @@ The example shows the form. The mail contains the real path, quoted. The command
 
 The message contains the summary and the journal excerpt. This mail does not add a command block. The journal form is `/opt/high-fortress-user/cron/security_logs/clamav-YYYYMMDD-HHMMSS.log`.
 
+### ClamAV idle scan
+
+The message contains the summary and the journal excerpt. This mail does not add a command block. A signature and path already stored in `/opt/high-fortress-user/cron/scan-skip.seen` do not send mail again. The journal form is `/opt/high-fortress-user/cron/security_logs/idle-scan-YYYYMMDD-HHMMSS.log`.
+
 ### rkhunter
 
 The message contains the summary and the journal excerpt. This mail does not add a command block. A stamp mismatch adds the line `mirrors.dat modifié hors rkhunter --update`. That line is not a command. The journal form is `/opt/high-fortress-user/cron/security_logs/rkhunter-YYYYMMDD-HHMMSS.log`.
@@ -187,7 +191,7 @@ Runs the installation from the prepared files. The installer refuses to start wh
 sudo bash verify/alerts.sh
 ```
 
-Checks the boot timer, ClamAV on access, and the mail path. Without `--no-send`, one probe is sent when alerts are enabled. The subject ends with `Contrôle`. The success line is `Résultat : OK`.
+Checks the boot timer, the idle timer, ClamAV on access, and the mail path. Without `--no-send`, one probe is sent when alerts are enabled. The subject ends with `Contrôle`. The success line is `Résultat : OK`.
 
 ```bash
 sudo bash verify/alerts.sh --no-send
@@ -226,6 +230,16 @@ sudo bash /opt/high-fortress-user/cron/bin/record-mirrors.sh save
 ```
 
 Writes the SHA-256 of `/var/lib/rkhunter/db/mirrors.dat` to `/opt/high-fortress-user/cron/rkhunter-mirrors.sha256` in mode `600`. `rkhunter.sh` saves this stamp only after `rkhunter --update` returns 0 or 2.
+
+### Excluded scan paths
+
+```bash
+sudo bash /opt/high-fortress-user/bin/scan-skip.sh list
+sudo bash /opt/high-fortress-user/bin/scan-skip.sh add /var/jeux/steam
+sudo bash /opt/high-fortress-user/bin/scan-skip.sh del /var/jeux/steam
+```
+
+`list` prints one accepted path per line. `add` prints `Chemin ajouté : <path>`. A path already present prints `Ce chemin est déjà exclu : <path>`. `del` prints `Chemin retiré : <path>`. A refused path prints `Chemin refusé : <path>` and the file is left unchanged. The shipped list is `$HOME/.steam`, `$HOME/.local/share/Steam`, `$HOME/.cache`, `$HOME/snap` and `/var/jeux`. Brave, Thunderbird and Discord are not on it. `/`, `/home`, `/home/<user>`, Downloads and Desktop are refused. The command rewrites `/etc/clamav/clamd.conf` and reloads `clamav-daemon` only when the exclude block changes.
 
 ## Detailed pages
 

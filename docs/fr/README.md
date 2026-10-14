@@ -104,7 +104,7 @@ Les valeurs qui ne sont pas demandées sont écrites depuis `hfu_config_set_buil
 | SSH       | `PermitRootLogin no`. `PasswordAuthentication yes`. `PubkeyAuthentication yes`. Bannière `/etc/ssh/sshd_banner`. `MaxAuthTries 4`.                                                                                                                                                                                                                                                                                                                                                                             |
 | Noyau     | `/etc/sysctl.d/90-high-fortress-user.conf` est copié vers `/etc/sysctl.d/99-zzz-high-fortress-user.conf`. IPv6 reste activé. Les redirections IPv6 et le source routing sont refusés. Les user namespaces restent activés. `dccp`, `sctp`, `rds` et `tipc` sont en liste noire. Les systèmes de fichiers inutilisés sont en liste noire. Les core dumps sont à 0. `PWQUALITY_MINLEN` vaut 12.                                                                                                                  |
 | AppArmor  | Les profils de la distribution restent. `service/apparmor/userns.sh` ajoute `hfu-brave`, `hfu-discord`, `hfu-thunderbird`, et `hfu-steam` lorsque Steam n'est pas déjà couvert.                                                                                                                                                                                                                                                                                                                                |
-| Contrôles | `hfu-boot-scan.timer` lance `boot-scan.sh` 2 minutes après le démarrage (`OnBootSec=2min`, `Persistent=false`). La passe lance AIDE, rkhunter, chkrootkit, ClamAV et debsums. `Nice` vaut `WATCHDOG_LIMIT_NICE` (19), `IOSchedulingClass=idle`, `CPUQuota` vaut `WATCHDOG_CPU_LIMIT` (20 %). `/etc/cron.d/high-fortress-user` ne contient que `SHELL` et `PATH`. La crontab de l'utilisateur n'est pas modifiée. Le courrier part seulement lorsqu'un contrôle trouve quelque chose et que `HF_MAIL_ALERTS=1`. |
+| Contrôles | `hfu-boot-scan.timer` lance `boot-scan.sh` 2 minutes après le démarrage (`OnBootSec=2min`, `Persistent=false`). La passe lance AIDE, rkhunter, chkrootkit, ClamAV et debsums. `Nice` vaut `WATCHDOG_LIMIT_NICE` (19), `IOSchedulingClass=idle`, `CPUQuota` vaut `WATCHDOG_CPU_LIMIT` (20 %). `/etc/cron.d/high-fortress-user` ne contient que `SHELL` et `PATH`. La crontab de l'utilisateur n'est pas modifiée. Le courrier part seulement lorsqu'un contrôle trouve quelque chose et que `HF_MAIL_ALERTS=1`. `hfu-idle-scan.timer` lance `idle-scan.sh` 15 minutes après le démarrage, puis toutes les heures (`OnBootSec=15min`, `OnUnitActiveSec=1h`, `Persistent=true`), avec le même Nice, les mêmes entrées-sorties idle et le même quota CPU. Cette passe utilise `clamscan` sur les chemins acceptés de `/opt/high-fortress-user/cron/scan-skip.paths`, sauf un répertoire dont le dernier composant est `.cache` ou `snap`. Elle attend tant que `steam`, `steamwebhelper`, `lutris`, `heroic`, `wineserver` ou `gamescope` tourne. Brave, Thunderbird et Discord restent dans la passe de démarrage. |
 | Lynis     | `LYNIS_MIN_SCORE` vaut 80. `verify/workstation.sh` accepte un `hardening_index` supérieur ou égal à ce seuil.                                                                                                                                                                                                                                                                                                                                                                                                  |
 | Journaux  | Les journaux d'installation sont `<source>/logs/install-YYYYMMDD-HHMMSS-user/`. Les journaux de sécurité sont `/opt/high-fortress-user/cron/security_logs/`. Le stockage journald est persistant.                                                                                                                                                                                                                                                                                                             |
 | Paquets   | Les snaps Firefox et Thunderbird sont retirés. `snapd` est conservé. Le paquet `firefox` est bloqué. Sur amd64, l'architecture i386 est activée. Steam n'est pas installé par ce programme.                                                                                                                                                                                                                                                                                                                    |
@@ -157,6 +157,10 @@ L'exemple montre la forme. Le courrier contient le chemin réel, cité. La comma
 
 Le message contient le résumé et l'extrait du journal. Ce courrier n'ajoute pas de bloc de commande. La forme du journal est `/opt/high-fortress-user/cron/security_logs/clamav-YYYYMMDD-HHMMSS.log`.
 
+### Analyse ClamAV différée
+
+Le message contient le résumé et l'extrait du journal. Ce courrier n'ajoute pas de bloc de commande. Une signature et un chemin déjà enregistrés dans `/opt/high-fortress-user/cron/scan-skip.seen` ne renvoient pas de courrier. La forme du journal est `/opt/high-fortress-user/cron/security_logs/idle-scan-YYYYMMDD-HHMMSS.log`.
+
 ### rkhunter
 
 Le message contient le résumé et l'extrait du journal. Ce courrier n'ajoute pas de bloc de commande. Un écart d'empreinte ajoute la ligne `mirrors.dat modifié hors rkhunter --update`. Cette ligne n'est pas une commande. La forme du journal est `/opt/high-fortress-user/cron/security_logs/rkhunter-YYYYMMDD-HHMMSS.log`.
@@ -187,7 +191,7 @@ Lance l'installation à partir des fichiers préparés. L'installeur refuse de d
 sudo bash verify/alerts.sh
 ```
 
-Contrôle le timer de démarrage, ClamAV à l'accès, et le chemin du courrier. Sans `--no-send`, une sonde part lorsque les alertes sont activées. Le sujet se termine par `Contrôle`. La ligne de succès est `Résultat : OK`.
+Contrôle le timer de démarrage, le timer différé, ClamAV à l'accès, et le chemin du courrier. Sans `--no-send`, une sonde part lorsque les alertes sont activées. Le sujet se termine par `Contrôle`. La ligne de succès est `Résultat : OK`.
 
 ```bash
 sudo bash verify/alerts.sh --no-send
@@ -226,6 +230,16 @@ sudo bash /opt/high-fortress-user/cron/bin/record-mirrors.sh save
 ```
 
 Écrit le SHA-256 de `/var/lib/rkhunter/db/mirrors.dat` dans `/opt/high-fortress-user/cron/rkhunter-mirrors.sha256` en mode `600`. `rkhunter.sh` enregistre cette empreinte seulement après un `rkhunter --update` qui retourne 0 ou 2.
+
+### Chemins exclus du scan
+
+```bash
+sudo bash /opt/high-fortress-user/bin/scan-skip.sh list
+sudo bash /opt/high-fortress-user/bin/scan-skip.sh add /var/jeux/steam
+sudo bash /opt/high-fortress-user/bin/scan-skip.sh del /var/jeux/steam
+```
+
+`list` affiche un chemin accepté par ligne. `add` affiche `Chemin ajouté : <path>`. Un chemin déjà présent affiche `Ce chemin est déjà exclu : <path>`. `del` affiche `Chemin retiré : <path>`. Un chemin refusé affiche `Chemin refusé : <path>` et le fichier ne change pas. La liste livrée est `$HOME/.steam`, `$HOME/.local/share/Steam`, `$HOME/.cache`, `$HOME/snap` et `/var/jeux`. Brave, Thunderbird et Discord n'y sont pas. `/`, `/home`, `/home/<user>`, Téléchargements et Bureau sont refusés. La commande réécrit `/etc/clamav/clamd.conf` et ne recharge `clamav-daemon` que lorsque le bloc d'exclusion change.
 
 ## Fichiers détaillés
 

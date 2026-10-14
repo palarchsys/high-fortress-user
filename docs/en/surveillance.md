@@ -32,7 +32,17 @@ Known lines live in `cron/bin/chkrootkit.ignore` and in `cron/chkrootkit.local.i
 | ------------------------------- | ---------------------- | ------------------------------------------ | ---------------------------------- |
 | clamonacc, then clamav-event.sh | Downloads and Desktop. | A real detection. Lock files do not alert. | `sudo ls -la -- <quarantine path>` |
 
-Excluded: `$HOME/.steam`, `$HOME/.local/share/Steam`, the user `clamav`, root (`OnAccessExcludeRootUID yes`), and files over 25M. `.clamav-quarantine-lock.*` is a move lock, not malware, so `clamav-event.sh` exits 0 before `log_alert`.
+Excluded from the on-access scan: every accepted path in `/opt/high-fortress-user/cron/scan-skip.paths`, the user `clamav`, root (`OnAccessExcludeRootUID yes`), and files over 25M. The file shipped at install lists `$HOME/.steam`, `$HOME/.local/share/Steam`, `$HOME/.cache`, `$HOME/snap` and `/var/jeux`. Brave, Thunderbird and Discord are not in that list. A line that is relative, empty, or exactly `/`, `/home`, `/opt`, `/tmp`, `/etc`, `/usr`, `/var`, `/boot`, `/root`, `/home/<user>`, Downloads or Desktop is ignored and appended to `/opt/high-fortress-user/cron/security_logs/scan-skip.log`. `/var/jeux` is an empty directory, mode 750, owned by the workstation user. It is not a separate account. `.clamav-quarantine-lock.*` is a move lock, not malware, so `clamav-event.sh` exits 0 before `log_alert`.
+
+Change the list with `scan-skip.sh`. The same rewrite runs at the start of `boot-scan.sh`. An existing `scan-skip.paths` is left in place when the installer runs again.
+
+```bash
+sudo bash /opt/high-fortress-user/bin/scan-skip.sh list
+sudo bash /opt/high-fortress-user/bin/scan-skip.sh add /var/jeux/steam
+sudo bash /opt/high-fortress-user/bin/scan-skip.sh del /var/jeux/steam
+```
+
+`list` prints one accepted path per line. `add` prints `Chemin ajouté : <path>`. A path already present prints `Ce chemin est déjà exclu : <path>`. `del` prints `Chemin retiré : <path>`. A refused path prints `Chemin refusé : <path>`. The command rewrites the `OnAccessExcludePath` lines between `# BEGIN High-Fortress User scan-skip` and `# END High-Fortress User scan-skip` in `/etc/clamav/clamd.conf`. `clamav-daemon` is reloaded only when that block changes. A hidden path gains an `ALLOWHIDDENDIR` line in `/etc/rkhunter.conf.local` when that line is missing. Existing rkhunter lines stay.
 
 ## ClamAV boot scan
 
@@ -40,7 +50,15 @@ Excluded: `$HOME/.steam`, `$HOME/.local/share/Steam`, the user `clamav`, root (`
 | ------------------------- | ----------------- | -------------------------------------- | ----------------- |
 | clamav.sh in boot-scan.sh | /home, /opt, /tmp | Infections. A clean scan stays silent. | No command block. |
 
-The scan prunes the on-access directories and the names `BraveSoftware`, `.config/discord`, `.thunderbird`, `thunderbird`, `libvirt` and `snap-private-tmp`, so those trees are not scanned twice.
+The scan prunes the on-access directories and the accepted paths from `scan-skip.paths`. It also prunes `proc`, `sys`, `dev`, `var/lib/docker`, `var/lib/libvirt`, `libvirt` and `snap-private-tmp`. It reads the files with `clamscan` in the boot unit. It does not call `clamdscan`. Brave, Thunderbird and Discord stay in this pass.
+
+## ClamAV idle scan
+
+| Service that watches                 | Zones                                                                                                              | What is alerted                                                                                          | Mail command      |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- | ----------------- |
+| idle-scan.sh in hfu-idle-scan.timer  | Accepted paths in `scan-skip.paths`, except a directory whose last component is `.cache` or `snap`.               | A new infection. A signature and path already stored in `/opt/high-fortress-user/cron/scan-skip.seen` do not send mail again. | No command block. |
+
+`hfu-idle-scan.timer` uses `OnBootSec=15min`, `OnUnitActiveSec=1h` and `Persistent=true`. `Nice` is `WATCHDOG_LIMIT_NICE` (19), `IOSchedulingClass=idle`, and `CPUQuota` is `WATCHDOG_CPU_LIMIT` (20%). The pass exits 0 without scanning while `steam`, `steamwebhelper`, `lutris`, `heroic`, `wineserver` or `gamescope` is running. It skips directories named `shadercache` and `downloading`. It scans executable files at any size, and other files of 25M or less that are newer than `/opt/high-fortress-user/cron/scan-skip.stamp`. The stamp advances only after a clean pass. `/var/jeux`, `$HOME/.steam` and `$HOME/.local/share/Steam` are covered. `$HOME/.cache` and `$HOME/snap` are not.
 
 ## debsums
 

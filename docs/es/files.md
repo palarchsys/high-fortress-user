@@ -22,6 +22,13 @@ Cada fila es un archivo que el instalador escribe, con el modo que el script fij
 | /etc/cron.d/high-fortress-user                          | Solo SHELL y PATH.                                                                                       | 600                          |
 | /etc/systemd/system/hfu-boot-scan.service               | Unidad de la pasada de arranque.                                                                         | 644                          |
 | /etc/systemd/system/hfu-boot-scan.timer                 | Lanza la pasada 2 minutos después del arranque.                                                          | 644                          |
+| /etc/systemd/system/hfu-idle-scan.service               | Análisis diferido de las rutas excluidas.                                                                | 644                          |
+| /etc/systemd/system/hfu-idle-scan.timer                 | Lanza ese análisis 15 minutos después del arranque y después cada hora.                                  | 644                          |
+| /opt/high-fortress-user/bin/scan-skip.sh                | Lista, añade o quita una ruta excluida y reescribe el bloque ClamAV.                                     | 755                          |
+| /opt/high-fortress-user/cron/scan-skip.paths            | Rutas excluidas. Se crea solo cuando el archivo no existe.                                               | 644                          |
+| /opt/high-fortress-user/cron/scan-skip.stamp            | Sello de tiempo del análisis diferido.                                                                   | 644                          |
+| /opt/high-fortress-user/cron/scan-skip.seen             | Pares de firma y ruta ya enviados por el análisis diferido.                                              | 600                          |
+| /var/jeux                                                   | Directorio vacío para una biblioteca de juegos. No es una cuenta distinta.                               | 750                          |
 | /etc/ssh/sshd_config.d/00-high-fortress-user.conf       | Política SSH de este puesto.                                                                             | 644                          |
 | /etc/ssh/sshd_banner                                    | Banner de acceso.                                                                                        | 644                          |
 | /etc/aide/aide.conf                                     | Política AIDE con CONFIG_BASE_DIR sustituido.                                                            | written by redirection       |

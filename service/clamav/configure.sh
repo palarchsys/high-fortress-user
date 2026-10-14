@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/clamav/configure.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-14
 # Creator    : palarchsys
 # =============================================================================
 
@@ -42,12 +42,14 @@ install -d -m 755 -o "${CURRENT_USER}" -g "${CURRENT_USER}" "${download_dir}" "$
 
 event="${CONFIG_BASE_DIR}/cron/bin/clamav-event.sh"
 if [[ -f /etc/clamav/clamd.conf ]] && ! grep -q 'High-Fortress User onaccess' /etc/clamav/clamd.conf; then
-    cat >> /etc/clamav/clamd.conf << EOF
+    if grep -q '^OnAccessIncludePath ' /etc/clamav/clamd.conf; then
+        printf '\n# High-Fortress User onaccess\n' >> /etc/clamav/clamd.conf
+    else
+        cat >> /etc/clamav/clamd.conf << EOF
 
+# High-Fortress User onaccess
 OnAccessIncludePath ${download_dir}
 OnAccessIncludePath ${desktop_dir}
-OnAccessExcludePath ${CURRENT_HOME}/.steam
-OnAccessExcludePath ${CURRENT_HOME}/.local/share/Steam
 OnAccessExcludeUname clamav
 OnAccessExcludeRootUID yes
 OnAccessMaxFileSize 25M
@@ -55,6 +57,7 @@ OnAccessPrevention yes
 OnAccessExtraScanning yes
 VirusEvent sudo -n --preserve-env=CLAM_VIRUSEVENT_FILENAME,CLAM_VIRUSEVENT_VIRUSNAME ${event}
 EOF
+    fi
 fi
 
 if [[ -f /etc/clamav/clamd.conf ]]; then
@@ -126,4 +129,9 @@ if ! systemctl is-active --quiet "${clam_unit}"; then
     journalctl -u "${clam_unit}" -n 40 --no-pager > "${HF_LOG_DIR:-/var/log/high-fortress-user}/clamonacc.log" 2>&1 || true
     error "clamonacc ne reste pas actif. Détail : ${HF_LOG_DIR:-/var/log/high-fortress-user}/clamonacc.log"
 fi
+export HFU_BASE="${CONFIG_BASE_DIR}"
+# shellcheck disable=SC1091
+source "${DIR_INSTALL_PATH}/service/cron/watchdogs/scan-skip-lib.sh"
+hfu_scan_skip_ensure_file "${CURRENT_HOME}"
+bash "${DIR_INSTALL_PATH}/service/cron/watchdogs/apply-scan-skip.sh"
 success "ClamAV lancé en surveillance continue sur ${download_dir} et ${desktop_dir}"

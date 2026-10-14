@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/configure.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-14
 # Creator    : palarchsys
 # =============================================================================
 
@@ -14,6 +14,7 @@ readonly DIR_SCRIPT_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/nul
 source "${DIR_INSTALL_PATH}/core/lib.sh"
 source "${DIR_INSTALL_PATH}/config/global.conf"
 require_root
+detect_current_user
 
 title "Watchdogs cron (root, cron.allow non restreint)"
 
@@ -78,10 +79,50 @@ Unit=hfu-boot-scan.service
 WantedBy=timers.target
 EOF
 chmod 644 /etc/systemd/system/hfu-boot-scan.service /etc/systemd/system/hfu-boot-scan.timer
+
+tee /etc/systemd/system/hfu-idle-scan.service > /dev/null << EOF
+[Unit]
+Description=Analyse différée des chemins exclus du scan bloquant
+After=local-fs.target multi-user.target
+
+[Service]
+Type=oneshot
+Nice=${WATCHDOG_LIMIT_NICE}
+IOSchedulingClass=idle
+CPUQuota=${WATCHDOG_CPU_LIMIT}%
+ExecStart=${CONFIG_BASE_DIR}/cron/bin/idle-scan.sh
+EOF
+tee /etc/systemd/system/hfu-idle-scan.timer > /dev/null << 'EOF'
+[Unit]
+Description=Relance l'analyse différée des bibliothèques
+
+[Timer]
+OnBootSec=15min
+OnUnitActiveSec=1h
+AccuracySec=1min
+Persistent=true
+Unit=hfu-idle-scan.service
+
+[Install]
+WantedBy=timers.target
+EOF
+chmod 644 /etc/systemd/system/hfu-idle-scan.service /etc/systemd/system/hfu-idle-scan.timer
 run_silent systemctl daemon-reload
 
 run_silent systemctl enable hfu-boot-scan.timer
+run_silent systemctl enable hfu-idle-scan.timer
 success "Démarrage plafonné à ${WATCHDOG_CPU_LIMIT}% CPU"
+
+export HFU_BASE="${CONFIG_BASE_DIR}"
+# shellcheck disable=SC1091
+source "${DIR_SCRIPT_PATH}/watchdogs/scan-skip-lib.sh"
+hfu_scan_skip_ensure_file "${CURRENT_HOME}"
+if [[ ! -d /var/jeux ]]; then
+    install -d -m 750 -o "${CURRENT_USER}" -g "${CURRENT_USER}" /var/jeux
+fi
+install -d -m 755 "${CONFIG_BASE_DIR}/bin"
+install -m 755 "${DIR_SCRIPT_PATH}/scan-skip.sh" "${CONFIG_BASE_DIR}/bin/scan-skip.sh"
+bash "${CONFIG_BASE_DIR}/cron/bin/apply-scan-skip.sh"
 
 info "crontab utilisateur : non touché (pas de cron.allow)."
 success "Watchdogs installés dans ${CONFIG_BASE_DIR}/cron/bin"

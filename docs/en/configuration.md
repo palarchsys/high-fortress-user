@@ -55,13 +55,15 @@ The file is written in `config/`, next to `global.conf`, mode `600`, owner root.
 | Name                          | Default                                   | Impact                                                               |
 | ----------------------------- | ----------------------------------------- | -------------------------------------------------------------------- |
 | OnAccessIncludePath           | Downloads and Desktop                     | `xdg-user-dir`, or `$HOME/Downloads` and `$HOME/Desktop`.            |
-| OnAccessExcludePath           | $HOME/.steam and $HOME/.local/share/Steam | Steam data is not scanned on access.                                 |
+| OnAccessExcludePath           | scan-skip.paths                           | Accepted paths in `/opt/high-fortress-user/cron/scan-skip.paths`. The shipped file lists `$HOME/.steam`, `$HOME/.local/share/Steam`, `$HOME/.cache`, `$HOME/snap` and `/var/jeux`. Brave, Thunderbird and Discord are not listed. |
 | OnAccessExcludeUname          | clamav                                    | The scanner user is excluded.                                        |
 | OnAccessExcludeRootUID        | yes                                       | Root is excluded from on-access scan on this workstation.            |
 | OnAccessMaxFileSize           | 25M                                       | Larger files are not scanned on access.                              |
 | OnAccessPrevention            | yes                                       | A detection is moved to quarantine.                                  |
 | quarantine                    | /var/lib/clamav/quarantine                | Mode 750, owner clamav.                                              |
 | hfu-boot-scan.timer OnBootSec | 2min                                      | `Persistent=false`. A machine already up waits for the next boot.    |
+| hfu-idle-scan.timer           | OnBootSec=15min, OnUnitActiveSec=1h       | `Persistent=true`. Same Nice, idle I/O and CPU quota as the boot pass. |
+| scan-skip.sh                  | /opt/high-fortress-user/bin/scan-skip.sh  | `list`, `add /path`, `del /path`. Rewrites the ClamAV exclude block. |
 | database_in                   | /var/lib/aide/aide.db                     | `__HF_BASE__` in `service/aide/aide.conf` becomes `CONFIG_BASE_DIR`. |
 
 ## Docker

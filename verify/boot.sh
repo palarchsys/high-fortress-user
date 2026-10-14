@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : verify/boot.sh
-# Updated at : 2026-10-05
+# Updated at : 2026-10-14
 # Creator    : palarchsys
 # =============================================================================
 
@@ -37,6 +37,7 @@ services=(
     systemd-resolved.service
     hfu-unbound-root-hints.path
     hfu-boot-scan.timer
+    hfu-idle-scan.timer
 )
 if [[ -f /opt/high-fortress-user/cron/mail.conf ]] \
     && grep -q '^HF_MAIL_ALERTS="1"$' /opt/high-fortress-user/cron/mail.conf; then

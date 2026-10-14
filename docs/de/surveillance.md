@@ -32,7 +32,17 @@ Bekannte Zeilen stehen in `cron/bin/chkrootkit.ignore` und in `cron/chkrootkit.l
 | ------------------------------- | ---------------------- | ----------------------------------------------- | ---------------------------------- |
 | clamonacc, then clamav-event.sh | Downloads und Desktop. | Ein echter Fund. Sperrdateien alarmieren nicht. | `sudo ls -la -- <quarantine path>` |
 
-Ausgeschlossen: `$HOME/.steam`, `$HOME/.local/share/Steam`, der Benutzer `clamav`, root (`OnAccessExcludeRootUID yes`) und Dateien über 25M. `.clamav-quarantine-lock.*` ist eine Verschiebesperre, keine Schadsoftware, daher endet `clamav-event.sh` mit 0 vor `log_alert`.
+Von der Zugriffsprüfung ausgeschlossen: jeder akzeptierte Pfad in `/opt/high-fortress-user/cron/scan-skip.paths`, der Benutzer `clamav`, root (`OnAccessExcludeRootUID yes`) und Dateien über 25M. Die bei der Installation gelieferte Datei listet `$HOME/.steam`, `$HOME/.local/share/Steam`, `$HOME/.cache`, `$HOME/snap` und `/var/jeux`. Brave, Thunderbird und Discord stehen nicht darin. Eine relative, leere oder genau `/`, `/home`, `/opt`, `/tmp`, `/etc`, `/usr`, `/var`, `/boot`, `/root`, `/home/<user>`, Downloads oder Desktop gleiche Zeile wird ignoriert und an `/opt/high-fortress-user/cron/security_logs/scan-skip.log` angehängt. `/var/jeux` ist ein leeres Verzeichnis, Modus 750, Eigentümer ist der Benutzer des Arbeitsplatzes. Es ist kein separates Konto. `.clamav-quarantine-lock.*` ist eine Verschiebesperre, keine Schadsoftware, daher endet `clamav-event.sh` mit 0 vor `log_alert`.
+
+Die Liste ändert `scan-skip.sh`. Dieselbe Neuschreibung läuft am Anfang von `boot-scan.sh`. Eine schon vorhandene `scan-skip.paths` bleibt stehen, wenn das Installationsprogramm erneut läuft.
+
+```bash
+sudo bash /opt/high-fortress-user/bin/scan-skip.sh list
+sudo bash /opt/high-fortress-user/bin/scan-skip.sh add /var/jeux/steam
+sudo bash /opt/high-fortress-user/bin/scan-skip.sh del /var/jeux/steam
+```
+
+`list` gibt einen akzeptierten Pfad je Zeile aus. `add` gibt `Chemin ajouté : <path>` aus. Ein schon vorhandener Pfad gibt `Ce chemin est déjà exclu : <path>` aus. `del` gibt `Chemin retiré : <path>` aus. Ein abgelehnter Pfad gibt `Chemin refusé : <path>` aus. Der Befehl schreibt die `OnAccessExcludePath`-Zeilen zwischen `# BEGIN High-Fortress User scan-skip` und `# END High-Fortress User scan-skip` in `/etc/clamav/clamd.conf` neu. `clamav-daemon` wird nur neu geladen, wenn dieser Block sich ändert. Ein verborgener Pfad erhält eine `ALLOWHIDDENDIR`-Zeile in `/etc/rkhunter.conf.local`, wenn sie fehlt. Vorhandene rkhunter-Zeilen bleiben.
 
 ## ClamAV-Startprüfung
 
@@ -40,7 +50,15 @@ Ausgeschlossen: `$HOME/.steam`, `$HOME/.local/share/Steam`, der Benutzer `clamav
 | ------------------------- | ----------------- | ----------------------------------------------- | ------------------ |
 | clamav.sh in boot-scan.sh | /home, /opt, /tmp | Infektionen. Eine saubere Prüfung bleibt still. | Kein Befehlsblock. |
 
-Die Prüfung schneidet die Zugriffspfade und die Namen `BraveSoftware`, `.config/discord`, `.thunderbird`, `thunderbird`, `libvirt` und `snap-private-tmp` ab, damit diese Bäume nicht zweimal geprüft werden.
+Die Prüfung schneidet die Zugriffspfade und die akzeptierten Pfade aus `scan-skip.paths` ab. Sie schneidet auch `proc`, `sys`, `dev`, `var/lib/docker`, `var/lib/libvirt`, `libvirt` und `snap-private-tmp` ab. Sie liest die Dateien mit `clamscan` in der Start-Unit. Sie ruft `clamdscan` nicht auf. Brave, Thunderbird und Discord bleiben in diesem Lauf.
+
+## Verzögerte ClamAV-Prüfung
+
+| Dienst, der prüft                   | Zonen                                                                                                      | Was alarmiert wird                                                                                                              | Postbefehl               |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| idle-scan.sh in hfu-idle-scan.timer | Akzeptierte Pfade in `scan-skip.paths`, außer einem Verzeichnis, dessen letzte Komponente `.cache` oder `snap` ist. | Ein neuer Fund. Eine Signatur und ein Pfad, die schon in `/opt/high-fortress-user/cron/scan-skip.seen` stehen, senden keine Post mehr. | Kein Befehlsblock.       |
+
+`hfu-idle-scan.timer` nutzt `OnBootSec=15min`, `OnUnitActiveSec=1h` und `Persistent=true`. `Nice` ist `WATCHDOG_LIMIT_NICE` (19), `IOSchedulingClass=idle`, und `CPUQuota` ist `WATCHDOG_CPU_LIMIT` (20 %). Der Lauf endet mit 0 ohne Prüfung, solange `steam`, `steamwebhelper`, `lutris`, `heroic`, `wineserver` oder `gamescope` läuft. Er überspringt Verzeichnisse namens `shadercache` und `downloading`. Er prüft ausführbare Dateien in jeder Größe und andere Dateien von 25M oder weniger, die neuer sind als `/opt/high-fortress-user/cron/scan-skip.stamp`. Der Stempel rückt nur nach einem sauberen Lauf vor. `/var/jeux`, `$HOME/.steam` und `$HOME/.local/share/Steam` sind abgedeckt. `$HOME/.cache` und `$HOME/snap` nicht.
 
 ## debsums
 

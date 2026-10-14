@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : verify/workstation.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-14
 # Creator    : palarchsys
 # =============================================================================
 
@@ -215,6 +215,11 @@ if systemctl is-enabled --quiet hfu-boot-scan.timer 2>/dev/null; then
     ok "passe AIDE/rkhunter/chkrootkit/debsums au démarrage"
 else
     ko "timer de passe au démarrage absent"
+fi
+if systemctl is-enabled --quiet hfu-idle-scan.timer 2>/dev/null; then
+    ok "passe différée des chemins exclus"
+else
+    ko "timer de passe différée absent"
 fi
 if systemctl is-active --quiet crowdsec 2>/dev/null \
     && systemctl is-active --quiet crowdsec-firewall-bouncer 2>/dev/null; then

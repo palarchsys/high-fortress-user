@@ -11,6 +11,11 @@ Ceci est l'arbre créé sous `/opt/high-fortress-user` après l'installation. Ce
 /opt/high-fortress-user/bin/aide-refresh-db.sh    755
 /opt/high-fortress-user/bin/chkrootkit-ignore-log.sh  755
 /opt/high-fortress-user/bin/debsums-ignore-log.sh 755
+/opt/high-fortress-user/bin/scan-skip.sh          755
+/opt/high-fortress-user/cron/scan-skip.paths      644
+/opt/high-fortress-user/cron/scan-skip.stamp      644
+/opt/high-fortress-user/cron/scan-skip.seen       600
+/var/jeux                                         750
 /opt/high-fortress-user/cron/bin/                 755
 /opt/high-fortress-user/cron/security_logs/       750
 /opt/high-fortress-user/cron/alerts/              750
@@ -23,4 +28,4 @@ Ceci est l'arbre créé sous `/opt/high-fortress-user` après l'installation. Ce
 
 `secrets.conf` et `global.conf` restent dans `config/`, sous le répertoire des sources. `SECRETS_DIR` est créé sans ces deux fichiers. Les scripts shell copiés dans `cron/bin` sont en mode `750`. `mail.html` est en mode `644`. `cron/bin/chkrootkit.ignore` garde le mode du fichier livré, `664`.
 
-Scripts dans `cron/bin` : `aide.sh`, `boot-scan.sh`, `chkrootkit.sh`, `clamav.sh`, `clamav-event.sh`, `common.sh`, `debsums.sh`, `record-mirrors.sh`, `rkhunter.sh`, `send.sh`, `mail.sh`.
+Scripts dans `cron/bin` : `aide.sh`, `apply-scan-skip.sh`, `boot-scan.sh`, `chkrootkit.sh`, `clamav.sh`, `clamav-event.sh`, `common.sh`, `debsums.sh`, `idle-scan.sh`, `record-mirrors.sh`, `rkhunter.sh`, `scan-skip-lib.sh`, `send.sh`, `mail.sh`.

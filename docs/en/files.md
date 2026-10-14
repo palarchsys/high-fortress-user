@@ -22,6 +22,13 @@ Each row is a file the installer writes, with the mode the script sets. Files in
 | /etc/cron.d/high-fortress-user                          | SHELL and PATH only.                                                                             | 600                          |
 | /etc/systemd/system/hfu-boot-scan.service               | Boot scan unit.                                                                                  | 644                          |
 | /etc/systemd/system/hfu-boot-scan.timer                 | Starts the scan 2 minutes after boot.                                                            | 644                          |
+| /etc/systemd/system/hfu-idle-scan.service               | Idle scan of the excluded paths.                                                                 | 644                          |
+| /etc/systemd/system/hfu-idle-scan.timer                 | Starts that scan 15 minutes after boot, then every hour.                                         | 644                          |
+| /opt/high-fortress-user/bin/scan-skip.sh                | Lists, adds or removes an excluded path, then rewrites the ClamAV block.                         | 755                          |
+| /opt/high-fortress-user/cron/scan-skip.paths            | Excluded paths. Created only when the file is absent.                                            | 644                          |
+| /opt/high-fortress-user/cron/scan-skip.stamp            | Mtime watermark of the idle scan.                                                                | 644                          |
+| /opt/high-fortress-user/cron/scan-skip.seen             | Signature and path pairs already mailed by the idle scan.                                        | 600                          |
+| /var/jeux                                                   | Empty directory for a game library. Not a separate account.                                      | 750                          |
 | /etc/ssh/sshd_config.d/00-high-fortress-user.conf       | SSH policy for this workstation.                                                                 | 644                          |
 | /etc/ssh/sshd_banner                                    | Login banner.                                                                                    | 644                          |
 | /etc/aide/aide.conf                                     | AIDE policy with CONFIG_BASE_DIR substituted.                                                    | written by redirection       |
