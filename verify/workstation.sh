@@ -102,6 +102,13 @@ if sshd -T 2>/dev/null | grep -qiE '^passwordauthentication yes$'; then
 else
     ok "PasswordAuthentication n'est pas yes (SSH n'accepte qu'une clé pour ${CURRENT_USER})"
 fi
+tcp_fwd="$(sshd -T 2>/dev/null | awk '/^allowtcpforwarding /{print $2; exit}')"
+agent_fwd="$(sshd -T 2>/dev/null | awk '/^allowagentforwarding /{print $2; exit}')"
+if [[ "${tcp_fwd}" == "no" && "${agent_fwd}" == "no" ]]; then
+    ok "relais SSH coupé"
+else
+    ko "relais SSH ouvert (tcp ${tcp_fwd:-inconnu}, agent ${agent_fwd:-inconnu})"
+fi
 if sshd -t 2>/dev/null; then
     ok "sshd -t"
 else
@@ -122,6 +129,12 @@ else
     else
         ko "UFW outgoing n'est pas allow — Steam/Discord cassés"
     fi
+fi
+ufw_rules="$(LANG=C LC_ALL=C ufw status 2>/dev/null || true)"
+if grep -qF 'SSH LAN' <<< "${ufw_rules}" || grep -qF 'SSH (limit)' <<< "${ufw_rules}"; then
+    ok "SSH limité aux préfixes connectés"
+else
+    ko "règle SSH absente"
 fi
 
 tmp_opts="$(findmnt -no OPTIONS /tmp 2>/dev/null || true)"
@@ -170,6 +183,13 @@ if [[ -f /etc/sudoers.d/high-fortress-user-umask ]] \
     ok "sudo umask 0022 (apt ne hérite pas de 027)"
 else
     ko "sudoers umask absent ou invalide"
+fi
+if [[ -f /etc/sudoers.d/high-fortress-user-timeout ]] \
+    && visudo -cf /etc/sudoers.d/high-fortress-user-timeout >/dev/null 2>&1 \
+    && grep -qx 'Defaults timestamp_timeout=5' /etc/sudoers.d/high-fortress-user-timeout; then
+    ok "sudo redemande le mot de passe après 5 minutes"
+else
+    ko "délai sudo absent ou invalide"
 fi
 if grep -q '^DEFAULT_FORWARD_POLICY="ACCEPT"' /etc/default/ufw 2>/dev/null; then
     ok "UFW DEFAULT_FORWARD_POLICY=ACCEPT"
@@ -220,6 +240,29 @@ if systemctl is-enabled --quiet hfu-idle-scan.timer 2>/dev/null; then
     ok "passe différée des chemins exclus"
 else
     ko "timer de passe différée absent"
+fi
+if systemctl is-enabled --quiet hfu-reboot-notice.timer 2>/dev/null; then
+    ok "avis de redémarrage planifié"
+else
+    ko "timer d'avis de redémarrage absent"
+fi
+usb_mod="usb-storage"
+if grep -RqsE "^[[:space:]]*(install|blacklist)[[:space:]]+${usb_mod}([[:space:]]|$)" /etc/modprobe.d /etc/modprobe.conf 2>/dev/null; then
+    ko "module usb-storage bloqué au chargement"
+else
+    ok "stockage USB non bloqué au chargement"
+fi
+usb_rules="/etc/usbguard/rules.conf"
+usb_hid='allow with-interface equals { 03:*:* }'
+usb_hub='allow with-interface equals { 09:*:* }'
+if [[ ! -f "${usb_rules}" ]] || ! grep -qF "${usb_hid}" "${usb_rules}"; then
+    wn "USBGuard sans autorisation clavier et souris"
+elif ! systemctl is-active --quiet usbguard; then
+    ko "USBGuard inactif alors que la politique existe"
+elif ! grep -qF "${usb_hub}" "${usb_rules}"; then
+    wn "USBGuard sans concentrateur"
+else
+    ok "USBGuard actif (appareils présents et HID autorisés)"
 fi
 if systemctl is-active --quiet crowdsec 2>/dev/null \
     && systemctl is-active --quiet crowdsec-firewall-bouncer 2>/dev/null; then
@@ -370,6 +413,59 @@ if dpkg-query -W -f '${Status}' keepassxc 2>/dev/null | grep -q 'install ok' \
     ok "KeePassXC installé"
 else
     ko "KeePassXC absent"
+fi
+
+title "Politique du bureau"
+
+brave_policy="/etc/brave/policies/managed/high-fortress-user.json"
+if [[ -f "${brave_policy}" ]] \
+    && grep -qF '"DnsOverHttpsMode": "off"' "${brave_policy}" \
+    && grep -qF '"HttpsOnlyMode": "force_balanced_enabled"' "${brave_policy}" \
+    && grep -qF '"BrowserGuestModeEnabled": false' "${brave_policy}"; then
+    ok "politique Brave (DNS du poste, mode invité coupé)"
+else
+    ko "politique Brave absente ou incomplète"
+fi
+tb_policy="/etc/thunderbird/policies/policies.json"
+if [[ -f "${tb_policy}" ]] && grep -qF 'mailnews.message_display.disable_remote_image' "${tb_policy}"; then
+    ok "images distantes de Thunderbird affichées après un clic"
+else
+    ko "politique Thunderbird absente"
+fi
+kpxc_ini="${CURRENT_HOME}/.config/keepassxc/keepassxc.ini"
+if [[ -f "${kpxc_ini}" ]] \
+    && grep -qE '^LockDatabaseScreenLock[[:space:]]*=[[:space:]]*true[[:space:]]*$' "${kpxc_ini}" \
+    && grep -qE '^LockDatabaseIdle[[:space:]]*=[[:space:]]*true[[:space:]]*$' "${kpxc_ini}" \
+    && grep -qE '^LockDatabaseIdleSeconds[[:space:]]*=[[:space:]]*900[[:space:]]*$' "${kpxc_ini}"; then
+    ok "KeePassXC se ferme avec la session"
+else
+    ko "KeePassXC ne se ferme pas avec la session"
+fi
+if ! command -v gsettings >/dev/null 2>&1 || ! command -v dbus-run-session >/dev/null 2>&1; then
+    wn "gsettings absent : verrou de session non contrôlé"
+else
+    idle_delay="$(sudo -u "${CURRENT_USER}" -H dbus-run-session -- gsettings get org.gnome.desktop.session idle-delay 2>/dev/null || true)"
+    lock_on="$(sudo -u "${CURRENT_USER}" -H dbus-run-session -- gsettings get org.gnome.desktop.screensaver lock-enabled 2>/dev/null || true)"
+    if [[ -z "${idle_delay}" || -z "${lock_on}" ]]; then
+        wn "schéma GNOME absent : verrou de session non contrôlé"
+    elif [[ "${idle_delay}" == "uint32 1200" && "${lock_on}" == "true" ]]; then
+        ok "session verrouillée après 20 minutes d'inactivité"
+    else
+        wn "verrou de session différent de 20 minutes"
+    fi
+fi
+
+title "Démarrage"
+root_src="$(findmnt -no SOURCE / 2>/dev/null || true)"
+if [[ -n "${root_src}" ]] && lsblk -sno TYPE "${root_src}" 2>/dev/null | grep -qx crypt; then
+    ok "racine sur LUKS"
+else
+    wn "racine sans LUKS constaté"
+fi
+if command -v mokutil >/dev/null 2>&1 && mokutil --sb-state 2>/dev/null | grep -qi 'SecureBoot enabled'; then
+    ok "Secure Boot actif"
+else
+    wn "Secure Boot non actif"
 fi
 
 title "Sources APT"

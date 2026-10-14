@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : scripts/run.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-14
 # Creator    : palarchsys
 # =============================================================================
 
@@ -47,13 +47,14 @@ echo "   • Snaps Firefox et Thunderbird retirés. snapd reste installé."
 echo "   • SSH, puis la pile de sécurité. Postfix suit le choix des alertes e-mail."
 echo "   • Ensuite : Brave, Thunderbird (Mozilla), KeePassXC,"
 echo "     Discord et Vencord, puis les profils AppArmor de ces programmes."
+echo "   • Après les correctifs : politiques du bureau, puis USBGuard."
 echo "   • Steam et KeePassXC restent utilisables. Dépôts APT existants intacts."
 echo "   • i386 activé sur amd64 (Steam)."
 echo "   • UFW : deny incoming, ALLOW outgoing."
 echo "   • DNS : Unbound local, sans le résolveur du FAI."
 echo "   • SSH : drop-in, PasswordAuthentication conservé, PermitRootLogin no."
 echo "   • Ubuntu Pro : ESM infra, ESM apps et Livepatch."
-echo "   • AIDE : base de référence prise tout à la fin, sur le disque terminé."
+echo "   • AIDE : base de référence sur le disque terminé, puis verify/workstation.sh."
 echo ""
 
 init_install_log
@@ -69,6 +70,7 @@ STEP_SSH_CONFIGURE=("service/ssh/configure.sh")
 
 STEP_SECURITY_INSTALL=(
     "service/ufw/install.sh"
+    "service/usbguard/install.sh"
     "service/fail2ban/install.sh"
     "service/auditd/install.sh"
     "service/rkhunter/install.sh"
@@ -123,14 +125,17 @@ run_silent_apt update
 run_silent_apt -o APT::Get::Always-Include-Phased-Updates=true upgrade -y --with-new-pkgs
 success "Correctifs de sécurité installés"
 
+run_steps "${DIR_INSTALL_PATH}" "service/desktop/configure.sh"
+run_steps "${DIR_INSTALL_PATH}" "service/usbguard/configure.sh"
+
 HF_PURGE_RC_ONLY=1 bash "${DIR_INSTALL_PATH}/system/purge.sh" "${DIR_INSTALL_PATH}"
 
 HF_REAPPLY_LOCKS=1 bash "${DIR_INSTALL_PATH}/system/purge.sh" "${DIR_INSTALL_PATH}"
 run_steps "${DIR_INSTALL_PATH}" "service/rkhunter/init-db.sh"
 
-run_steps "${DIR_INSTALL_PATH}" "verify/workstation.sh"
-
 run_steps "${DIR_INSTALL_PATH}" "service/aide/init-db.sh"
+
+run_steps "${DIR_INSTALL_PATH}" "verify/workstation.sh"
 
 if [[ "${HF_MAIL_ALERTS:-0}" == "1" ]]; then
 

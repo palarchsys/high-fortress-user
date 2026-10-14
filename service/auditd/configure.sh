@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/auditd/configure.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-14
 # Creator    : palarchsys
 # =============================================================================
 
@@ -11,6 +11,7 @@ export DIR_INSTALL_PATH
 source "${DIR_INSTALL_PATH}/core/lib.sh"
 source "${DIR_INSTALL_PATH}/config/global.conf"
 require_root
+detect_current_user
 
 title "Configuration auditd"
 info "Configuration d'auditd"
@@ -44,6 +45,17 @@ EOF
     if virt_present; then
         hfu_audit_watch /etc/libvirt libvirt-config
     fi
+    for account_path in \
+        "${CURRENT_HOME}/.ssh/authorized_keys" \
+        "${CURRENT_HOME}/.bashrc" \
+        "${CURRENT_HOME}/.profile" \
+        "${CURRENT_HOME}/.bash_profile" \
+        "${CURRENT_HOME}/.config/autostart" \
+        "${CURRENT_HOME}/.config/systemd/user"
+    do
+        [[ -e "${account_path}" ]] || continue
+        hfu_audit_watch "${account_path}" account
+    done
     printf '%s\n' '-a always,exit -F arch=b64 -S adjtimex -S settimeofday -F key=time-change'
 } > /etc/audit/rules.d/50-high-fortress-user.rules
 printf '%s\n' '-e 1' > /etc/audit/rules.d/99-high-fortress-user.rules

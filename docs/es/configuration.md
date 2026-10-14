@@ -63,6 +63,7 @@ El archivo se escribe en `config/`, junto a `global.conf`, modo `600`, propietar
 | quarantine                    | /var/lib/clamav/quarantine                | Modo 750, propietario clamav.                                                |
 | hfu-boot-scan.timer OnBootSec | 2min                                      | `Persistent=false`. Una máquina ya encendida espera el próximo arranque.     |
 | hfu-idle-scan.timer           | OnBootSec=15min, OnUnitActiveSec=1h       | `Persistent=true`, con el mismo Nice, la misma E/S idle y la misma cuota de CPU que la pasada de arranque. |
+| hfu-reboot-notice.timer       | OnBootSec=20min, OnUnitActiveSec=6h       | `Persistent=true`. El mismo Nice, la misma E/S idle y la misma cuota de CPU. El script no reinicia la máquina. |
 | scan-skip.sh                  | /opt/high-fortress-user/bin/scan-skip.sh  | Reinicia `clamav-daemon` y `clamonacc` cuando el bloque de exclusión cambia. |
 | database_in                   | /var/lib/aide/aide.db                     | `__HF_BASE__` en `service/aide/aide.conf` se convierte en `CONFIG_BASE_DIR`. |
 

@@ -24,10 +24,13 @@ Jede Zeile ist eine Datei, die das Installationsprogramm schreibt, mit dem Modus
 | /etc/systemd/system/hfu-boot-scan.timer                 | Startet die Prüfung 2 Minuten nach dem Start.                                                                     | 644                          |
 | /etc/systemd/system/hfu-idle-scan.service               | Verzögerte Prüfung der ausgeschlossenen Pfade.                                                                    | 644                          |
 | /etc/systemd/system/hfu-idle-scan.timer                 | Startet diese Prüfung 15 Minuten nach dem Start, dann jede Stunde.                                                | 644                          |
+| /etc/systemd/system/hfu-reboot-notice.service           | Hinweis, wenn ein Neustart sinnvoll ist. Das Skript startet die Maschine nicht neu.                      | 644                          |
+| /etc/systemd/system/hfu-reboot-notice.timer             | Startet diesen Hinweis 20 Minuten nach dem Start, dann alle 6 Stunden.                                   | 644                          |
 | /opt/high-fortress-user/bin/scan-skip.sh                | Listet, fügt hinzu oder entfernt einen ausgeschlossenen Pfad und startet ClamAV neu, wenn der Block sich ändert. | 755                          |
 | /opt/high-fortress-user/cron/scan-skip.paths            | Ausgeschlossene Pfade. Wird nur angelegt, wenn die Datei fehlt.                                                   | 644                          |
 | /opt/high-fortress-user/cron/scan-skip.stamp            | Zeitstempel der verzögerten Prüfung.                                                                              | 644                          |
 | /opt/high-fortress-user/cron/scan-skip.seen             | Schon gemeldete Paare aus Signatur und Pfad der verzögerten Prüfung.                                              | 600                          |
+| /opt/high-fortress-user/cron/reboot-notice.seen         | Prüfsumme der zuletzt gemeldeten Neustartmenge.                                                          | 600                          |
 | /var/jeux                                                   | Leeres Verzeichnis für eine Spielbibliothek. Kein separates Konto.                                                | 750                          |
 | /etc/ssh/sshd_config.d/00-high-fortress-user.conf       | SSH-Politik dieses Arbeitsplatzes.                                                                                | 644                          |
 | /etc/ssh/sshd_banner                                    | Anmeldebanner.                                                                                                    | 644                          |
@@ -51,3 +54,8 @@ Jede Zeile ist eine Datei, die das Installationsprogramm schreibt, mit dem Modus
 | /etc/security/pwquality.conf                            | Kennwortqualität.                                                                                                 | written by redirection       |
 | /etc/security/faillock.conf                             | Kontosperre.                                                                                                      | written by redirection       |
 | /etc/audit/rules.d/00-high-fortress-user.rules          | Audit-Überwachungen.                                                                                              | 640                          |
+| /etc/sudoers.d/high-fortress-user-timeout               | sudo fragt das Kennwort nach 5 Minuten erneut.                                                             | 440                          |
+| /etc/brave/policies/managed/high-fortress-user.json     | Brave-Politik für den Resolver der Maschine, ausgeglichenes HTTPS und den Gastmodus.                      | 644                          |
+| /etc/thunderbird/policies/policies.json                 | Entfernte Bilder laden nach einem Klick.                                                                   | 644                          |
+| /etc/usbguard/rules.conf                                | Vorhandene Geräte, Tastaturen, Mäuse und Hubs.                                                             | 600                          |
+| /etc/usbguard/IPCAccessControl.d/<user>                 | Lässt das Desktop-Konto ein neues Gerät annehmen.                                                          | 600                          |

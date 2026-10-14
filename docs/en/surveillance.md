@@ -10,6 +10,14 @@
 
 Volatile paths, logs, caches and the cron report directories are excluded in `service/aide/aide.conf` so the baseline is not rewritten by those files.
 
+The account block is appended after `!/home/`.
+
+The last matching rule wins.
+
+The watched paths are the workstation user's `.ssh/authorized_keys`, `.bashrc`, `.profile`, `.bash_profile`, `.config/autostart` and `.config/systemd/user`.
+
+`.ssh/known_hosts` and `.ssh/known_hosts.old` are excluded.
+
 ## rkhunter
 
 | Service that watches        | Zones                                           | What is alerted                                                             | Mail command      |
@@ -136,6 +144,10 @@ The mirrors.dat line is removed only when the live hash matches the stamp. There
 | -------------------- | ---------------------------------------------- | ---------------------------------------------------------------- | ------------ |
 | auditd               | /etc/audit/rules.d/00-high-fortress-user.rules | No mail of its own. The boot pass does not send an auditd alert. | None.        |
 
+A watch with key `account` is added for `.ssh/authorized_keys`, `.bashrc`, `.profile`, `.bash_profile`, `.config/autostart` and `.config/systemd/user` when that path already exists.
+
+A missing path is skipped, so `augenrules` still loads.
+
 ## Fail2Ban
 
 | Service that watches | Zones                    | What is alerted     | Mail command |
@@ -152,10 +164,36 @@ The mirrors.dat line is removed only when the live hash matches the stamp. There
 
 | Service that watches | Zones                                                                | What is alerted     | Mail command |
 | -------------------- | -------------------------------------------------------------------- | ------------------- | ------------ |
-| ufw                  | Incoming denied, outgoing allowed, routed allowed, loopback allowed. | No mail of its own. | None.        |
+| ufw                  | Incoming denied, outgoing allowed, routed allowed, loopback allowed. SSH is limited to directly connected prefixes. | No mail of its own. | None.        |
 
 ## Lynis
 
 | Service that watches               | Zones                     | What is alerted                                                 | Mail command |
 | ---------------------------------- | ------------------------- | --------------------------------------------------------------- | ------------ |
 | verify/workstation.sh and hf lynis | /var/log/lynis-report.dat | A score below 80 is a warning in the verify report, not a mail. | None.        |
+
+`verify/workstation.sh` reports Secure Boot through `mokutil`.
+
+It reports a LUKS root when `lsblk` shows `crypt` for the root source.
+
+A missing one is a warning.
+
+The installer leaves both unchanged.
+
+## Reboot notice
+
+| Service that watches | Zones | What is alerted | Mail command |
+| --- | --- | --- | --- |
+| reboot-notice.sh in hfu-reboot-notice.timer | `/var/run/reboot-required`, `/var/run/reboot-required.pkgs`, and `fwupdmgr get-updates` when that command exits 0 | A new set. The same digest in `reboot-notice.seen` does not send mail again. | No command block. |
+
+The timer is `OnBootSec=20min` and `OnUnitActiveSec=6h`, with `Persistent=true`.
+
+`Nice` is 19, `IOSchedulingClass` is `idle`, and `CPUQuota` is 20%.
+
+A running `steam`, `steamwebhelper`, `lutris`, `heroic`, `wineserver` or `gamescope` skips the mail.
+
+That run leaves `reboot-notice.seen` unchanged.
+
+The script does not reboot the machine.
+
+The summary line is `Un redémarrage est utile. La machine n'a pas été redémarrée.`

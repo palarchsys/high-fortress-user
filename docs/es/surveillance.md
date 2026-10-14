@@ -10,6 +10,14 @@
 
 Las rutas volátiles, los diarios, las cachés y los directorios de informes cron están excluidos en `service/aide/aide.conf` para que la base no sea reescrita por esos archivos.
 
+El bloque de la cuenta se añade después de `!/home/`.
+
+La última regla que coincide es la que vale.
+
+Las rutas vigiladas son `.ssh/authorized_keys`, `.bashrc`, `.profile`, `.bash_profile`, `.config/autostart` y `.config/systemd/user` de la cuenta del puesto.
+
+`.ssh/known_hosts` y `.ssh/known_hosts.old` quedan excluidos.
+
 ## rkhunter
 
 | Servicio que vigila         | Zonas                                            | Qué sale en alerta                                                                 | Orden del correo     |
@@ -136,6 +144,10 @@ La línea mirrors.dat se retira solo cuando el hash actual coincide con la huell
 | ------------------- | ---------------------------------------------- | -------------------------------------------------------------------- | ---------------- |
 | auditd              | /etc/audit/rules.d/00-high-fortress-user.rules | Sin correo propio. La pasada de arranque no envía una alerta auditd. | Ninguna.         |
 
+Una vigilancia con la clave `account` se añade para `.ssh/authorized_keys`, `.bashrc`, `.profile`, `.bash_profile`, `.config/autostart` y `.config/systemd/user` cuando esa ruta ya existe.
+
+Una ruta ausente se omite, así `augenrules` sigue cargando las reglas.
+
 ## Fail2Ban
 
 | Servicio que vigila | Zonas                    | Qué sale en alerta | Orden del correo |
@@ -152,10 +164,36 @@ La línea mirrors.dat se retira solo cuando el hash actual coincide con la huell
 
 | Servicio que vigila | Zonas                                                                                | Qué sale en alerta | Orden del correo |
 | ------------------- | ------------------------------------------------------------------------------------ | ------------------ | ---------------- |
-| ufw                 | Entrada denegada, salida permitida, encaminamiento permitido, bucle local permitido. | Sin correo propio. | Ninguna.         |
+| ufw                 | Entrada denegada, salida permitida, encaminamiento permitido, bucle local permitido. SSH queda limitado a los prefijos directamente conectados. | Sin correo propio. | Ninguna.         |
 
 ## Lynis
 
 | Servicio que vigila                | Zonas                     | Qué sale en alerta                                                              | Orden del correo |
 | ---------------------------------- | ------------------------- | ------------------------------------------------------------------------------- | ---------------- |
 | verify/workstation.sh and hf lynis | /var/log/lynis-report.dat | Una puntuación bajo 80 es un aviso en el informe de verificación, no un correo. | Ninguna.         |
+
+`verify/workstation.sh` informa de Secure Boot con `mokutil`.
+
+Informa de una raíz LUKS cuando `lsblk` muestra `crypt` para el origen de la raíz.
+
+La ausencia de uno de los dos es un aviso.
+
+El instalador deja ambos sin cambios.
+
+## Aviso de reinicio
+
+| Servicio que vigila | Zonas | Qué sale en alerta | Orden del correo |
+| --- | --- | --- | --- |
+| reboot-notice.sh in hfu-reboot-notice.timer | `/var/run/reboot-required`, `/var/run/reboot-required.pkgs`, y `fwupdmgr get-updates` cuando esa orden termina con 0 | Un conjunto nuevo. La misma huella en `reboot-notice.seen` no vuelve a enviar correo. | Sin bloque de orden. |
+
+El temporizador es `OnBootSec=20min` y `OnUnitActiveSec=6h`, con `Persistent=true`.
+
+`Nice` vale 19, `IOSchedulingClass` vale `idle`, y `CPUQuota` vale 20 %.
+
+Un `steam`, `steamwebhelper`, `lutris`, `heroic`, `wineserver` o `gamescope` en marcha omite el correo.
+
+Esa pasada deja `reboot-notice.seen` sin cambios.
+
+El script no reinicia la máquina.
+
+La línea de resumen es `Un redémarrage est utile. La machine n'a pas été redémarrée.`

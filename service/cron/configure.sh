@@ -109,8 +109,37 @@ EOF
 chmod 644 /etc/systemd/system/hfu-idle-scan.service /etc/systemd/system/hfu-idle-scan.timer
 run_silent systemctl daemon-reload
 
+tee /etc/systemd/system/hfu-reboot-notice.service > /dev/null << EOF
+[Unit]
+Description=Avis lorsqu'un redémarrage est utile
+After=local-fs.target multi-user.target
+
+[Service]
+Type=oneshot
+Nice=${WATCHDOG_LIMIT_NICE}
+IOSchedulingClass=idle
+CPUQuota=${WATCHDOG_CPU_LIMIT}%
+ExecStart=${CONFIG_BASE_DIR}/cron/bin/reboot-notice.sh
+EOF
+tee /etc/systemd/system/hfu-reboot-notice.timer > /dev/null << 'EOF'
+[Unit]
+Description=Vérifie si un redémarrage est utile
+
+[Timer]
+OnBootSec=20min
+OnUnitActiveSec=6h
+AccuracySec=5min
+Persistent=true
+Unit=hfu-reboot-notice.service
+
+[Install]
+WantedBy=timers.target
+EOF
+chmod 644 /etc/systemd/system/hfu-reboot-notice.service /etc/systemd/system/hfu-reboot-notice.timer
+run_silent systemctl daemon-reload
 run_silent systemctl enable hfu-boot-scan.timer
 run_silent systemctl enable hfu-idle-scan.timer
+run_silent systemctl enable hfu-reboot-notice.timer
 success "Démarrage plafonné à ${WATCHDOG_CPU_LIMIT}% CPU"
 
 export HFU_BASE="${CONFIG_BASE_DIR}"

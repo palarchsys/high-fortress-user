@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : system/configure.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-14
 # Creator    : palarchsys
 # =============================================================================
 
@@ -110,6 +110,17 @@ if ! visudo -cf /etc/sudoers.d/high-fortress-user-umask >/dev/null; then
     error "sudoers umask invalide — fichier retiré"
 fi
 success "sudoers posé (umask 0022 pour apt et les outils root)"
+
+info "Mémoire sudo de 5 minutes"
+cat > /etc/sudoers.d/high-fortress-user-timeout << 'EOF'
+Defaults timestamp_timeout=5
+EOF
+chmod 440 /etc/sudoers.d/high-fortress-user-timeout
+if ! visudo -cf /etc/sudoers.d/high-fortress-user-timeout >/dev/null; then
+    rm -f /etc/sudoers.d/high-fortress-user-timeout
+    error "sudoers timeout invalide — fichier retiré"
+fi
+success "sudo redemande le mot de passe après 5 minutes"
 
 title "journald persistant (Lynis LOG-*)"
 info "Configuration de journald"

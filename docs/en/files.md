@@ -24,10 +24,13 @@ Each row is a file the installer writes, with the mode the script sets. Files in
 | /etc/systemd/system/hfu-boot-scan.timer                 | Starts the scan 2 minutes after boot.                                                            | 644                          |
 | /etc/systemd/system/hfu-idle-scan.service               | Idle scan of the excluded paths.                                                                 | 644                          |
 | /etc/systemd/system/hfu-idle-scan.timer                 | Starts that scan 15 minutes after boot, then every hour.                                         | 644                          |
+| /etc/systemd/system/hfu-reboot-notice.service           | Notice when a reboot is useful. The script does not reboot.                                              | 644                          |
+| /etc/systemd/system/hfu-reboot-notice.timer             | Starts that notice 20 minutes after boot, then every 6 hours.                                            | 644                          |
 | /opt/high-fortress-user/bin/scan-skip.sh                | Lists, adds or removes an excluded path, then restarts ClamAV when the block changes.            | 755                          |
 | /opt/high-fortress-user/cron/scan-skip.paths            | Excluded paths. Created only when the file is absent.                                            | 644                          |
 | /opt/high-fortress-user/cron/scan-skip.stamp            | Mtime watermark of the idle scan.                                                                | 644                          |
 | /opt/high-fortress-user/cron/scan-skip.seen             | Signature and path pairs already mailed by the idle scan.                                        | 600                          |
+| /opt/high-fortress-user/cron/reboot-notice.seen         | Digest of the last mailed reboot set.                                                                     | 600                          |
 | /var/jeux                                                   | Empty directory for a game library. Not a separate account.                                      | 750                          |
 | /etc/ssh/sshd_config.d/00-high-fortress-user.conf       | SSH policy for this workstation.                                                                 | 644                          |
 | /etc/ssh/sshd_banner                                    | Login banner.                                                                                    | 644                          |
@@ -51,3 +54,8 @@ Each row is a file the installer writes, with the mode the script sets. Files in
 | /etc/security/pwquality.conf                            | Password quality.                                                                                | written by redirection       |
 | /etc/security/faillock.conf                             | Account lockout.                                                                                 | written by redirection       |
 | /etc/audit/rules.d/00-high-fortress-user.rules          | Audit watches.                                                                                   | 640                          |
+| /etc/sudoers.d/high-fortress-user-timeout               | sudo asks for the password again after 5 minutes.                                                         | 440                          |
+| /etc/brave/policies/managed/high-fortress-user.json     | Brave policy for the machine resolver, balanced HTTPS and guest mode.                                     | 644                          |
+| /etc/thunderbird/policies/policies.json                 | Remote images load after a click.                                                                          | 644                          |
+| /etc/usbguard/rules.conf                                | Present devices, keyboards, mice and hubs.                                                                 | 600                          |
+| /etc/usbguard/IPCAccessControl.d/<user>                 | Lets the desktop user accept a new device.                                                                 | 600                          |

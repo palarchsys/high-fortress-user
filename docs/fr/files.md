@@ -24,10 +24,13 @@ Chaque ligne est un fichier que l'installeur écrit, avec le mode que le script 
 | /etc/systemd/system/hfu-boot-scan.timer                 | Lance la passe 2 minutes après le démarrage.                                                                      | 644                          |
 | /etc/systemd/system/hfu-idle-scan.service               | Analyse différée des chemins exclus.                                                                              | 644                          |
 | /etc/systemd/system/hfu-idle-scan.timer                 | Lance cette analyse 15 minutes après le démarrage, puis toutes les heures.                                        | 644                          |
+| /etc/systemd/system/hfu-reboot-notice.service           | Avis lorsqu'un redémarrage est utile. Le script ne redémarre pas la machine.                             | 644                          |
+| /etc/systemd/system/hfu-reboot-notice.timer             | Lance cet avis 20 minutes après le démarrage, puis toutes les 6 heures.                                  | 644                          |
 | /opt/high-fortress-user/bin/scan-skip.sh                | Liste, ajoute ou retire un chemin exclu, puis relance ClamAV lorsque le bloc change.                             | 755                          |
 | /opt/high-fortress-user/cron/scan-skip.paths            | Chemins exclus. Créé seulement lorsque le fichier est absent.                                                     | 644                          |
 | /opt/high-fortress-user/cron/scan-skip.stamp            | Tampon de date de l'analyse différée.                                                                             | 644                          |
 | /opt/high-fortress-user/cron/scan-skip.seen             | Couples signature et chemin déjà envoyés par l'analyse différée.                                                  | 600                          |
+| /opt/high-fortress-user/cron/reboot-notice.seen         | Empreinte du dernier ensemble de redémarrage déjà envoyé.                                                 | 600                          |
 | /var/jeux                                                   | Répertoire vide pour une bibliothèque de jeux. Pas un compte séparé.                                              | 750                          |
 | /etc/ssh/sshd_config.d/00-high-fortress-user.conf       | Politique SSH de ce poste.                                                                                        | 644                          |
 | /etc/ssh/sshd_banner                                    | Bannière de connexion.                                                                                            | 644                          |
@@ -51,3 +54,8 @@ Chaque ligne est un fichier que l'installeur écrit, avec le mode que le script 
 | /etc/security/pwquality.conf                            | Qualité des mots de passe.                                                                                        | written by redirection       |
 | /etc/security/faillock.conf                             | Verrouillage de compte.                                                                                           | written by redirection       |
 | /etc/audit/rules.d/00-high-fortress-user.rules          | Surveillances d'audit.                                                                                            | 640                          |
+| /etc/sudoers.d/high-fortress-user-timeout               | sudo redemande le mot de passe après 5 minutes.                                                            | 440                          |
+| /etc/brave/policies/managed/high-fortress-user.json     | Politique Brave pour le résolveur du poste, le HTTPS équilibré et le mode invité.                         | 644                          |
+| /etc/thunderbird/policies/policies.json                 | Les images distantes se chargent après un clic.                                                           | 644                          |
+| /etc/usbguard/rules.conf                                | Appareils présents, claviers, souris et concentrateurs.                                                    | 600                          |
+| /etc/usbguard/IPCAccessControl.d/<user>                 | Permet au compte du bureau d'accepter un appareil nouveau.                                                 | 600                          |

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/ufw/configure.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-14
 # Creator    : palarchsys
 # =============================================================================
 
@@ -59,7 +59,57 @@ run_silent ufw logging medium
 
 info "SSH limit sur le port détecté ${SSH_PORT}/tcp"
 
-run_silent ufw limit "${SSH_PORT}/tcp" comment 'SSH (limit)'
+hfu_ufw_delete_marked() {
+    local nums n
+    mapfile -t nums < <(LANG=C LC_ALL=C ufw status numbered \
+        | sed -n 's/^\[\s*\([0-9][0-9]*\)\].*\(SSH (limit)\|SSH LAN\).*/\1/p' \
+        | sort -nr)
+    for n in "${nums[@]+"${nums[@]}"}"; do
+        [[ -n "${n}" ]] || continue
+        run_silent ufw --force delete "${n}"
+    done
+}
+
+mapfile -t ssh_prefixes < <(ip -o addr show up scope global 2>/dev/null | awk '{print $4}')
+if ip -o -6 addr show up scope link 2>/dev/null | grep -q 'fe80:'; then
+    ssh_prefixes+=("fe80::/10")
+fi
+kept_prefixes=()
+for prefix in "${ssh_prefixes[@]+"${ssh_prefixes[@]}"}"; do
+    mask="${prefix##*/}"
+    [[ "${mask}" == "0" || "${mask}" == "${prefix}" ]] && continue
+    kept_prefixes+=("${prefix}")
+done
+deduped_prefixes=()
+for prefix in "${kept_prefixes[@]+"${kept_prefixes[@]}"}"; do
+    already=0
+    for seen_prefix in "${deduped_prefixes[@]+"${deduped_prefixes[@]}"}"; do
+        if [[ "${seen_prefix}" == "${prefix}" ]]; then
+            already=1
+            break
+        fi
+    done
+    if [[ "${already}" -eq 0 ]]; then
+        deduped_prefixes+=("${prefix}")
+    fi
+done
+kept_prefixes=()
+for prefix in "${deduped_prefixes[@]+"${deduped_prefixes[@]}"}"; do
+    kept_prefixes+=("${prefix}")
+done
+
+if [[ ${#kept_prefixes[@]} -eq 0 ]]; then
+    if ! LANG=C LC_ALL=C ufw status | grep -q 'SSH (limit)'; then
+        run_silent ufw limit "${SSH_PORT}/tcp" comment 'SSH (limit)'
+    fi
+    warn "Aucun préfixe connecté : SSH reste ouvert sur toutes les sources"
+else
+    hfu_ufw_delete_marked
+    for prefix in "${kept_prefixes[@]}"; do
+        run_silent ufw limit from "${prefix}" to any port "${SSH_PORT}" proto tcp comment 'SSH LAN'
+    done
+    success "SSH limité aux préfixes connectés (${kept_prefixes[*]})"
+fi
 
 run_silent ufw allow in on lo
 run_silent ufw allow out on lo

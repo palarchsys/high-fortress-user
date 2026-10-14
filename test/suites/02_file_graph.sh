@@ -48,6 +48,73 @@ else
     hf_fail "graph.order.purge-before-db" "la purge rc doit précéder --propupd et aide --init"
 fi
 
+hf_section "ordre des contrôles quotidiens"
+if awk '
+    function remember(name, s) { arr[name] = arr[name] s "\n" }
+    function add(s) { step[++n] = s }
+    function take_scripts(line,    rest, s) {
+        rest = line
+        while (match(rest, /"(system|service|verify)\/[^"]+\.sh"/)) {
+            s = substr(rest, RSTART + 1, RLENGTH - 2)
+            if (inarr) remember(cur, s)
+            else add(s)
+            rest = substr(rest, RSTART + RLENGTH)
+        }
+    }
+    function pos(name,    i) {
+        for (i = 1; i <= n; i++) if (step[i] == name) return i
+        return 0
+    }
+    /^[A-Za-z0-9_]+=\(/ {
+        cur = $0
+        sub(/=.*/, "", cur)
+        inarr = 1
+        take_scripts($0)
+        if ($0 ~ /\)/) inarr = 0
+        next
+    }
+    inarr {
+        take_scripts($0)
+        if ($0 ~ /\)/) inarr = 0
+        next
+    }
+    /upgrade -y --with-new-pkgs/ { add("UPGRADE"); next }
+    /\$\{STEP_[A-Z0-9_]+\[@\]\}/ {
+        if (match($0, /STEP_[A-Z0-9_]+/)) {
+            cur = substr($0, RSTART, RLENGTH)
+            nlines = split(arr[cur], parts, "\n")
+            for (i = 1; i <= nlines; i++) if (parts[i] != "") add(parts[i])
+        }
+        next
+    }
+    /run_steps/ { take_scripts($0); next }
+    END {
+        ssh = pos("service/ssh/configure.sh")
+        ufw = pos("service/ufw/configure.sh")
+        uinst = pos("service/usbguard/install.sh")
+        uconf = pos("service/usbguard/configure.sh")
+        cinst = pos("service/clamav/install.sh")
+        cconf = pos("service/clamav/configure.sh")
+        dinst = pos("service/desktop/install.sh")
+        userns = pos("service/apparmor/userns.sh")
+        dconf = pos("service/desktop/configure.sh")
+        rk = pos("service/rkhunter/init-db.sh")
+        aide = pos("service/aide/init-db.sh")
+        ver = pos("verify/workstation.sh")
+        up = pos("UPGRADE")
+        exit !(ssh && ufw && ssh < ufw \
+            && uinst && uconf && uinst < uconf \
+            && cinst && cconf && cinst < cconf && cconf < dinst \
+            && dinst && userns && up && dconf && uconf \
+            && dinst < userns && userns < up && up < dconf && dconf < uconf \
+            && uconf < rk && rk < aide && aide < ver)
+    }
+' "${HF_ROOT}/scripts/run.sh"; then
+    hf_pass "graph.order.daily" "SSH avant UFW, bureau après correctifs, verify après AIDE"
+else
+    hf_fail "graph.order.daily" "USBGuard et les politiques suivent les paquets ; verify suit AIDE"
+fi
+
 hf_section "modèle de mail dans template/"
 if [[ -f "${HF_ROOT}/template/mail.html" ]]; then
     hf_pass "graph.template:mail.html" "présent : template/mail.html"
@@ -131,6 +198,76 @@ if [[ -f "${skip_lib}" && -f "${skip_apply}" && -f "${skip_cmd}" && -f "${skip_i
     hf_pass "graph.scan-skip" "fichier de chemins, commande, passe différée, sans Brave ni Discord ni Thunderbird"
 else
     hf_fail "graph.scan-skip" "les exclusions passent par scan-skip.paths et ne retirent pas Brave, Discord ni Thunderbird"
+fi
+
+hf_section "durcissement quotidien"
+ssh_drop="${HF_ROOT}/service/ssh/00-high-fortress-user.conf"
+desk="${HF_ROOT}/service/desktop/configure.sh"
+usb="${HF_ROOT}/service/usbguard/configure.sh"
+reboot="${HF_ROOT}/service/cron/watchdogs/reboot-notice.sh"
+daily_ok=1
+grep -q '^AllowTcpForwarding no$' "${ssh_drop}" || daily_ok=0
+grep -q '^AllowAgentForwarding no$' "${ssh_drop}" || daily_ok=0
+grep -q '^PasswordAuthentication yes$' "${ssh_drop}" || daily_ok=0
+grep -q 'timestamp_timeout=5' "${HF_ROOT}/system/configure.sh" || daily_ok=0
+grep -q 'force_balanced_enabled' "${desk}" || daily_ok=0
+grep -q 'DnsOverHttpsMode' "${desk}" || daily_ok=0
+grep -q 'pgrep -x' "${reboot}" || daily_ok=0
+if grep -qE 'systemctl reboot|shutdown' "${reboot}"; then
+    daily_ok=0
+fi
+grep -q '03:\*:\*' "${usb}" || daily_ok=0
+if grep -q 'usb-storage' "${usb}"; then
+    daily_ok=0
+fi
+grep -q 'authorized_keys' "${HF_ROOT}/service/aide/configure.sh" || daily_ok=0
+grep -q '!/home/' "${HF_ROOT}/service/aide/aide.conf" || daily_ok=0
+awk '
+    /out\.extend/ { ext = NR }
+    /path\.write_text/ { wr = NR }
+    END { exit !(ext && wr && wr > ext) }
+' "${HF_ROOT}/service/aide/configure.sh" || daily_ok=0
+grep -q 'hfu-reboot-notice.timer' "${HF_ROOT}/service/cron/configure.sh" || daily_ok=0
+grep -q 'scope global' "${HF_ROOT}/service/ufw/configure.sh" || daily_ok=0
+grep -q 'SSH LAN' "${HF_ROOT}/service/ufw/configure.sh" || daily_ok=0
+grep -q 'ufw default allow outgoing' "${HF_ROOT}/service/ufw/configure.sh" || daily_ok=0
+if grep -q 'sleep-inactive' "${desk}"; then
+    daily_ok=0
+fi
+for lang in en fr de es; do
+    page="${HF_ROOT}/docs/${lang}/README.md"
+    grep -q 'AllowTcpForwarding no' "${page}" || daily_ok=0
+    grep -q 'AllowAgentForwarding no' "${page}" || daily_ok=0
+    grep -q 'PasswordAuthentication yes' "${page}" || daily_ok=0
+    grep -q 'hfu-reboot-notice.timer' "${page}" || daily_ok=0
+    grep -q 'usbguard' "${page}" || daily_ok=0
+    grep -q 'force_balanced_enabled' "${page}" || daily_ok=0
+    grep -q 'reboot-notice.sh' "${HF_ROOT}/docs/${lang}/architecture.md" || daily_ok=0
+done
+if grep -q 'No other incoming allow rule is added.' "${HF_ROOT}/docs/en/README.md"; then
+    daily_ok=0
+fi
+ver="${HF_ROOT}/verify/workstation.sh"
+grep -q 'allowtcpforwarding' "${ver}" || daily_ok=0
+grep -q 'allowagentforwarding' "${ver}" || daily_ok=0
+grep -qF 'SSH (limit)' "${ver}" || daily_ok=0
+grep -qF 'SSH LAN' "${ver}" || daily_ok=0
+grep -q 'timestamp_timeout=5' "${ver}" || daily_ok=0
+grep -q 'hfu-reboot-notice.timer' "${ver}" || daily_ok=0
+grep -qF 'allow with-interface equals { 03:*:* }' "${ver}" || daily_ok=0
+grep -qF '"DnsOverHttpsMode": "off"' "${ver}" || daily_ok=0
+grep -qF 'mailnews.message_display.disable_remote_image' "${ver}" || daily_ok=0
+grep -q 'LockDatabaseIdleSeconds' "${ver}" || daily_ok=0
+grep -q 'uint32 1200' "${ver}" || daily_ok=0
+grep -q 'verrou de session différent de 20 minutes' "${ver}" || daily_ok=0
+grep -qF 'The same run checks SSH forwarding' "${HF_ROOT}/docs/en/README.md" || daily_ok=0
+grep -qF 'La même passe contrôle le relais SSH' "${HF_ROOT}/docs/fr/README.md" || daily_ok=0
+grep -qF 'Derselbe Lauf prüft die SSH-Weiterleitung' "${HF_ROOT}/docs/de/README.md" || daily_ok=0
+grep -qF 'La misma pasada comprueba el reenvío SSH' "${HF_ROOT}/docs/es/README.md" || daily_ok=0
+if [[ "${daily_ok}" -eq 1 ]]; then
+    hf_pass "graph.daily" "relais SSH coupé, préfixes connectés, bureau, USB, avis de redémarrage"
+else
+    hf_fail "graph.daily" "le durcissement quotidien doit rester compatible avec le poste"
 fi
 
 hf_section "readme"

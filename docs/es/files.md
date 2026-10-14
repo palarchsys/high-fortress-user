@@ -24,10 +24,13 @@ Cada fila es un archivo que el instalador escribe, con el modo que el script fij
 | /etc/systemd/system/hfu-boot-scan.timer                 | Lanza la pasada 2 minutos después del arranque.                                                          | 644                          |
 | /etc/systemd/system/hfu-idle-scan.service               | Análisis diferido de las rutas excluidas.                                                                | 644                          |
 | /etc/systemd/system/hfu-idle-scan.timer                 | Lanza ese análisis 15 minutos después del arranque y después cada hora.                                  | 644                          |
+| /etc/systemd/system/hfu-reboot-notice.service           | Aviso cuando un reinicio es útil. El script no reinicia la máquina.                                      | 644                          |
+| /etc/systemd/system/hfu-reboot-notice.timer             | Lanza ese aviso 20 minutos después del arranque y después cada 6 horas.                                  | 644                          |
 | /opt/high-fortress-user/bin/scan-skip.sh                | Lista, añade o quita una ruta excluida y reinicia ClamAV cuando el bloque cambia.                         | 755                          |
 | /opt/high-fortress-user/cron/scan-skip.paths            | Rutas excluidas. Se crea solo cuando el archivo no existe.                                               | 644                          |
 | /opt/high-fortress-user/cron/scan-skip.stamp            | Sello de tiempo del análisis diferido.                                                                   | 644                          |
 | /opt/high-fortress-user/cron/scan-skip.seen             | Pares de firma y ruta ya enviados por el análisis diferido.                                              | 600                          |
+| /opt/high-fortress-user/cron/reboot-notice.seen         | Huella del último conjunto de reinicio ya enviado.                                                       | 600                          |
 | /var/jeux                                                   | Directorio vacío para una biblioteca de juegos. No es una cuenta distinta.                               | 750                          |
 | /etc/ssh/sshd_config.d/00-high-fortress-user.conf       | Política SSH de este puesto.                                                                             | 644                          |
 | /etc/ssh/sshd_banner                                    | Banner de acceso.                                                                                        | 644                          |
@@ -51,3 +54,8 @@ Cada fila es un archivo que el instalador escribe, con el modo que el script fij
 | /etc/security/pwquality.conf                            | Calidad de las contraseñas.                                                                              | written by redirection       |
 | /etc/security/faillock.conf                             | Bloqueo de cuenta.                                                                                       | written by redirection       |
 | /etc/audit/rules.d/00-high-fortress-user.rules          | Vigilancias de auditoría.                                                                                | 640                          |
+| /etc/sudoers.d/high-fortress-user-timeout               | sudo vuelve a pedir la contraseña después de 5 minutos.                                                    | 440                          |
+| /etc/brave/policies/managed/high-fortress-user.json     | Política de Brave para el resolutor del equipo, HTTPS equilibrado y el modo invitado.                     | 644                          |
+| /etc/thunderbird/policies/policies.json                 | Las imágenes remotas se cargan después de un clic.                                                         | 644                          |
+| /etc/usbguard/rules.conf                                | Dispositivos presentes, teclados, ratones y concentradores.                                                | 600                          |
+| /etc/usbguard/IPCAccessControl.d/<user>                 | Permite a la cuenta del escritorio aceptar un dispositivo nuevo.                                           | 600                          |

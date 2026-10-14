@@ -72,6 +72,7 @@ Werte, die nicht gefragt werden, kommen aus `hfu_config_set_builtin_defaults` un
 | ----------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | openssh-server                                  | Ubuntu archive                                                                          | SSH-Server. Root-Anmeldung ist abgelehnt. Kennwortanmeldung bleibt eingeschaltet.                                         |
 | ufw                                             | Ubuntu archive                                                                          | Host-Firewall.                                                                                                            |
+| usbguard, usbguard-notifier                     | Ubuntu archive                                                                          | Erlaubt bereits angeschlossene Geräte sowie Tastaturen, Mäuse und Hubs. Ein neues Speichergerät wartet auf eine Bestätigung auf der Arbeitsfläche. |
 | fail2ban                                        | Ubuntu archive                                                                          | Sperrt wiederholte Anmeldefehlschläge.                                                                                    |
 | auditd                                          | Ubuntu archive                                                                          | Schreibt Audit-Regeln für ausgewählte Pfade.                                                                              |
 | rkhunter                                        | Ubuntu archive                                                                          | Rootkit- und Dateieigenschaftsprüfung.                                                                                    |
@@ -99,15 +100,19 @@ Werte, die nicht gefragt werden, kommen aus `hfu_config_set_builtin_defaults` un
 
 | Thema      | Verhalten                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Firewall   | `ufw default deny incoming`, `ufw default allow outgoing`, `ufw default allow routed`. Loopback ist in beide Richtungen erlaubt. Es wird keine weitere eingehende Erlaubnis hinzugefügt.                                                                                                                                                                                                                                                                                              |
+| Firewall   | `ufw default deny incoming`, `ufw default allow outgoing`, `ufw default allow routed`. Loopback ist in beide Richtungen erlaubt. SSH auf dem erkannten Port ist auf jedes direkt verbundene Präfix begrenzt. Wenn kein Präfix aktiv ist, bleibt die Begrenzung von jeder Quelle.                                                                                                                                                                                                                                                                                              |
 | DNS        | Unbound lauscht auf `127.0.0.1` und `::1`. systemd-resolved und NetworkManager zeigen auf diesen Resolver. IPv6-DNS bleibt eingeschaltet (`do-ip6: yes`).                                                                                                                                                                                                                                                                                                                             |
-| SSH        | `PermitRootLogin no`. `PasswordAuthentication yes`. `PubkeyAuthentication yes`. Banner `/etc/ssh/sshd_banner`. `MaxAuthTries 4`.                                                                                                                                                                                                                                                                                                                                                      |
+| SSH        | `PermitRootLogin no`. `PasswordAuthentication yes`. `PubkeyAuthentication yes`. Banner `/etc/ssh/sshd_banner`. `MaxAuthTries 4`. `AllowTcpForwarding no`. `AllowAgentForwarding no`.                                                                                                                                                                                                                                                                                                                                                      |
 | Kernel     | `/etc/sysctl.d/90-high-fortress-user.conf` wird nach `/etc/sysctl.d/99-zzz-high-fortress-user.conf` kopiert. IPv6 bleibt eingeschaltet. IPv6-Redirects und Source-Routing werden abgelehnt. User-Namespaces bleiben eingeschaltet. `dccp`, `sctp`, `rds` und `tipc` werden gesperrt. Ungenutzte Dateisysteme werden gesperrt. Core-Dumps stehen auf 0. `PWQUALITY_MINLEN` ist 12.                                                                                                     |
 | AppArmor   | Die Distributionsprofile bleiben. `service/apparmor/userns.sh` fügt `hfu-brave`, `hfu-discord`, `hfu-thunderbird` und `hfu-steam` hinzu, wenn Steam nicht bereits abgedeckt ist.                                                                                                                                                                                                                                                                                                      |
-| Kontrollen | `hfu-boot-scan.timer` startet `boot-scan.sh` 2 Minuten nach dem Start (`OnBootSec=2min`, `Persistent=false`). Der Lauf startet AIDE, rkhunter, chkrootkit, ClamAV und debsums. `Nice` ist `WATCHDOG_LIMIT_NICE` (19), `IOSchedulingClass=idle`, `CPUQuota` ist `WATCHDOG_CPU_LIMIT` (20 %). `/etc/cron.d/high-fortress-user` enthält nur `SHELL` und `PATH`. Die Benutzer-Crontab wird nicht geändert. Post geht nur ab, wenn eine Kontrolle etwas findet und `HF_MAIL_ALERTS=1` ist. `hfu-idle-scan.timer` startet die verzögerte Prüfung. Die Regeln stehen in [surveillance.md](surveillance.md). |
+| Kontrollen | `hfu-boot-scan.timer` startet `boot-scan.sh` 2 Minuten nach dem Start (`OnBootSec=2min`, `Persistent=false`). Der Lauf startet AIDE, rkhunter, chkrootkit, ClamAV und debsums. `Nice` ist `WATCHDOG_LIMIT_NICE` (19), `IOSchedulingClass=idle`, `CPUQuota` ist `WATCHDOG_CPU_LIMIT` (20 %). `/etc/cron.d/high-fortress-user` enthält nur `SHELL` und `PATH`. Die Benutzer-Crontab wird nicht geändert. Post geht nur ab, wenn eine Kontrolle etwas findet und `HF_MAIL_ALERTS=1` ist. `hfu-idle-scan.timer` startet die verzögerte Prüfung. `hfu-reboot-notice.timer` sendet Post, wenn ein Neustart sinnvoll ist und kein Spiel läuft. Die Regeln stehen in [surveillance.md](surveillance.md). |
 | Lynis      | `LYNIS_MIN_SCORE` ist 80. `verify/workstation.sh` akzeptiert einen `hardening_index` größer oder gleich diesem Schwellenwert.                                                                                                                                                                                                                                                                                                                                                         |
 | Journale   | Installationsjournale liegen unter `<source>/logs/install-YYYYMMDD-HHMMSS-user/`. Sicherheitsjournale liegen unter `/opt/high-fortress-user/cron/security_logs/`. Der Journald-Speicher ist persistent.                                                                                                                                                                                                                                                                               |
 | Pakete     | Die Snaps Firefox und Thunderbird werden entfernt. `snapd` bleibt. Das Paket `firefox` wird gehalten. Auf amd64 wird die Architektur i386 aktiviert. Steam wird von diesem Programm nicht installiert.                                                                                                                                                                                                                                                                                |
+| Brave        | `DnsOverHttpsMode` ist `off`. `BuiltInDnsClientEnabled` ist false. `HttpsOnlyMode` ist `force_balanced_enabled`. HTTP bleibt erlaubt für `localhost`, `127.0.0.1`, `[::1]`, `[*.]local` und jedes erkannte Standard-Gateway. WebUSB, WebHID und seriell fragen nach. `BrowserGuestModeEnabled` ist false. Erweiterungen bleiben, wie sie sind. |
+| Thunderbird  | `mailnews.message_display.disable_remote_image` ist true, mit Status `user`. Ein entferntes Bild lädt nach einem Klick. HTML-Lesen und der Anhang-Download bleiben. |
+| Sitzung      | Der Bildschirm sperrt nach 1200 Sekunden. `lock-enabled` ist true, `lock-delay` ist 0, und `ubuntu-lock-on-suspend` ist true. Diese Schlüssel bleiben änderbar. KeePassXC setzt `LockDatabaseScreenLock` und `LockDatabaseIdle` auf true und `LockDatabaseIdleSeconds` auf 900. Der Datenbankpfad bleibt. Die Bereitschaftsverzögerung bleibt. Ein späteres configure schreibt diese Werte erneut. |
+| USB          | Geräte, die beim configure angeschlossen sind, bleiben erlaubt. Schnittstellenklasse `03` und Klasse `09` bleiben erlaubt. Ein neues Speichergerät bleibt blockiert, bis Sie es auf der Arbeitsfläche annehmen. Das Modul `usb-storage` bleibt verfügbar. |
 
 ## Alarm-E-Mails
 
@@ -171,6 +176,20 @@ Die Journalform ist `/opt/high-fortress-user/cron/security_logs/idle-scan-YYYYMM
 
 Die Nachricht enthält die Zusammenfassung und den Journalauszug. Diese Post fügt keinen Befehlsblock hinzu. Eine abweichende Prüfsumme fügt die Zeile `mirrors.dat modifié hors rkhunter --update` hinzu. Diese Zeile ist kein Befehl. Die Journalform ist `/opt/high-fortress-user/cron/security_logs/rkhunter-YYYYMMDD-HHMMSS.log`.
 
+### Neustart-Hinweis
+
+Die Nachricht ist `Un redémarrage est utile. La machine n'a pas été redémarrée.`
+
+Diese Post fügt keinen Befehlsblock hinzu.
+
+Dieselbe Paketmenge sendet keine Post mehr.
+
+Ein laufendes Spiel überspringt die Post und lässt den Stempel unverändert.
+
+Das Skript startet die Maschine nicht neu.
+
+Die Journalform ist `/opt/high-fortress-user/cron/security_logs/reboot-notice-YYYYMMDD-HHMMSS.log`.
+
 ## Befehle nach der Installation
 
 Starten Sie diese Befehle aus dem Quellverzeichnis (`/opt/high-fortress-user/src` nach dem Curl-Installer, oder das Klonverzeichnis).
@@ -212,6 +231,8 @@ sudo bash verify/workstation.sh "$PWD"
 ```
 
 Startet die Arbeitsplatzprüfung. Die Schlusszeile hat die Form `Check : N OK / N WARN / N FAIL`.
+
+Derselbe Lauf prüft die SSH-Weiterleitung, die SSH-Firewallregel, USBGuard, die Brave-Politik, die Thunderbird-Politik, die Sitzungssperre, KeePassXC, die sudo-Frist und `hfu-reboot-notice.timer`.
 
 ### hf lynis
 

@@ -10,6 +10,14 @@
 
 Flüchtige Pfade, Journale, Caches und die Cron-Berichtverzeichnisse sind in `service/aide/aide.conf` ausgeschlossen, damit die Basis nicht von diesen Dateien neu geschrieben wird.
 
+Der Kontenblock wird nach `!/home/` angehängt.
+
+Die letzte passende Regel gilt.
+
+Die überwachten Pfade sind `.ssh/authorized_keys`, `.bashrc`, `.profile`, `.bash_profile`, `.config/autostart` und `.config/systemd/user` des Arbeitsplatzkontos.
+
+`.ssh/known_hosts` und `.ssh/known_hosts.old` sind ausgeschlossen.
+
 ## rkhunter
 
 | Dienst, der überwacht       | Zonen                                              | Was als Alarm geht                                                                         | Befehl der Post    |
@@ -136,6 +144,10 @@ Die Zeile mirrors.dat wird nur entfernt, wenn der aktuelle Hash zum Stempel pass
 | --------------------- | ---------------------------------------------- | ------------------------------------------------------------ | --------------- |
 | auditd                | /etc/audit/rules.d/00-high-fortress-user.rules | Keine eigene Post. Der Startlauf sendet keinen auditd-Alarm. | Keine.          |
 
+Eine Überwachung mit dem Schlüssel `account` wird für `.ssh/authorized_keys`, `.bashrc`, `.profile`, `.bash_profile`, `.config/autostart` und `.config/systemd/user` hinzugefügt, wenn dieser Pfad schon existiert.
+
+Ein fehlender Pfad wird übersprungen, damit `augenrules` die Regeln weiter lädt.
+
 ## Fail2Ban
 
 | Dienst, der überwacht | Zonen                    | Was als Alarm geht | Befehl der Post |
@@ -152,10 +164,36 @@ Die Zeile mirrors.dat wird nur entfernt, wenn der aktuelle Hash zum Stempel pass
 
 | Dienst, der überwacht | Zonen                                                                       | Was als Alarm geht | Befehl der Post |
 | --------------------- | --------------------------------------------------------------------------- | ------------------ | --------------- |
-| ufw                   | Eingehend verweigert, ausgehend erlaubt, Routing erlaubt, Loopback erlaubt. | Keine eigene Post. | Keine.          |
+| ufw                   | Eingehend verweigert, ausgehend erlaubt, Routing erlaubt, Loopback erlaubt. SSH ist auf direkt verbundene Präfixe begrenzt. | Keine eigene Post. | Keine.          |
 
 ## Lynis
 
 | Dienst, der überwacht              | Zonen                     | Was als Alarm geht                                             | Befehl der Post |
 | ---------------------------------- | ------------------------- | -------------------------------------------------------------- | --------------- |
 | verify/workstation.sh and hf lynis | /var/log/lynis-report.dat | Ein Wert unter 80 ist eine Warnung im Prüfbericht, keine Post. | Keine.          |
+
+`verify/workstation.sh` meldet Secure Boot mit `mokutil`.
+
+Es meldet eine LUKS-Root, wenn `lsblk` für die Root-Quelle `crypt` zeigt.
+
+Fehlt eines von beiden, ist das eine Warnung.
+
+Der Installer lässt beides unverändert.
+
+## Neustart-Hinweis
+
+| Dienst, der überwacht | Zonen | Was als Alarm geht | Befehl der Post |
+| --- | --- | --- | --- |
+| reboot-notice.sh in hfu-reboot-notice.timer | `/var/run/reboot-required`, `/var/run/reboot-required.pkgs`, und `fwupdmgr get-updates`, wenn dieser Befehl mit 0 endet | Eine neue Menge. Dieselbe Prüfsumme in `reboot-notice.seen` sendet keine Post mehr. | Kein Befehlsblock. |
+
+Der Timer ist `OnBootSec=20min` und `OnUnitActiveSec=6h`, mit `Persistent=true`.
+
+`Nice` ist 19, `IOSchedulingClass` ist `idle`, und `CPUQuota` ist 20 %.
+
+Ein laufendes `steam`, `steamwebhelper`, `lutris`, `heroic`, `wineserver` oder `gamescope` überspringt die Post.
+
+Dieser Lauf lässt `reboot-notice.seen` unverändert.
+
+Das Skript startet die Maschine nicht neu.
+
+Die Zusammenfassungszeile ist `Un redémarrage est utile. La machine n'a pas été redémarrée.`

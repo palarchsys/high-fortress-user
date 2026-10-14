@@ -10,6 +10,14 @@
 
 Les chemins volatils, les journaux, les caches et les répertoires de rapports cron sont exclus dans `service/aide/aide.conf` afin que la base ne soit pas réécrite par ces fichiers.
 
+Le bloc du compte est ajouté après `!/home/`.
+
+La dernière règle qui correspond l'emporte.
+
+Les chemins surveillés sont `.ssh/authorized_keys`, `.bashrc`, `.profile`, `.bash_profile`, `.config/autostart` et `.config/systemd/user` du compte du poste.
+
+`.ssh/known_hosts` et `.ssh/known_hosts.old` sont exclus.
+
 ## rkhunter
 
 | Service qui surveille       | Zones                                            | Ce qui part en alerte                                                                      | Commande du courrier     |
@@ -136,6 +144,10 @@ La ligne mirrors.dat est retirée seulement lorsque le hash actuel correspond à
 | --------------------- | ---------------------------------------------- | --------------------------------------------------------------------------- | -------------------- |
 | auditd                | /etc/audit/rules.d/00-high-fortress-user.rules | Pas de courrier propre. La passe de démarrage n'envoie pas d'alerte auditd. | Aucune.              |
 
+Une surveillance de clé `account` est ajoutée pour `.ssh/authorized_keys`, `.bashrc`, `.profile`, `.bash_profile`, `.config/autostart` et `.config/systemd/user` lorsque ce chemin existe déjà.
+
+Un chemin absent est sauté, donc `augenrules` charge encore les règles.
+
 ## Fail2Ban
 
 | Service qui surveille | Zones                    | Ce qui part en alerte   | Commande du courrier |
@@ -152,10 +164,36 @@ La ligne mirrors.dat est retirée seulement lorsque le hash actuel correspond à
 
 | Service qui surveille | Zones                                                                        | Ce qui part en alerte   | Commande du courrier |
 | --------------------- | ---------------------------------------------------------------------------- | ----------------------- | -------------------- |
-| ufw                   | Entrée refusée, sortie autorisée, routage autorisé, boucle locale autorisée. | Pas de courrier propre. | Aucune.              |
+| ufw                   | Entrée refusée, sortie autorisée, routage autorisé, boucle locale autorisée. SSH est limité aux préfixes directement connectés. | Pas de courrier propre. | Aucune.              |
 
 ## Lynis
 
 | Service qui surveille              | Zones                     | Ce qui part en alerte                                                                   | Commande du courrier |
 | ---------------------------------- | ------------------------- | --------------------------------------------------------------------------------------- | -------------------- |
 | verify/workstation.sh and hf lynis | /var/log/lynis-report.dat | Un score sous 80 est un avertissement dans le rapport de vérification, pas un courrier. | Aucune.              |
+
+`verify/workstation.sh` signale Secure Boot avec `mokutil`.
+
+Il signale une racine LUKS lorsque `lsblk` montre `crypt` pour la source de la racine.
+
+L'absence de l'un des deux est un avertissement.
+
+L'installeur laisse les deux inchangés.
+
+## Avis de redémarrage
+
+| Service qui surveille | Zones | Ce qui part en alerte | Commande du courrier |
+| --- | --- | --- | --- |
+| reboot-notice.sh in hfu-reboot-notice.timer | `/var/run/reboot-required`, `/var/run/reboot-required.pkgs`, et `fwupdmgr get-updates` lorsque cette commande sort avec 0 | Un ensemble nouveau. La même empreinte dans `reboot-notice.seen` ne renvoie pas de courrier. | Pas de bloc de commande. |
+
+La minuterie est `OnBootSec=20min` et `OnUnitActiveSec=6h`, avec `Persistent=true`.
+
+`Nice` vaut 19, `IOSchedulingClass` vaut `idle`, et `CPUQuota` vaut 20 %.
+
+Un `steam`, `steamwebhelper`, `lutris`, `heroic`, `wineserver` ou `gamescope` en cours saute le courrier.
+
+Cette passe laisse `reboot-notice.seen` inchangé.
+
+Le script ne redémarre pas la machine.
+
+La ligne de résumé est `Un redémarrage est utile. La machine n'a pas été redémarrée.`

@@ -15,6 +15,7 @@ Este es el árbol creado bajo `/opt/high-fortress-user` después de la instalaci
 /opt/high-fortress-user/cron/scan-skip.paths      644
 /opt/high-fortress-user/cron/scan-skip.stamp      644
 /opt/high-fortress-user/cron/scan-skip.seen       600
+/opt/high-fortress-user/cron/reboot-notice.seen       600
 /var/jeux                                         750
 /opt/high-fortress-user/cron/bin/                 755
 /opt/high-fortress-user/cron/security_logs/       750
@@ -28,4 +29,4 @@ Este es el árbol creado bajo `/opt/high-fortress-user` después de la instalaci
 
 `secrets.conf` y `global.conf` permanecen en `config/`, bajo el directorio de las fuentes. `SECRETS_DIR` se crea sin esos dos archivos. Los scripts shell copiados a `cron/bin` están en modo `750`. `mail.html` está en modo `644`. `cron/bin/chkrootkit.ignore` conserva el modo del archivo entregado, `664`.
 
-Scripts en `cron/bin`: `aide.sh`, `apply-scan-skip.sh`, `boot-scan.sh`, `chkrootkit.sh`, `clamav.sh`, `clamav-event.sh`, `common.sh`, `debsums.sh`, `idle-scan.sh`, `record-mirrors.sh`, `rkhunter.sh`, `scan-skip-lib.sh`, `send.sh`, `mail.sh`.
+Scripts en `cron/bin`: `aide.sh`, `apply-scan-skip.sh`, `boot-scan.sh`, `chkrootkit.sh`, `clamav.sh`, `clamav-event.sh`, `common.sh`, `debsums.sh`, `idle-scan.sh`, `record-mirrors.sh`, `reboot-notice.sh`, `rkhunter.sh`, `scan-skip-lib.sh`, `send.sh`, `mail.sh`.
