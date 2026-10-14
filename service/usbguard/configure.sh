@@ -66,7 +66,7 @@ EOF
 chmod 600 "${ipc}"
 
 info "Activation de USBGuard"
-if systemctl enable --now usbguard; then
+if systemctl enable --now usbguard >/dev/null 2>&1; then
     success "USBGuard actif (appareils présents et HID autorisés)"
 else
     warn "USBGuard n'a pas démarré — service laissé arrêté"

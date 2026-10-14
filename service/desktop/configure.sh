@@ -103,7 +103,7 @@ info "Verrou GNOME à 20 minutes, sans changer la mise en veille"
 if command -v gsettings >/dev/null 2>&1 && command -v dbus-run-session >/dev/null 2>&1; then
     hfu_gset() {
         local schema="$1" key="$2" value="$3"
-        if sudo -u "${CURRENT_USER}" -H dbus-run-session -- gsettings set "${schema}" "${key}" "${value}"; then
+        if sudo -u "${CURRENT_USER}" -H dbus-run-session -- gsettings set "${schema}" "${key}" "${value}" >/dev/null 2>&1; then
             return 0
         fi
         warn "Réglage GNOME ignoré : ${schema} ${key}"
