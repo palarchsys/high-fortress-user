@@ -26,6 +26,10 @@ Die überwachten Pfade sind `.ssh/authorized_keys`, `.bashrc`, `.profile`, `.bas
 
 `/var/lib/rkhunter/db/mirrors.dat` wird nicht als Datei ignoriert. Der Stempel `/opt/high-fortress-user/cron/rkhunter-mirrors.sha256` wird nur geschrieben, wenn `rkhunter --update` 0 oder 2 zurückgibt. Ein anderer Hash ist ein Alarm. Die Prüfung läuft vor dem nächsten `--update`.
 
+Dateien unter `/dev/shm` und der Socket `/dev/log` sind erlaubt.
+
+Sie erzeugen nicht die Warnung `Suspicious file types found in /dev`.
+
 ## chkrootkit
 
 | Dienst, der überwacht         | Zonen                   | Was als Alarm geht                                 | Befehl der Post                                                              |
@@ -113,6 +117,8 @@ Die Prüfung liest die Dateien mit `clamscan` in der Start-Unit.
 
 Brave, Thunderbird und Discord bleiben in diesem Lauf.
 
+Eine unlesbare Datei ohne Zeile `FOUND` sendet keine Post.
+
 ## Verzögerte ClamAV-Prüfung
 
 | Dienst, der prüft                   | Zonen                                                                                                      | Was alarmiert wird                                                                                                              | Postbefehl               |
@@ -137,6 +143,8 @@ Brave, Thunderbird und Discord bleiben in diesem Lauf.
 | debsums.sh in boot-scan.sh | Paketdateien, über `debsums -s`. | Geänderte Paketdateien, die nicht auf einer Ignorierliste stehen. | `sudo bash /opt/high-fortress-user/bin/debsums-ignore-log.sh '<journal>'` |
 
 Die Zeile mirrors.dat wird nur entfernt, wenn der aktuelle Hash zum Stempel passt. Es gibt keine pauschale Ignorierdatei für diesen Pfad.
+
+Eine geänderte Zeile unter `/usr/lib/*/perl-base/unicore/` aus dem Paket `perl-base` wird vor der Post entfernt.
 
 ## auditd
 

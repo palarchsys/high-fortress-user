@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/rkhunter/configure.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-14
 # Creator    : palarchsys
 # =============================================================================
 
@@ -22,6 +22,10 @@ WEB_CMD=""
 UPDATE_LANG="en"
 SCRIPTWHITELIST=/usr/bin/lwp-request
 ALLOWDEVFILE=/dev/shm/sem.haveged_sem
+ALLOWDEVFILE=/dev/shm/*
+ALLOWDEVFILE=/dev/shm/*/*
+ALLOWDEVFILE=/dev/shm/*/*/*
+ALLOWDEVFILE=/dev/log
 ALLOWHIDDENFILE=/etc/.resolv.conf.systemd-resolved.bak
 ALLOWHIDDENFILE=/etc/.updated
 ALLOWHIDDENDIR=/home/${CURRENT_USER}/.steam

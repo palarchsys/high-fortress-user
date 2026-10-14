@@ -26,6 +26,10 @@ Les chemins surveillés sont `.ssh/authorized_keys`, `.bashrc`, `.profile`, `.ba
 
 `/var/lib/rkhunter/db/mirrors.dat` n'est pas ignoré en tant que fichier. L'empreinte `/opt/high-fortress-user/cron/rkhunter-mirrors.sha256` est écrite seulement après un `rkhunter --update` qui retourne 0 ou 2. Un hash différent est une alerte. Le contrôle a lieu avant le `--update` suivant.
 
+Les fichiers de `/dev/shm` et la socket `/dev/log` sont autorisés.
+
+Ils ne produisent pas l'avertissement `Suspicious file types found in /dev`.
+
 ## chkrootkit
 
 | Service qui surveille         | Zones                   | Ce qui part en alerte                               | Commande du courrier                                                         |
@@ -113,6 +117,8 @@ Elle lit les fichiers avec `clamscan`, dans l'unité de démarrage.
 
 Brave, Thunderbird et Discord restent dans cette passe.
 
+Un fichier illisible, sans ligne `FOUND`, n'envoie pas de courrier.
+
 ## Analyse ClamAV différée
 
 | Service qui surveille                | Zones                                                                                                | Ce qui part en alerte                                                                                                      | Commande du courrier     |
@@ -137,6 +143,8 @@ Brave, Thunderbird et Discord restent dans cette passe.
 | debsums.sh in boot-scan.sh | Fichiers des paquets, via `debsums -s`. | Fichiers de paquets modifiés qui ne sont pas dans une liste d'exclusion. | `sudo bash /opt/high-fortress-user/bin/debsums-ignore-log.sh '<journal>'` |
 
 La ligne mirrors.dat est retirée seulement lorsque le hash actuel correspond à l'empreinte. Il n'y a pas de fichier d'ignorance globale pour ce chemin.
+
+Une ligne modifiée sous `/usr/lib/*/perl-base/unicore/` du paquet `perl-base` est retirée avant le courrier.
 
 ## auditd
 

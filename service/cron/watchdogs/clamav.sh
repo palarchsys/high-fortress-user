@@ -56,17 +56,18 @@ find /home /opt /tmp \
     > "${file_list}" 2>>"${LOG_FILE}" || true
 
 set +e
-xargs -0 -r -n 80 clamscan --infected < "${file_list}" >> "${LOG_FILE}" 2>&1
+xargs -0 -r -n 80 clamscan --infected --no-summary < "${file_list}" >> "${LOG_FILE}" 2>&1
 rc=$?
-if [[ "${rc}" -eq 123 ]] && grep -q 'FOUND' "${LOG_FILE}"; then
-    rc=1
-fi
 set -e
+kind="$(hfu_clam_kind "${LOG_FILE}")"
+if [[ "${kind}" == "ok" && "${rc}" -ne 0 && "${rc}" -ne 123 ]]; then
+    kind="error"
+fi
 
-if [[ "${rc}" -ge 2 ]]; then
-    log_alert "clamscan erreur rc=${rc}"
-elif [[ "${rc}" -eq 1 ]]; then
+if [[ "${kind}" == "infected" ]]; then
     log_alert "clamscan : infection(s) (voir ${LOG_FILE})"
+elif [[ "${kind}" == "error" ]]; then
+    log_alert "clamscan erreur rc=${rc}"
 else
     log_ok "clamscan OK"
 fi

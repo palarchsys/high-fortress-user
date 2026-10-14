@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/common.sh
-# Updated at : 2026-10-05
+# Updated at : 2026-10-14
 # Creator    : palarchsys
 # =============================================================================
 
@@ -70,12 +70,58 @@ def format_named(name, text):
         picked = format_aide(text)
         return picked or clip(lines)
     if "rkhunter" in low:
-        picked = [ln for ln in lines if re.search(r"warning|infected|rootkit|suspect", ln, re.I)]
-        return clip(picked or lines)
+        picked = []
+        keep = False
+        for raw in text.splitlines():
+            line = raw.rstrip()
+            stripped = line.strip()
+            if not stripped:
+                keep = False
+                continue
+            if re.search(r"Rootkit Hunter version", line, re.I):
+                keep = False
+                continue
+            if re.match(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T", stripped):
+                keep = False
+                continue
+            if re.search(r"warning|infected|rootkit|suspect", line, re.I):
+                keep = True
+                picked.append(line)
+                continue
+            if keep and (line[:1] in (" ", "\t") or stripped.startswith("/")):
+                picked.append(line)
+                continue
+            keep = False
+        return clip(picked)
     if "clam" in low:
-        picked = [ln for ln in lines if re.search(
-            r"FOUND|virus|infect|Signature|Fichier|Emplacement|Quarantaine", ln, re.I)]
-        return clip(picked or lines)
+        picked = []
+        for raw in text.splitlines():
+            line = raw.rstrip()
+            stripped = line.strip()
+            if not stripped:
+                continue
+            if re.match(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T", stripped):
+                continue
+            if re.search(
+                r"Known viruses:|Infected files:|Engine version:|Scanned directories:|"
+                r"Scanned files:|Data scanned:|Data read:|Time:|Start Date:|End Date:",
+                line,
+            ):
+                continue
+            if re.search(
+                r"Access denied|Can't access|Can't open file|Permission denied|No such file",
+                line,
+                re.I,
+            ):
+                continue
+            if stripped.endswith(" FOUND") or re.search(
+                r"Signature|Fichier|Emplacement|Quarantaine", line
+            ):
+                picked.append(line)
+                continue
+            if re.search(r"ERROR:|LibClamAV", line):
+                picked.append(line)
+        return clip(picked)
     return clip(lines)
 
 name = Path(path).name if path else ""
@@ -85,11 +131,46 @@ if body:
 PY
 }
 
+hfu_clam_kind() {
+    python3 - "${1:-}" << 'PY'
+import re
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1]) if len(sys.argv) > 1 and sys.argv[1] else None
+text = path.read_text(errors="replace") if path and path.is_file() else ""
+if re.search(r" FOUND$", text, re.M):
+    sys.stdout.write("infected")
+    raise SystemExit(0)
+access = re.compile(
+    r"Access denied|Can't access|Can't open file|Permission denied|No such file",
+    re.I,
+)
+summary = re.compile(
+    r"Known viruses:|Infected files:|Engine version:|Scanned directories:|"
+    r"Scanned files:|Data scanned:|Data read:|^Time:|Start Date:|End Date:"
+)
+real = False
+for raw in text.splitlines():
+    line = raw.strip()
+    if not line or summary.search(line) or access.search(line):
+        continue
+    if line.startswith("-----------") or re.match(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T", line):
+        continue
+    if re.search(r"ERROR:|LibClamAV", line):
+        real = True
+if real:
+    sys.stdout.write("error")
+else:
+    sys.stdout.write("ok")
+PY
+}
+
 log_alert() {
     local summary="$*"
     local excerpt="" module
-    printf '%s %s\n' "$(date -Iseconds)" "${summary}" | tee -a "${LOG_FILE}" "${ALERT_FILE}"
     excerpt="$(hfu_alert_excerpt "${LOG_FILE:-}")"
+    printf '%s %s\n' "$(date -Iseconds)" "${summary}" | tee -a "${LOG_FILE}" "${ALERT_FILE}"
     module="${MODULE_NAME:-}"
     if [[ -z "${module}" && -n "${LOG_FILE:-}" ]]; then
         module="$(basename "${LOG_FILE}" | sed -E 's/-[0-9]{8}-.*//')"

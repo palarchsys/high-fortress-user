@@ -148,6 +148,10 @@ sudo bash /opt/high-fortress-user/bin/debsums-ignore-log.sh '/opt/high-fortress-
 
 La orden registra las líneas de ese diario en `/opt/high-fortress-user/cron/debsums.local.ignore`. La línea de éxito es `Aucune nouvelle détection à enregistrer.` o `N détection(s) enregistrée(s) dans /opt/high-fortress-user/cron/debsums.local.ignore`. Una línea de `/var/lib/rkhunter/db/mirrors.dat` se retira antes del correo solo si su SHA-256 actual es igual a `/opt/high-fortress-user/cron/rkhunter-mirrors.sha256`. Cualquier otro contenido permanece en el correo. No ignore el archivo entero.
 
+Una línea modificada bajo `/usr/lib/*/perl-base/unicore/` del paquete `perl-base` se retira antes del correo.
+
+El archivo que entrega Ubuntu no coincide con la suma de ese paquete.
+
 ### ClamAV al acceso
 
 El mensaje contiene la firma, el nombre del archivo, la ruta de origen y la ruta de cuarentena, después la nota y una orden `sudo ls`. La orden se construye para el archivo en cuarentena nombrado en el correo. Un archivo cuyo nombre coincide con `.clamav-quarantine-lock.*` no envía correo. El script sale con 0 antes del diario y antes de `log_alert`.
@@ -162,6 +166,10 @@ El ejemplo muestra la forma. El correo contiene la ruta real, entre comillas. La
 
 El mensaje contiene el resumen y el extracto del diario. Este correo no añade un bloque de orden. La forma del diario es `/opt/high-fortress-user/cron/security_logs/clamav-YYYYMMDD-HHMMSS.log`.
 
+Un archivo ilegible, sin línea `FOUND`, no envía correo.
+
+Las líneas `Known viruses` e `Infected files` no se copian en el correo.
+
 ### Análisis ClamAV diferido
 
 El mensaje contiene el resumen y el extracto del diario.
@@ -175,6 +183,12 @@ La forma del diario es `/opt/high-fortress-user/cron/security_logs/idle-scan-YYY
 ### rkhunter
 
 El mensaje contiene el resumen y el extracto del diario. Este correo no añade un bloque de orden. Una suma distinta añade la línea `mirrors.dat modifié hors rkhunter --update`. Esa línea no es una orden. La forma del diario es `/opt/high-fortress-user/cron/security_logs/rkhunter-YYYYMMDD-HHMMSS.log`.
+
+Los archivos de `/dev/shm` y el socket `/dev/log` están permitidos en `rkhunter.conf.local`.
+
+No producen el aviso `Suspicious file types found in /dev`.
+
+El extracto conserva la línea de aviso y las rutas que la siguen.
 
 ### Aviso de reinicio
 

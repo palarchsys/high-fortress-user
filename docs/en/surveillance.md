@@ -26,6 +26,10 @@ The watched paths are the workstation user's `.ssh/authorized_keys`, `.bashrc`, 
 
 `/var/lib/rkhunter/db/mirrors.dat` is not ignored as a file. The stamp `/opt/high-fortress-user/cron/rkhunter-mirrors.sha256` is written only after `rkhunter --update` returns 0 or 2. A different hash is an alert. The check runs before the next `--update`.
 
+Files in `/dev/shm` and the socket `/dev/log` are allowed.
+
+They do not raise `Suspicious file types found in /dev`.
+
 ## chkrootkit
 
 | Service that watches          | Zones                   | What is alerted                              | Mail command                                                                 |
@@ -113,6 +117,8 @@ It reads files with `clamscan` inside the boot unit.
 
 Brave, Thunderbird and Discord stay in this pass.
 
+A file that cannot be read, with no `FOUND` line, does not send mail.
+
 ## ClamAV idle scan
 
 | Service that watches                 | Zones                                                                                                              | What is alerted                                                                                          | Mail command      |
@@ -137,6 +143,8 @@ Brave, Thunderbird and Discord stay in this pass.
 | debsums.sh in boot-scan.sh | Packaged files, via `debsums -s`. | Changed packaged files that are not on an ignore list. | `sudo bash /opt/high-fortress-user/bin/debsums-ignore-log.sh '<journal>'` |
 
 The mirrors.dat line is removed only when the live hash matches the stamp. There is no blanket ignore file for that path.
+
+A changed line under `/usr/lib/*/perl-base/unicore/` from the package `perl-base` is dropped before the mail.
 
 ## auditd
 

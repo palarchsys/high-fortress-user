@@ -148,6 +148,10 @@ sudo bash /opt/high-fortress-user/bin/debsums-ignore-log.sh '/opt/high-fortress-
 
 The command records the lines of that journal into `/opt/high-fortress-user/cron/debsums.local.ignore`. The success line is `Aucune nouvelle détection à enregistrer.` or `N détection(s) enregistrée(s) dans /opt/high-fortress-user/cron/debsums.local.ignore`. A line for `/var/lib/rkhunter/db/mirrors.dat` is dropped before the mail only when its live SHA-256 equals `/opt/high-fortress-user/cron/rkhunter-mirrors.sha256`. Any other content stays in the mail. Do not ignore the whole file.
 
+A changed line under `/usr/lib/*/perl-base/unicore/` from the package `perl-base` is dropped before the mail.
+
+The file shipped by Ubuntu does not match that package checksum.
+
 ### ClamAV on access
 
 The message contains the signature, the file name, the original path and the quarantine path, then the note and a `sudo ls` command. The command is built for the quarantined file named in the mail. A file whose basename matches `.clamav-quarantine-lock.*` does not send mail. The script exits 0 before the journal and before `log_alert`.
@@ -162,6 +166,10 @@ The example shows the form. The mail contains the real path, quoted. The command
 
 The message contains the summary and the journal excerpt. This mail does not add a command block. The journal form is `/opt/high-fortress-user/cron/security_logs/clamav-YYYYMMDD-HHMMSS.log`.
 
+A file that cannot be read, with no `FOUND` line, does not send mail.
+
+The lines `Known viruses` and `Infected files` are not copied into the mail.
+
 ### ClamAV idle scan
 
 The message contains the summary and the journal excerpt.
@@ -175,6 +183,12 @@ The journal form is `/opt/high-fortress-user/cron/security_logs/idle-scan-YYYYMM
 ### rkhunter
 
 The message contains the summary and the journal excerpt. This mail does not add a command block. A stamp mismatch adds the line `mirrors.dat modifié hors rkhunter --update`. That line is not a command. The journal form is `/opt/high-fortress-user/cron/security_logs/rkhunter-YYYYMMDD-HHMMSS.log`.
+
+Files in `/dev/shm` and the socket `/dev/log` are allowed in `rkhunter.conf.local`.
+
+They do not raise `Suspicious file types found in /dev`.
+
+The excerpt keeps the warning line and the paths under it.
 
 ### Reboot notice
 

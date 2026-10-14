@@ -26,6 +26,10 @@ Las rutas vigiladas son `.ssh/authorized_keys`, `.bashrc`, `.profile`, `.bash_pr
 
 `/var/lib/rkhunter/db/mirrors.dat` no se ignora como archivo. La huella `/opt/high-fortress-user/cron/rkhunter-mirrors.sha256` se escribe solo después de un `rkhunter --update` que devuelve 0 o 2. Un hash distinto es una alerta. El control ocurre antes del `--update` siguiente.
 
+Los archivos de `/dev/shm` y el socket `/dev/log` están permitidos.
+
+No producen el aviso `Suspicious file types found in /dev`.
+
 ## chkrootkit
 
 | Servicio que vigila           | Zonas                   | Qué sale en alerta                                            | Orden del correo                                                             |
@@ -113,6 +117,8 @@ El análisis lee los archivos con `clamscan`, en la unidad de arranque.
 
 Brave, Thunderbird y Discord permanecen en esta pasada.
 
+Un archivo ilegible, sin línea `FOUND`, no envía correo.
+
 ## Análisis ClamAV diferido
 
 | Servicio que vigila                  | Zonas                                                                                                         | Qué se alerta                                                                                                                    | Orden del correo         |
@@ -137,6 +143,8 @@ Brave, Thunderbird y Discord permanecen en esta pasada.
 | debsums.sh in boot-scan.sh | Archivos de los paquetes, con `debsums -s`. | Archivos de paquetes modificados que no están en una lista de exclusión. | `sudo bash /opt/high-fortress-user/bin/debsums-ignore-log.sh '<journal>'` |
 
 La línea mirrors.dat se retira solo cuando el hash actual coincide con la huella. No hay un archivo de ignorancia global para esa ruta.
+
+Una línea modificada bajo `/usr/lib/*/perl-base/unicore/` del paquete `perl-base` se retira antes del correo.
 
 ## auditd
 

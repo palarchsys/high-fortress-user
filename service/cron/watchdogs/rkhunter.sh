@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/rkhunter.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-14
 # Creator    : palarchsys
 # =============================================================================
 
@@ -25,6 +25,13 @@ rkhunter --update --nocolors >> "${LOG_FILE}" 2>&1 || rk_rc=$?
 if [[ "${rk_rc}" -eq 0 || "${rk_rc}" -eq 2 ]]; then
     bash "${HFU_BASE}/cron/bin/record-mirrors.sh" save || true
 fi
+rk_local=/etc/rkhunter.conf.local
+touch "${rk_local}"
+for allow in '/dev/shm/*' '/dev/shm/*/*' '/dev/shm/*/*/*' '/dev/log'; do
+    if ! grep -qxF "ALLOWDEVFILE=${allow}" "${rk_local}"; then
+        printf 'ALLOWDEVFILE=%s\n' "${allow}" >> "${rk_local}"
+    fi
+done
 set +e
 rkhunter --check --skip-keypress --report-warnings-only --nocolors >> "${LOG_FILE}" 2>&1
 rc=$?

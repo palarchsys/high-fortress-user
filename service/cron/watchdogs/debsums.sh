@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/debsums.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-14
 # Creator    : palarchsys
 # =============================================================================
 
@@ -57,6 +57,11 @@ def ignored(line):
         return True
     if saved and current == saved and re.search(
         r"^debsums: changed file /var/lib/rkhunter/db/mirrors\.dat \(from rkhunter package\)\s*$",
+        line,
+    ):
+        return True
+    if re.search(
+        r"^debsums: changed file /usr/lib/\S+/perl-base/unicore/\S+ \(from perl-base package\)\s*$",
         line,
     ):
         return True

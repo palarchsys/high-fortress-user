@@ -65,22 +65,26 @@ fi
 
 set +e
 if [[ -s "${file_list}" ]]; then
-    xargs -0 -r -n 80 clamscan --infected < "${file_list}" >> "${LOG_FILE}" 2>&1
+    xargs -0 -r -n 80 clamscan --infected --no-summary < "${file_list}" >> "${LOG_FILE}" 2>&1
     rc=$?
-    if [[ "${rc}" -eq 123 ]] && grep -q 'FOUND' "${LOG_FILE}"; then
-        rc=1
-    fi
 else
     rc=0
 fi
 set -e
+kind="ok"
+if [[ -s "${file_list}" ]]; then
+    kind="$(hfu_clam_kind "${LOG_FILE}")"
+    if [[ "${kind}" == "ok" && "${rc}" -ne 0 && "${rc}" -ne 123 ]]; then
+        kind="error"
+    fi
+fi
 
 seen="${HFU_BASE}/cron/scan-skip.seen"
-if [[ "${rc}" -ge 2 ]]; then
+if [[ "${kind}" == "error" ]]; then
     log_alert "clamscan erreur rc=${rc}"
     exit 0
 fi
-if [[ "${rc}" -eq 1 ]]; then
+if [[ "${kind}" == "infected" ]]; then
     new_count="$(python3 - "${LOG_FILE}" "${seen}" << 'PY'
 import sys
 from pathlib import Path

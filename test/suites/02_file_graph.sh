@@ -136,6 +136,7 @@ if [[ -x "${HF_ROOT}/service/cron/watchdogs/record-mirrors.sh" ]] \
    && [[ -n "${check_line}" && -n "${update_line}" && -n "${save_line}" ]] \
    && [[ "${check_line}" -lt "${update_line}" && "${update_line}" -lt "${save_line}" ]] \
    && grep -q 'rkhunter-mirrors.sha256' "${HF_ROOT}/service/cron/watchdogs/debsums.sh" \
+   && grep -q 'perl-base/unicore' "${HF_ROOT}/service/cron/watchdogs/debsums.sh" \
    && grep -q 'record-mirrors.sh" save' "${HF_ROOT}/service/rkhunter/init-db.sh" \
    && [[ ! -e "${HF_ROOT}/service/cron/watchdogs/debsums.ignore" ]]; then
     hf_pass "graph.debsums.mirrors" "empreinte après --update, le fichier n'est pas ignoré"
@@ -186,12 +187,16 @@ if [[ -f "${skip_lib}" && -f "${skip_apply}" && -f "${skip_cmd}" && -f "${skip_i
         END { exit !(apply && aide && aide > apply) }
       ' "${skip_boot}" \
    && ! grep -q 'clamdscan' "${skip_clam}" \
-   && grep -q 'clamscan --infected' "${skip_clam}" \
+   && grep -q 'clamscan --infected --no-summary' "${skip_clam}" \
    && grep -q 'scan-skip.sh list' "${skip_cmd}" \
    && grep -q 'scan-skip.sh add' "${skip_cmd}" \
    && grep -q 'scan-skip.sh del' "${skip_cmd}" \
    && grep -q 'pgrep -x' "${skip_idle}" \
-   && grep -q 'clamscan --infected' "${skip_idle}" \
+   && grep -q 'clamscan --infected --no-summary' "${skip_idle}" \
+   && grep -q 'hfu_clam_kind' "${skip_clam}" \
+   && grep -q 'hfu_clam_kind' "${skip_idle}" \
+   && grep -q 'ALLOWDEVFILE=/dev/log' "${HF_ROOT}/service/rkhunter/configure.sh" \
+   && grep -qF "'/dev/log'" "${HF_ROOT}/service/cron/watchdogs/rkhunter.sh" \
    && grep -q 'hfu-idle-scan.timer' "${HF_ROOT}/service/cron/configure.sh" \
    && grep -q 'High-Fortress User onaccess' "${HF_ROOT}/service/clamav/configure.sh" \
    && ! grep -q 'OnAccessExcludePath' "${HF_ROOT}/service/clamav/configure.sh"; then
