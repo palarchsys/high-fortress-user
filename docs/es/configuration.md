@@ -30,7 +30,7 @@ Los nombres y los valores de abajo son el `user/config/global.conf` entregado y 
 | FAILLOCK_DENY              | 8                                                                | Fallos antes del bloqueo. No se pregunta.                                                          |
 | FAILLOCK_UNLOCK            | 600                                                              | Segundos de bloqueo. No se pregunta.                                                               |
 | FAILLOCK_FAIL_INTERVAL     | 900                                                              | Ventana de recuento de los fallos. No se pregunta.                                                 |
-| WATCHDOG_CPU_LIMIT         | 20                                                               | Porcentaje de la máquina para una pasada. La unidad escribe `CPUQuota` como este número multiplicado por el número de CPU. No se pregunta. |
+| WATCHDOG_CPU_LIMIT         | 50                                                               | Porcentaje de la máquina para una pasada. La unidad escribe `CPUQuota` como este número multiplicado por el número de CPU. No se pregunta. |
 | WATCHDOG_LIMIT_NICE        | 19                                                               | Valor nice de la pasada de arranque. No se pregunta.                                               |
 | WATCHDOG_LIMIT_IONICE      | 3                                                                | Clase ionice guardada en el archivo. El temporizador usa `IOSchedulingClass=idle`. No se pregunta. |
 | HF_MAIL_ALERTS             | 1 in the shipped file, 0 in the builtin default until you answer | Lo fija la respuesta sobre las alertas.                                                            |
@@ -61,9 +61,9 @@ El archivo se escribe en `config/`, junto a `global.conf`, modo `600`, propietar
 | OnAccessMaxFileSize           | 25M                                       | Los archivos más grandes no se analizan al acceso.                           |
 | OnAccessPrevention            | yes                                       | Una detección se mueve a la cuarentena.                                      |
 | quarantine                    | /var/lib/clamav/quarantine                | Modo 750, propietario clamav.                                                |
-| hfu-boot-scan.timer OnBootSec | 2min                                      | `Persistent=false`. Una máquina ya encendida espera el próximo arranque.     |
-| hfu-idle-scan.timer           | OnBootSec=15min, OnUnitActiveSec=1h       | `Persistent=true`, con el mismo Nice, la misma E/S idle y la misma cuota de CPU que la pasada de arranque. |
-| hfu-reboot-notice.timer       | OnBootSec=20min, OnUnitActiveSec=6h       | `Persistent=true`. El mismo Nice, la misma E/S idle y la misma cuota de CPU. El script no reinicia la máquina. |
+| hfu-boot-chain.timer          | OnBootSec=0, Persistent=false             | Lanza la cadena cuando `multi-user.target` está alcanzado. La sesión no espera. |
+| hfu-idle-scan.timer           | OnUnitActiveSec=1h, Persistent=false      | El mismo Nice, la misma E/S idle y la misma cuota de CPU que la pasada de arranque. Sin espera fija tras el arranque. |
+| hfu-reboot-notice.timer       | OnUnitActiveSec=6h, Persistent=false      | La misma cuota. El script no reinicia la máquina. |
 | scan-skip.sh                  | /opt/high-fortress-user/bin/scan-skip.sh  | Reinicia `clamav-daemon` y `clamonacc` cuando el bloque de exclusión cambia. |
 | database_in                   | /var/lib/aide/aide.db                     | `__HF_BASE__` en `service/aide/aide.conf` se convierte en `CONFIG_BASE_DIR`. |
 

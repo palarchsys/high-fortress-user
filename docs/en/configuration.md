@@ -30,7 +30,7 @@ Names and defaults below are the shipped `user/config/global.conf` and `hfu_conf
 | FAILLOCK_DENY              | 8                                                                | Failures before lockout. Not asked.                                                         |
 | FAILLOCK_UNLOCK            | 600                                                              | Lockout seconds. Not asked.                                                                 |
 | FAILLOCK_FAIL_INTERVAL     | 900                                                              | Window for counting failures. Not asked.                                                    |
-| WATCHDOG_CPU_LIMIT         | 20                                                               | Percent of the whole machine for one pass. The unit stores `CPUQuota` as this number times the CPU count. Not asked. |
+| WATCHDOG_CPU_LIMIT         | 50                                                               | Percent of the whole machine for one pass. The unit stores `CPUQuota` as this number times the CPU count. Not asked. |
 | WATCHDOG_LIMIT_NICE        | 19                                                               | Nice value of the boot scan. Not asked.                                                     |
 | WATCHDOG_LIMIT_IONICE      | 3                                                                | Ionice class number stored in the file. The timer uses `IOSchedulingClass=idle`. Not asked. |
 | HF_MAIL_ALERTS             | 1 in the shipped file, 0 in the builtin default until you answer | Set from the alert answer.                                                                  |
@@ -61,9 +61,9 @@ The file is written in `config/`, next to `global.conf`, mode `600`, owner root.
 | OnAccessMaxFileSize           | 25M                                       | Larger files are not scanned on access.                              |
 | OnAccessPrevention            | yes                                       | A detection is moved to quarantine.                                  |
 | quarantine                    | /var/lib/clamav/quarantine                | Mode 750, owner clamav.                                              |
-| hfu-boot-scan.timer OnBootSec | 2min                                      | `Persistent=false`. A machine already up waits for the next boot.    |
-| hfu-idle-scan.timer           | OnBootSec=15min, OnUnitActiveSec=1h       | `Persistent=true`, with the same Nice, idle I/O and CPU quota as the boot pass. |
-| hfu-reboot-notice.timer       | OnBootSec=20min, OnUnitActiveSec=6h       | `Persistent=true`. Same Nice, idle I/O and CPU quota. The script does not reboot. |
+| hfu-boot-chain.timer          | OnBootSec=0, Persistent=false             | Starts the chain when `multi-user.target` is reached. The session does not wait. |
+| hfu-idle-scan.timer           | OnUnitActiveSec=1h, Persistent=false      | Same Nice, idle I/O and CPU quota as the boot pass. No fixed delay after boot. |
+| hfu-reboot-notice.timer       | OnUnitActiveSec=6h, Persistent=false      | Same quota. The script does not reboot the machine. |
 | scan-skip.sh                  | /opt/high-fortress-user/bin/scan-skip.sh  | Restarts `clamav-daemon` and `clamonacc` when the exclude block changes. |
 | database_in                   | /var/lib/aide/aide.db                     | `__HF_BASE__` in `service/aide/aide.conf` becomes `CONFIG_BASE_DIR`. |
 

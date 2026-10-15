@@ -105,7 +105,7 @@ Los valores que no se preguntan se escriben desde `hfu_config_set_builtin_defaul
 | SSH         | `PermitRootLogin no`. `PasswordAuthentication yes`. `PubkeyAuthentication yes`. Banner `/etc/ssh/sshd_banner`. `MaxAuthTries 4`. `AllowTcpForwarding no`. `AllowAgentForwarding no`.                                                                                                                                                                                                                                                                                                                                                  |
 | Núcleo      | `/etc/sysctl.d/90-high-fortress-user.conf` se copia a `/etc/sysctl.d/99-zzz-high-fortress-user.conf`. IPv6 permanece activado. Las redirecciones IPv6 y el source routing se rechazan. Los user namespaces permanecen activados. `dccp`, `sctp`, `rds` y `tipc` quedan en lista negra. Los sistemas de archivos no usados quedan en lista negra. Los volcados de núcleo quedan en 0. `PWQUALITY_MINLEN` vale 12.                                                                  |
 | AppArmor    | Los perfiles de la distribución permanecen. `service/apparmor/userns.sh` añade `hfu-brave`, `hfu-discord`, `hfu-thunderbird` y `hfu-steam` cuando Steam no está ya cubierto.                                                                                                                                                                                                                                                                                                      |
-| Controles   | `hfu-boot-scan.timer` lanza `boot-scan.sh` 2 minutos después del arranque (`OnBootSec=2min`, `Persistent=false`). La pasada lanza AIDE, rkhunter, chkrootkit, ClamAV y debsums. `Nice` vale `WATCHDOG_LIMIT_NICE` (19), `IOSchedulingClass=idle`, `CPUQuota` vale `WATCHDOG_CPU_LIMIT` multiplicado por el número de CPU, así que 20 es el 20 % de la máquina. `/etc/cron.d/high-fortress-user` solo contiene `SHELL` y `PATH`. La crontab del usuario no se modifica. El correo sale solo cuando un control encuentra algo y `HF_MAIL_ALERTS=1`. `hfu-idle-scan.timer` lanza el análisis diferido. `hfu-reboot-notice.timer` envía correo cuando un reinicio es útil y ningún juego está en marcha. Las reglas están en [surveillance.md](surveillance.md). |
+| Controles   | `hfu-boot-chain.timer` lanza `hfu-boot-chain.service` cuando `multi-user.target` está alcanzado (`OnBootSec=0`, `Persistent=false`). La cadena lanza `hfu-boot-scan.service`, luego `hfu-idle-scan.service`, luego `hfu-reboot-notice.service`. La pasada lanza AIDE, rkhunter, chkrootkit, ClamAV y debsums. `Nice` vale `WATCHDOG_LIMIT_NICE` (19), `IOSchedulingClass=idle`, `CPUQuota` vale `WATCHDOG_CPU_LIMIT` multiplicado por el número de CPU, así que 50 es el 50 % de la máquina. `/etc/cron.d/high-fortress-user` solo contiene `SHELL` y `PATH`. La crontab del usuario no se modifica. El correo sale solo cuando un control encuentra algo y `HF_MAIL_ALERTS=1`. `hfu-idle-scan.timer` relanza el análisis diferido cada hora. `hfu-reboot-notice.timer` relanza el aviso cada 6 horas y envía correo cuando un reinicio es útil y ningún juego está en marcha. Las reglas están en [surveillance.md](surveillance.md). |
 | Lynis       | `LYNIS_MIN_SCORE` vale 80. `verify/workstation.sh` acepta un `hardening_index` superior o igual a ese umbral.                                                                                                                                                                                                                                                                                                                                                                     |
 | Diarios     | Los diarios de instalación están en `<source>/logs/install-YYYYMMDD-HHMMSS-user/`. Los diarios de seguridad están en `/opt/high-fortress-user/cron/security_logs/`. El almacenamiento de journald es persistente.                                                                                                                                                                                                                                                                |
 | Paquetes    | Los snaps Firefox y Thunderbird se retiran. `snapd` se conserva. El paquete `firefox` queda retenido. En amd64 se activa la arquitectura i386. Steam no lo instala este programa.                                                                                                                                                                                                                                                                                                 |
@@ -258,7 +258,7 @@ Lanza la instalación a partir de los archivos preparados. El instalador se nieg
 sudo bash verify/alerts.sh
 ```
 
-Comprueba el temporizador de arranque, el temporizador diferido, ClamAV al acceso y la ruta del correo. Sin `--no-send`, sale una sonda cuando las alertas están activadas. El asunto termina por `Contrôle`. La línea de éxito es `Résultat : OK`.
+Comprueba el temporizador de la cadena, el temporizador diferido, ClamAV al acceso y la ruta del correo. Sin `--no-send`, sale una sonda cuando las alertas están activadas. El asunto termina por `Contrôle`. La línea de éxito es `Résultat : OK`.
 
 ```bash
 sudo bash verify/alerts.sh --no-send
@@ -275,6 +275,20 @@ sudo bash verify/workstation.sh "$PWD"
 Lanza la verificación del puesto. La línea final tiene la forma `Check : N OK / N WARN / N FAIL`.
 
 La misma pasada comprueba el reenvío SSH, la regla de cortafuegos SSH, USBGuard, la política de Brave, la política de Thunderbird, el bloqueo de sesión, KeePassXC, el plazo de sudo y `hfu-reboot-notice.timer`.
+
+### Comprobación después del arranque
+
+```bash
+sudo bash /opt/high-fortress-user/bin/boot-check.sh
+```
+
+Comprueba los servicios de seguridad del arranque y las tres pasadas de esta sesión.
+
+La línea de éxito es `Contrôle de démarrage : OK`.
+
+Una pasada todavía en curso muestra `Contrôle de démarrage : en cours` y termina con el código 1.
+
+Una desviación muestra `Contrôle de démarrage : écarts` y termina con el código 1.
 
 ### hf lynis
 

@@ -115,11 +115,17 @@ El análisis poda también `proc`, `sys`, `dev`, `var/lib/docker`, `var/lib/libv
 
 El análisis lee los archivos con `clamscan`, en la unidad de arranque.
 
-La unidad limita esta pasada al 20 % de la máquina.
+La unidad limita esta pasada al 50 % de la máquina.
 
 El número se escribe al configurar cron.
 
 Un cambio posterior del número de CPU exige repetir ese paso.
+
+`hfu-boot-chain.service` lanza esta pasada, luego el análisis diferido, luego el aviso de reinicio.
+
+La cadena arranca cuando `multi-user.target` está alcanzado.
+
+Un fallo de una pasada no detiene la siguiente.
 
 Brave, Thunderbird y Discord permanecen en esta pasada.
 
@@ -143,8 +149,8 @@ El correo dice entonces que los archivos restantes no se leyeron.
 
 | Ajuste | Valor |
 | --- | --- |
-| temporizador | `OnBootSec=15min`, `OnUnitActiveSec=1h`, `Persistent=true` |
-| límites | `Nice` 19, `IOSchedulingClass=idle`, `CPUQuota` 20 % de la máquina |
+| temporizador | `OnUnitActiveSec=1h`, `Persistent=false` |
+| límites | `Nice` 19, `IOSchedulingClass=idle`, `CPUQuota` 50 % de la máquina |
 | espera | `steam`, `steamwebhelper`, `lutris`, `heroic`, `wineserver`, `gamescope` |
 | directorios saltados | `shadercache`, `downloading` |
 | archivos | ejecutables de cualquier tamaño, y los demás archivos de 25M o menos más recientes que `scan-skip.stamp` |
@@ -222,9 +228,11 @@ El instalador deja ambos sin cambios.
 | --- | --- | --- | --- |
 | reboot-notice.sh in hfu-reboot-notice.timer | `/var/run/reboot-required`, `/var/run/reboot-required.pkgs`, y `fwupdmgr get-updates` cuando esa orden termina con 0 | Un conjunto nuevo. La misma huella en `reboot-notice.seen` no vuelve a enviar correo. | Sin bloque de orden. |
 
-El temporizador es `OnBootSec=20min` y `OnUnitActiveSec=6h`, con `Persistent=true`.
+El temporizador es `OnUnitActiveSec=6h`, con `Persistent=false`.
 
-`Nice` vale 19, `IOSchedulingClass` vale `idle`, y `CPUQuota` vale 20 % de la máquina.
+La cadena de arranque lanza este aviso después del análisis diferido.
+
+`Nice` vale 19, `IOSchedulingClass` vale `idle`, y `CPUQuota` vale 50 % de la máquina.
 
 Un `steam`, `steamwebhelper`, `lutris`, `heroic`, `wineserver` o `gamescope` en marcha omite el correo.
 

@@ -21,12 +21,14 @@ Each row is a file the installer writes, with the mode the script sets. Files in
 | /opt/high-fortress-user/cron/rkhunter-mirrors.sha256    | Stamp of mirrors.dat after a successful update.                                                  | 600                          |
 | /etc/cron.d/high-fortress-user                          | SHELL and PATH only.                                                                             | 600                          |
 | /etc/systemd/system/hfu-boot-scan.service               | Boot scan unit.                                                                                  | 644                          |
-| /etc/systemd/system/hfu-boot-scan.timer                 | Starts the scan 2 minutes after boot.                                                            | 644                          |
+| /etc/systemd/system/hfu-boot-chain.service              | Runs the boot scan, then the idle scan, then the reboot notice.                                 | 644                          |
+| /etc/systemd/system/hfu-boot-chain.timer                | Starts the chain when multi-user.target is reached.                                             | 644                          |
 | /etc/systemd/system/hfu-idle-scan.service               | Idle scan of the excluded paths.                                                                 | 644                          |
-| /etc/systemd/system/hfu-idle-scan.timer                 | Starts that scan 15 minutes after boot, then every hour.                                         | 644                          |
-| /etc/systemd/system/hfu-reboot-notice.service           | Notice when a reboot is useful. The script does not reboot.                                              | 644                          |
-| /etc/systemd/system/hfu-reboot-notice.timer             | Starts that notice 20 minutes after boot, then every 6 hours.                                            | 644                          |
+| /etc/systemd/system/hfu-idle-scan.timer                 | Repeats that scan every hour after the chain.                                                   | 644                          |
+| /etc/systemd/system/hfu-reboot-notice.service           | Notice when a reboot is useful. The script does not reboot.                                     | 644                          |
+| /etc/systemd/system/hfu-reboot-notice.timer             | Repeats that notice every 6 hours after the chain.                                              | 644                          |
 | /opt/high-fortress-user/bin/scan-skip.sh                | Lists, adds or removes an excluded path, then restarts ClamAV when the block changes.            | 755                          |
+| /opt/high-fortress-user/bin/boot-check.sh               | Checks that the boot security services finished this session.                                    | 755                          |
 | /opt/high-fortress-user/cron/scan-skip.paths            | Excluded paths. Created only when the file is absent.                                            | 644                          |
 | /opt/high-fortress-user/cron/scan-skip.stamp            | Mtime watermark of the idle scan.                                                                | 644                          |
 | /opt/high-fortress-user/cron/scan-skip.seen             | Signature and path pairs already mailed by the idle scan.                                        | 600                          |

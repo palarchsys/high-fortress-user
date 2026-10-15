@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : scripts/config-check.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
@@ -67,7 +67,7 @@ hfu_config_set_builtin_defaults() {
     : "${FAILLOCK_DENY:=8}"
     : "${FAILLOCK_UNLOCK:=600}"
     : "${FAILLOCK_FAIL_INTERVAL:=900}"
-    : "${WATCHDOG_CPU_LIMIT:=20}"
+    : "${WATCHDOG_CPU_LIMIT:=50}"
     : "${WATCHDOG_LIMIT_NICE:=19}"
     : "${WATCHDOG_LIMIT_IONICE:=3}"
     : "${UBUNTU_PRO_TOKEN:=}"
@@ -220,7 +220,7 @@ hfu_validate_values() {
     hfu_is_port "${FAILLOCK_DENY:-x}" 3 20 || hfu_config_err "${label_g} : FAILLOCK_DENY invalide (« ${FAILLOCK_DENY:-} »). exemple : 8"
     hfu_is_port "${FAILLOCK_UNLOCK:-x}" 60 86400 || hfu_config_err "${label_g} : FAILLOCK_UNLOCK invalide (« ${FAILLOCK_UNLOCK:-} »). exemple : 600"
     hfu_is_port "${FAILLOCK_FAIL_INTERVAL:-x}" 60 86400 || hfu_config_err "${label_g} : FAILLOCK_FAIL_INTERVAL invalide (« ${FAILLOCK_FAIL_INTERVAL:-} »). exemple : 900"
-    hfu_is_port "${WATCHDOG_CPU_LIMIT:-x}" 1 100 || hfu_config_err "${label_g} : WATCHDOG_CPU_LIMIT invalide (« ${WATCHDOG_CPU_LIMIT:-} »). exemple : 20"
+    hfu_is_port "${WATCHDOG_CPU_LIMIT:-x}" 1 100 || hfu_config_err "${label_g} : WATCHDOG_CPU_LIMIT invalide (« ${WATCHDOG_CPU_LIMIT:-} »). exemple : 50"
     hfu_is_port "${WATCHDOG_LIMIT_NICE:-x}" 0 19 || hfu_config_err "${label_g} : WATCHDOG_LIMIT_NICE invalide (« ${WATCHDOG_LIMIT_NICE:-} »). exemple : 19"
     hfu_is_port "${WATCHDOG_LIMIT_IONICE:-x}" 0 7 || hfu_config_err "${label_g} : WATCHDOG_LIMIT_IONICE invalide (« ${WATCHDOG_LIMIT_IONICE:-} »). exemple : 3"
     [[ "${HF_MAIL_ALERTS:-}" =~ ^[01]$ ]] || hfu_config_err "${label_g} : HF_MAIL_ALERTS invalide (« ${HF_MAIL_ALERTS:-} »). exemple : 0 ou 1"

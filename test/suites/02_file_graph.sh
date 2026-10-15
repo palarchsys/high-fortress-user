@@ -244,6 +244,39 @@ else
     hf_fail "graph.cpu.quota" "CPUQuota doit valoir WATCHDOG_CPU_LIMIT fois le nombre de CPU"
 fi
 
+hf_section "chaîne de démarrage"
+chain_rc=0
+bash -s -- "${HF_ROOT}" << 'CHAIN' || chain_rc=$?
+set -euo pipefail
+root="$1"
+conf="${root}/service/cron/configure.sh"
+grep -qF 'ExecStart=-${systemctl_bin} start --wait hfu-boot-scan.service' "${conf}"
+grep -qF 'ExecStart=-${systemctl_bin} start --wait hfu-idle-scan.service' "${conf}"
+grep -qF 'ExecStart=-${systemctl_bin} start --wait hfu-reboot-notice.service' "${conf}"
+grep -q 'OnBootSec=0' "${conf}"
+grep -q 'OnUnitActiveSec=1h' "${conf}"
+grep -q 'OnUnitActiveSec=6h' "${conf}"
+grep -q 'hfu-boot-chain.timer' "${conf}"
+grep -q 'boot-check.sh' "${conf}"
+grep -q 'systemctl disable --now hfu-boot-scan.timer' "${conf}"
+! grep -q 'OnBootSec=2min' "${conf}"
+! grep -q 'OnBootSec=15min' "${conf}"
+! grep -q 'OnBootSec=20min' "${conf}"
+! grep -q 'Persistent=true' "${conf}"
+grep -q 'hfu-boot-chain.timer' "${root}/verify/alerts.sh"
+grep -q 'hfu-boot-chain.timer' "${root}/verify/workstation.sh"
+grep -q 'boot-check.sh' "${root}/verify/boot.sh"
+test -f "${root}/service/cron/boot-check.sh"
+grep -q '39f53479d3a045ac8e11786248231fbf' "${root}/service/cron/boot-check.sh"
+grep -q 'be02cf6855d2428ba40df7e9d022f03d' "${root}/service/cron/boot-check.sh"
+grep -q 'd9b373ed55a64feb8242e02dbe79a49c' "${root}/service/cron/boot-check.sh"
+CHAIN
+if [[ "${chain_rc}" -eq 0 ]]; then
+    hf_pass "graph.boot.chain" "chaîne sans délai fixe, contrôle manuel installé"
+else
+    hf_fail "graph.boot.chain" "la chaîne doit enchaîner les trois passes, et le contrôle doit lire le journal si l'heure de début a disparu"
+fi
+
 hf_section "alerte de plantage et incident"
 crash_rc=0
 bash -s -- "${HF_ROOT}" << 'CRASH' || crash_rc=$?

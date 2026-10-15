@@ -115,11 +115,17 @@ Elle élague aussi `proc`, `sys`, `dev`, `var/lib/docker`, `var/lib/libvirt`, `l
 
 Elle lit les fichiers avec `clamscan`, dans l'unité de démarrage.
 
-L'unité plafonne cette passe à 20 % de la machine.
+L'unité plafonne cette passe à 50 % de la machine.
 
 Le nombre est écrit lors de la configuration cron.
 
 Un changement ultérieur du nombre de CPU demande de relancer cette configuration.
+
+`hfu-boot-chain.service` lance cette passe, puis l'analyse différée, puis l'avis de redémarrage.
+
+La chaîne part lorsque `multi-user.target` est atteint.
+
+L'échec d'une passe ne bloque pas la suivante.
 
 Brave, Thunderbird et Discord restent dans cette passe.
 
@@ -143,8 +149,8 @@ Le courrier dit alors que les fichiers restants n'ont pas été lus.
 
 | Réglage | Valeur |
 | --- | --- |
-| minuteur | `OnBootSec=15min`, `OnUnitActiveSec=1h`, `Persistent=true` |
-| limites | `Nice` 19, `IOSchedulingClass=idle`, `CPUQuota` 20 % de la machine |
+| minuteur | `OnUnitActiveSec=1h`, `Persistent=false` |
+| limites | `Nice` 19, `IOSchedulingClass=idle`, `CPUQuota` 50 % de la machine |
 | attente | `steam`, `steamwebhelper`, `lutris`, `heroic`, `wineserver`, `gamescope` |
 | répertoires sautés | `shadercache`, `downloading` |
 | fichiers | exécutables de toute taille, et les autres fichiers de 25 Mo ou moins plus récents que `scan-skip.stamp` |
@@ -222,9 +228,11 @@ L'installeur laisse les deux inchangés.
 | --- | --- | --- | --- |
 | reboot-notice.sh in hfu-reboot-notice.timer | `/var/run/reboot-required`, `/var/run/reboot-required.pkgs`, et `fwupdmgr get-updates` lorsque cette commande sort avec 0 | Un ensemble nouveau. La même empreinte dans `reboot-notice.seen` ne renvoie pas de courrier. | Pas de bloc de commande. |
 
-La minuterie est `OnBootSec=20min` et `OnUnitActiveSec=6h`, avec `Persistent=true`.
+La minuterie est `OnUnitActiveSec=6h`, avec `Persistent=false`.
 
-`Nice` vaut 19, `IOSchedulingClass` vaut `idle`, et `CPUQuota` vaut 20 % de la machine.
+La chaîne de démarrage lance cet avis après l'analyse différée.
+
+`Nice` vaut 19, `IOSchedulingClass` vaut `idle`, et `CPUQuota` vaut 50 % de la machine.
 
 Un `steam`, `steamwebhelper`, `lutris`, `heroic`, `wineserver` ou `gamescope` en cours saute le courrier.
 

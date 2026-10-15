@@ -105,7 +105,7 @@ Values that are not asked are written from `hfu_config_set_builtin_defaults` and
 | SSH      | `PermitRootLogin no`. `PasswordAuthentication yes`. `PubkeyAuthentication yes`. Banner `/etc/ssh/sshd_banner`. `MaxAuthTries 4`. `AllowTcpForwarding no`. `AllowAgentForwarding no`.                                                                                                                                                                                                                                                                                                                           |
 | Kernel   | `/etc/sysctl.d/90-high-fortress-user.conf` is copied to `/etc/sysctl.d/99-zzz-high-fortress-user.conf`. IPv6 stays enabled. IPv6 redirects and source routing are refused. User namespaces stay enabled. `dccp`, `sctp`, `rds` and `tipc` are blacklisted. Unused filesystems are blacklisted. Core dumps are set to 0. `PWQUALITY_MINLEN` is 12.                                                                                                          |
 | AppArmor | Distribution profiles stay. `service/apparmor/userns.sh` adds `hfu-brave`, `hfu-discord`, `hfu-thunderbird`, and `hfu-steam` when Steam is not already covered.                                                                                                                                                                                                                                                                                            |
-| Checks   | `hfu-boot-scan.timer` runs `boot-scan.sh` 2 minutes after boot (`OnBootSec=2min`, `Persistent=false`). The pass runs AIDE, rkhunter, chkrootkit, ClamAV and debsums. `Nice` is `WATCHDOG_LIMIT_NICE` (19), `IOSchedulingClass=idle`, `CPUQuota` is `WATCHDOG_CPU_LIMIT` times the CPU count, so 20 is 20% of the whole machine. `/etc/cron.d/high-fortress-user` contains only `SHELL` and `PATH`. The user crontab is not modified. Mail is sent only when a check finds something and `HF_MAIL_ALERTS=1`. `hfu-idle-scan.timer` runs the deferred scan. `hfu-reboot-notice.timer` sends mail when a reboot is useful and no game is running. The rules are in [surveillance.md](surveillance.md). |
+| Checks   | `hfu-boot-chain.timer` starts `hfu-boot-chain.service` when `multi-user.target` is reached (`OnBootSec=0`, `Persistent=false`). The chain runs `hfu-boot-scan.service`, then `hfu-idle-scan.service`, then `hfu-reboot-notice.service`. The boot pass runs AIDE, rkhunter, chkrootkit, ClamAV and debsums. `Nice` is `WATCHDOG_LIMIT_NICE` (19), `IOSchedulingClass=idle`, `CPUQuota` is `WATCHDOG_CPU_LIMIT` times the CPU count, so 50 is 50% of the whole machine. `/etc/cron.d/high-fortress-user` contains only `SHELL` and `PATH`. The user crontab is not modified. Mail is sent only when a check finds something and `HF_MAIL_ALERTS=1`. `hfu-idle-scan.timer` repeats the deferred scan every hour. `hfu-reboot-notice.timer` repeats the notice every 6 hours, and sends mail when a reboot is useful and no game is running. The rules are in [surveillance.md](surveillance.md). |
 | Lynis    | `LYNIS_MIN_SCORE` is 80. `verify/workstation.sh` accepts a `hardening_index` greater than or equal to that score.                                                                                                                                                                                                                                                                                                                                          |
 | Journals | Install journals are `<source>/logs/install-YYYYMMDD-HHMMSS-user/`. Security journals are `/opt/high-fortress-user/cron/security_logs/`. Journald storage is persistent.                                                                                                                                                                                                                                                                                   |
 | Packages | The Firefox and Thunderbird snaps are removed. `snapd` is kept. The `firefox` package is held. On amd64, the i386 architecture is enabled. Steam is not installed by this program.                                                                                                                                                                                                                                                                         |
@@ -258,7 +258,7 @@ Runs the installation from the prepared files. The installer refuses to start wh
 sudo bash verify/alerts.sh
 ```
 
-Checks the boot timer, the idle timer, ClamAV on access, and the mail path. Without `--no-send`, one probe is sent when alerts are enabled. The subject ends with `Contrôle`. The success line is `Résultat : OK`.
+Checks the chain timer, the idle timer, ClamAV on access, and the mail path. Without `--no-send`, one probe is sent when alerts are enabled. The subject ends with `Contrôle`. The success line is `Résultat : OK`.
 
 ```bash
 sudo bash verify/alerts.sh --no-send
@@ -275,6 +275,20 @@ sudo bash verify/workstation.sh "$PWD"
 Runs the workstation verification. The closing line has the form `Check : N OK / N WARN / N FAIL`.
 
 The same run checks SSH forwarding, the SSH firewall rule, USBGuard, the Brave policy, the Thunderbird policy, the session lock, KeePassXC, the sudo timeout and `hfu-reboot-notice.timer`.
+
+### Check after boot
+
+```bash
+sudo bash /opt/high-fortress-user/bin/boot-check.sh
+```
+
+Checks the boot security services and the three passes of this session.
+
+The success line is `Contrôle de démarrage : OK`.
+
+A pass still running prints `Contrôle de démarrage : en cours` and exits 1.
+
+A gap prints `Contrôle de démarrage : écarts` and exits 1.
 
 ### hf lynis
 

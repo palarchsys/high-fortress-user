@@ -105,7 +105,7 @@ Werte, die nicht gefragt werden, kommen aus `hfu_config_set_builtin_defaults` un
 | SSH        | `PermitRootLogin no`. `PasswordAuthentication yes`. `PubkeyAuthentication yes`. Banner `/etc/ssh/sshd_banner`. `MaxAuthTries 4`. `AllowTcpForwarding no`. `AllowAgentForwarding no`.                                                                                                                                                                                                                                                                                                                                                      |
 | Kernel     | `/etc/sysctl.d/90-high-fortress-user.conf` wird nach `/etc/sysctl.d/99-zzz-high-fortress-user.conf` kopiert. IPv6 bleibt eingeschaltet. IPv6-Redirects und Source-Routing werden abgelehnt. User-Namespaces bleiben eingeschaltet. `dccp`, `sctp`, `rds` und `tipc` werden gesperrt. Ungenutzte Dateisysteme werden gesperrt. Core-Dumps stehen auf 0. `PWQUALITY_MINLEN` ist 12.                                                                                                     |
 | AppArmor   | Die Distributionsprofile bleiben. `service/apparmor/userns.sh` fügt `hfu-brave`, `hfu-discord`, `hfu-thunderbird` und `hfu-steam` hinzu, wenn Steam nicht bereits abgedeckt ist.                                                                                                                                                                                                                                                                                                      |
-| Kontrollen | `hfu-boot-scan.timer` startet `boot-scan.sh` 2 Minuten nach dem Start (`OnBootSec=2min`, `Persistent=false`). Der Lauf startet AIDE, rkhunter, chkrootkit, ClamAV und debsums. `Nice` ist `WATCHDOG_LIMIT_NICE` (19), `IOSchedulingClass=idle`, `CPUQuota` ist `WATCHDOG_CPU_LIMIT` mal der CPU-Anzahl, also 20 für 20 % der ganzen Maschine. `/etc/cron.d/high-fortress-user` enthält nur `SHELL` und `PATH`. Die Benutzer-Crontab wird nicht geändert. Post geht nur ab, wenn eine Kontrolle etwas findet und `HF_MAIL_ALERTS=1` ist. `hfu-idle-scan.timer` startet die verzögerte Prüfung. `hfu-reboot-notice.timer` sendet Post, wenn ein Neustart sinnvoll ist und kein Spiel läuft. Die Regeln stehen in [surveillance.md](surveillance.md). |
+| Kontrollen | `hfu-boot-chain.timer` startet `hfu-boot-chain.service`, wenn `multi-user.target` erreicht ist (`OnBootSec=0`, `Persistent=false`). Die Kette startet `hfu-boot-scan.service`, dann `hfu-idle-scan.service`, dann `hfu-reboot-notice.service`. Der Startlauf startet AIDE, rkhunter, chkrootkit, ClamAV und debsums. `Nice` ist `WATCHDOG_LIMIT_NICE` (19), `IOSchedulingClass=idle`, `CPUQuota` ist `WATCHDOG_CPU_LIMIT` mal der CPU-Anzahl, also 50 für 50 % der ganzen Maschine. `/etc/cron.d/high-fortress-user` enthält nur `SHELL` und `PATH`. Die Benutzer-Crontab wird nicht geändert. Post geht nur ab, wenn eine Kontrolle etwas findet und `HF_MAIL_ALERTS=1` ist. `hfu-idle-scan.timer` wiederholt die verzögerte Prüfung jede Stunde. `hfu-reboot-notice.timer` wiederholt den Hinweis alle 6 Stunden und sendet Post, wenn ein Neustart sinnvoll ist und kein Spiel läuft. Die Regeln stehen in [surveillance.md](surveillance.md). |
 | Lynis      | `LYNIS_MIN_SCORE` ist 80. `verify/workstation.sh` akzeptiert einen `hardening_index` größer oder gleich diesem Schwellenwert.                                                                                                                                                                                                                                                                                                                                                         |
 | Journale   | Installationsjournale liegen unter `<source>/logs/install-YYYYMMDD-HHMMSS-user/`. Sicherheitsjournale liegen unter `/opt/high-fortress-user/cron/security_logs/`. Der Journald-Speicher ist persistent.                                                                                                                                                                                                                                                                               |
 | Pakete     | Die Snaps Firefox und Thunderbird werden entfernt. `snapd` bleibt. Das Paket `firefox` wird gehalten. Auf amd64 wird die Architektur i386 aktiviert. Steam wird von diesem Programm nicht installiert.                                                                                                                                                                                                                                                                                |
@@ -258,7 +258,7 @@ Startet die Installation aus den vorbereiteten Dateien. Das Installationsprogram
 sudo bash verify/alerts.sh
 ```
 
-Prüft den Start-Timer, den verzögerten Timer, ClamAV beim Zugriff und den Mail-Pfad. Ohne `--no-send` geht eine Sonde ab, wenn die Alarme eingeschaltet sind. Der Betreff endet mit `Contrôle`. Die Erfolgszeile ist `Résultat : OK`.
+Prüft den Ketten-Timer, den verzögerten Timer, ClamAV beim Zugriff und den Mail-Pfad. Ohne `--no-send` geht eine Sonde ab, wenn die Alarme eingeschaltet sind. Der Betreff endet mit `Contrôle`. Die Erfolgszeile ist `Résultat : OK`.
 
 ```bash
 sudo bash verify/alerts.sh --no-send
@@ -275,6 +275,20 @@ sudo bash verify/workstation.sh "$PWD"
 Startet die Arbeitsplatzprüfung. Die Schlusszeile hat die Form `Check : N OK / N WARN / N FAIL`.
 
 Derselbe Lauf prüft die SSH-Weiterleitung, die SSH-Firewallregel, USBGuard, die Brave-Politik, die Thunderbird-Politik, die Sitzungssperre, KeePassXC, die sudo-Frist und `hfu-reboot-notice.timer`.
+
+### Prüfung nach dem Start
+
+```bash
+sudo bash /opt/high-fortress-user/bin/boot-check.sh
+```
+
+Prüft die Sicherheitsdienste des Starts und die drei Läufe dieser Sitzung.
+
+Die Erfolgszeile ist `Contrôle de démarrage : OK`.
+
+Ein noch laufender Lauf zeigt `Contrôle de démarrage : en cours` und endet mit Code 1.
+
+Eine Abweichung zeigt `Contrôle de démarrage : écarts` und endet mit Code 1.
 
 ### hf lynis
 

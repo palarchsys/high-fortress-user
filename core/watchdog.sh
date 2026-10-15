@@ -78,10 +78,10 @@ hf_arm_crash_mail() {
 }
 
 hf_cpu_quota_percent() {
-    local limit="${WATCHDOG_CPU_LIMIT:-20}"
+    local limit="${WATCHDOG_CPU_LIMIT:-50}"
     local n=1
     if [[ ! "${limit}" =~ ^[0-9]+$ ]]; then
-        limit=20
+        limit=50
     fi
     if command -v nproc >/dev/null 2>&1; then
         n="$(nproc 2>/dev/null)" || n=1

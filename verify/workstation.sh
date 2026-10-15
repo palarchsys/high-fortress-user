@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : verify/workstation.sh
-# Updated at : 2026-10-14
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
@@ -231,10 +231,10 @@ if systemctl is-active --quiet clamav-clamonacc.service 2>/dev/null \
 else
     ko "clamonacc inactif ($(systemctl is-active clamav-clamonacc.service 2>/dev/null || systemctl is-active clamonacc.service 2>/dev/null || echo absent))"
 fi
-if systemctl is-enabled --quiet hfu-boot-scan.timer 2>/dev/null; then
-    ok "passe AIDE/rkhunter/chkrootkit/debsums au démarrage"
+if systemctl is-enabled --quiet hfu-boot-chain.timer 2>/dev/null; then
+    ok "chaîne de sécurité au démarrage"
 else
-    ko "timer de passe au démarrage absent"
+    ko "timer de la chaîne de démarrage absent"
 fi
 if systemctl is-enabled --quiet hfu-idle-scan.timer 2>/dev/null; then
     ok "passe différée des chemins exclus"

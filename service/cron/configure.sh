@@ -19,12 +19,12 @@ detect_current_user
 title "Watchdogs cron (root, cron.allow non restreint)"
 
 cpu_quota="$(
-    WATCHDOG_CPU_LIMIT="${WATCHDOG_CPU_LIMIT:-20}" \
+    WATCHDOG_CPU_LIMIT="${WATCHDOG_CPU_LIMIT:-50}" \
         bash -c 'source "$1" && hf_cpu_quota_percent' _ "${DIR_INSTALL_PATH}/core/watchdog.sh"
 )" || error "quota CPU introuvable"
 [[ "${cpu_quota}" =~ ^[0-9]+$ ]] || error "quota CPU invalide (${cpu_quota:-vide})"
 
-info "Installation des watchdogs (démarrage plafonné à ${WATCHDOG_CPU_LIMIT}% du CPU total)"
+info "Installation des watchdogs (chaîne au démarrage, plafonnée à ${WATCHDOG_CPU_LIMIT}% du CPU total)"
 ensure_dir "${CONFIG_BASE_DIR}/cron/bin" 755
 ensure_dir "${CONFIG_BASE_DIR}/cron/cron_logs" 750
 ensure_dir "${CONFIG_BASE_DIR}/cron/security_logs" 750
@@ -75,20 +75,35 @@ IOSchedulingClass=idle
 CPUQuota=${cpu_quota}%
 ExecStart=${CONFIG_BASE_DIR}/cron/bin/boot-scan.sh
 EOF
-tee /etc/systemd/system/hfu-boot-scan.timer > /dev/null << 'EOF'
+chmod 644 /etc/systemd/system/hfu-boot-scan.service
+systemctl_bin="$(command -v systemctl || true)"
+[[ -n "${systemctl_bin}" ]] || error "systemctl introuvable"
+tee /etc/systemd/system/hfu-boot-chain.service > /dev/null << EOF
 [Unit]
-Description=Lance la passe de sécurité à chaque démarrage
+Description=Enchaîne la passe, l'analyse différée et l'avis de redémarrage
+After=multi-user.target
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+ExecStart=-${systemctl_bin} start --wait hfu-boot-scan.service
+ExecStart=-${systemctl_bin} start --wait hfu-idle-scan.service
+ExecStart=-${systemctl_bin} start --wait hfu-reboot-notice.service
+EOF
+tee /etc/systemd/system/hfu-boot-chain.timer > /dev/null << 'EOF'
+[Unit]
+Description=Lance la chaîne de sécurité à chaque démarrage
 
 [Timer]
-OnBootSec=2min
-AccuracySec=30s
+OnBootSec=0
+AccuracySec=1s
 Persistent=false
-Unit=hfu-boot-scan.service
+Unit=hfu-boot-chain.service
 
 [Install]
 WantedBy=timers.target
 EOF
-chmod 644 /etc/systemd/system/hfu-boot-scan.service /etc/systemd/system/hfu-boot-scan.timer
+chmod 644 /etc/systemd/system/hfu-boot-chain.service /etc/systemd/system/hfu-boot-chain.timer
 
 tee /etc/systemd/system/hfu-idle-scan.service > /dev/null << EOF
 [Unit]
@@ -107,17 +122,15 @@ tee /etc/systemd/system/hfu-idle-scan.timer > /dev/null << 'EOF'
 Description=Relance l'analyse différée des bibliothèques
 
 [Timer]
-OnBootSec=15min
 OnUnitActiveSec=1h
 AccuracySec=1min
-Persistent=true
+Persistent=false
 Unit=hfu-idle-scan.service
 
 [Install]
 WantedBy=timers.target
 EOF
 chmod 644 /etc/systemd/system/hfu-idle-scan.service /etc/systemd/system/hfu-idle-scan.timer
-run_silent systemctl daemon-reload
 
 tee /etc/systemd/system/hfu-reboot-notice.service > /dev/null << EOF
 [Unit]
@@ -136,21 +149,22 @@ tee /etc/systemd/system/hfu-reboot-notice.timer > /dev/null << 'EOF'
 Description=Vérifie si un redémarrage est utile
 
 [Timer]
-OnBootSec=20min
 OnUnitActiveSec=6h
 AccuracySec=5min
-Persistent=true
+Persistent=false
 Unit=hfu-reboot-notice.service
 
 [Install]
 WantedBy=timers.target
 EOF
 chmod 644 /etc/systemd/system/hfu-reboot-notice.service /etc/systemd/system/hfu-reboot-notice.timer
+systemctl disable --now hfu-boot-scan.timer >/dev/null 2>&1 || true
+rm -f /etc/systemd/system/hfu-boot-scan.timer
 run_silent systemctl daemon-reload
-run_silent systemctl enable hfu-boot-scan.timer
+run_silent systemctl enable hfu-boot-chain.timer
 run_silent systemctl enable hfu-idle-scan.timer
 run_silent systemctl enable hfu-reboot-notice.timer
-success "Démarrage plafonné à ${WATCHDOG_CPU_LIMIT}% du CPU total"
+success "Chaîne de démarrage installée, plafonnée à ${WATCHDOG_CPU_LIMIT}% du CPU total"
 
 export HFU_BASE="${CONFIG_BASE_DIR}"
 export HFU_SCAN_SKIP_HOME="${CURRENT_HOME}"
@@ -162,6 +176,7 @@ if [[ ! -d /var/jeux ]]; then
 fi
 install -d -m 755 "${CONFIG_BASE_DIR}/bin"
 install -m 755 "${DIR_SCRIPT_PATH}/scan-skip.sh" "${CONFIG_BASE_DIR}/bin/scan-skip.sh"
+install -m 755 "${DIR_SCRIPT_PATH}/boot-check.sh" "${CONFIG_BASE_DIR}/bin/boot-check.sh"
 bash "${CONFIG_BASE_DIR}/cron/bin/apply-scan-skip.sh"
 
 info "crontab utilisateur : non touché (pas de cron.allow)."

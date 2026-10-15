@@ -105,7 +105,7 @@ Les valeurs qui ne sont pas demandées sont écrites depuis `hfu_config_set_buil
 | SSH       | `PermitRootLogin no`. `PasswordAuthentication yes`. `PubkeyAuthentication yes`. Bannière `/etc/ssh/sshd_banner`. `MaxAuthTries 4`. `AllowTcpForwarding no`. `AllowAgentForwarding no`.                                                                                                                                                                                                                                                                                                                                                                             |
 | Noyau     | `/etc/sysctl.d/90-high-fortress-user.conf` est copié vers `/etc/sysctl.d/99-zzz-high-fortress-user.conf`. IPv6 reste activé. Les redirections IPv6 et le source routing sont refusés. Les user namespaces restent activés. `dccp`, `sctp`, `rds` et `tipc` sont en liste noire. Les systèmes de fichiers inutilisés sont en liste noire. Les core dumps sont à 0. `PWQUALITY_MINLEN` vaut 12.                                                                                                                  |
 | AppArmor  | Les profils de la distribution restent. `service/apparmor/userns.sh` ajoute `hfu-brave`, `hfu-discord`, `hfu-thunderbird`, et `hfu-steam` lorsque Steam n'est pas déjà couvert.                                                                                                                                                                                                                                                                                                                                |
-| Contrôles | `hfu-boot-scan.timer` lance `boot-scan.sh` 2 minutes après le démarrage (`OnBootSec=2min`, `Persistent=false`). La passe lance AIDE, rkhunter, chkrootkit, ClamAV et debsums. `Nice` vaut `WATCHDOG_LIMIT_NICE` (19), `IOSchedulingClass=idle`, `CPUQuota` vaut `WATCHDOG_CPU_LIMIT` multiplié par le nombre de CPU, donc 20 représente 20 % de la machine. `/etc/cron.d/high-fortress-user` ne contient que `SHELL` et `PATH`. La crontab de l'utilisateur n'est pas modifiée. Le courrier part seulement lorsqu'un contrôle trouve quelque chose et que `HF_MAIL_ALERTS=1`. `hfu-idle-scan.timer` lance l'analyse différée. `hfu-reboot-notice.timer` envoie un courrier lorsqu'un redémarrage est utile et qu'aucun jeu ne tourne. Les règles sont dans [surveillance.md](surveillance.md). |
+| Contrôles | `hfu-boot-chain.timer` lance `hfu-boot-chain.service` lorsque `multi-user.target` est atteint (`OnBootSec=0`, `Persistent=false`). La chaîne lance `hfu-boot-scan.service`, puis `hfu-idle-scan.service`, puis `hfu-reboot-notice.service`. La passe lance AIDE, rkhunter, chkrootkit, ClamAV et debsums. `Nice` vaut `WATCHDOG_LIMIT_NICE` (19), `IOSchedulingClass=idle`, `CPUQuota` vaut `WATCHDOG_CPU_LIMIT` multiplié par le nombre de CPU, donc 50 représente 50 % de la machine. `/etc/cron.d/high-fortress-user` ne contient que `SHELL` et `PATH`. La crontab de l'utilisateur n'est pas modifiée. Le courrier part seulement lorsqu'un contrôle trouve quelque chose et que `HF_MAIL_ALERTS=1`. `hfu-idle-scan.timer` relance l'analyse différée toutes les heures. `hfu-reboot-notice.timer` relance l'avis toutes les 6 heures, et envoie un courrier lorsqu'un redémarrage est utile et qu'aucun jeu ne tourne. Les règles sont dans [surveillance.md](surveillance.md). |
 | Lynis     | `LYNIS_MIN_SCORE` vaut 80. `verify/workstation.sh` accepte un `hardening_index` supérieur ou égal à ce seuil.                                                                                                                                                                                                                                                                                                                                                                                                  |
 | Journaux  | Les journaux d'installation sont `<source>/logs/install-YYYYMMDD-HHMMSS-user/`. Les journaux de sécurité sont `/opt/high-fortress-user/cron/security_logs/`. Le stockage journald est persistant.                                                                                                                                                                                                                                                                                                             |
 | Paquets   | Les snaps Firefox et Thunderbird sont retirés. `snapd` est conservé. Le paquet `firefox` est bloqué. Sur amd64, l'architecture i386 est activée. Steam n'est pas installé par ce programme.                                                                                                                                                                                                                                                                                                                    |
@@ -258,7 +258,7 @@ Lance l'installation à partir des fichiers préparés. L'installeur refuse de d
 sudo bash verify/alerts.sh
 ```
 
-Contrôle le timer de démarrage, le timer différé, ClamAV à l'accès, et le chemin du courrier. Sans `--no-send`, une sonde part lorsque les alertes sont activées. Le sujet se termine par `Contrôle`. La ligne de succès est `Résultat : OK`.
+Contrôle le timer de la chaîne, le timer différé, ClamAV à l'accès, et le chemin du courrier. Sans `--no-send`, une sonde part lorsque les alertes sont activées. Le sujet se termine par `Contrôle`. La ligne de succès est `Résultat : OK`.
 
 ```bash
 sudo bash verify/alerts.sh --no-send
@@ -275,6 +275,20 @@ sudo bash verify/workstation.sh "$PWD"
 Lance la vérification du poste. La ligne de clôture a la forme `Check : N OK / N WARN / N FAIL`.
 
 La même passe contrôle le relais SSH, la règle de pare-feu SSH, USBGuard, la politique Brave, la politique Thunderbird, le verrou de session, KeePassXC, le délai sudo et `hfu-reboot-notice.timer`.
+
+### Contrôle après démarrage
+
+```bash
+sudo bash /opt/high-fortress-user/bin/boot-check.sh
+```
+
+Vérifie les services de sécurité du démarrage et les trois passes de cette session.
+
+La ligne de succès est `Contrôle de démarrage : OK`.
+
+Une passe encore en cours affiche `Contrôle de démarrage : en cours` et termine avec le code 1.
+
+Un écart affiche `Contrôle de démarrage : écarts` et termine avec le code 1.
 
 ### hf lynis
 

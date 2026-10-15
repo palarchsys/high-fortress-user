@@ -115,11 +115,17 @@ Die Prüfung schneidet auch `proc`, `sys`, `dev`, `var/lib/docker`, `var/lib/lib
 
 Die Prüfung liest die Dateien mit `clamscan` in der Start-Unit.
 
-Die Unit deckelt diesen Lauf auf 20 % der ganzen Maschine.
+Die Unit deckelt diesen Lauf auf 50 % der ganzen Maschine.
 
 Die Zahl wird beim Einrichten von cron geschrieben.
 
 Eine spätere Änderung der CPU-Anzahl verlangt diesen Schritt erneut.
+
+`hfu-boot-chain.service` startet diesen Lauf, dann die verzögerte Prüfung, dann den Neustart-Hinweis.
+
+Die Kette startet, wenn `multi-user.target` erreicht ist.
+
+Ein fehlgeschlagener Lauf hält den nächsten nicht auf.
 
 Brave, Thunderbird und Discord bleiben in diesem Lauf.
 
@@ -143,8 +149,8 @@ Die Post sagt dann, dass die restlichen Dateien nicht gelesen wurden.
 
 | Einstellung | Wert |
 | --- | --- |
-| Timer | `OnBootSec=15min`, `OnUnitActiveSec=1h`, `Persistent=true` |
-| Grenzen | `Nice` 19, `IOSchedulingClass=idle`, `CPUQuota` 20 % der ganzen Maschine |
+| Timer | `OnUnitActiveSec=1h`, `Persistent=false` |
+| Grenzen | `Nice` 19, `IOSchedulingClass=idle`, `CPUQuota` 50 % der ganzen Maschine |
 | Warten | `steam`, `steamwebhelper`, `lutris`, `heroic`, `wineserver`, `gamescope` |
 | übersprungene Verzeichnisse | `shadercache`, `downloading` |
 | Dateien | ausführbare Dateien jeder Größe, und andere Dateien von 25M oder weniger, neuer als `scan-skip.stamp` |
@@ -222,9 +228,11 @@ Der Installer lässt beides unverändert.
 | --- | --- | --- | --- |
 | reboot-notice.sh in hfu-reboot-notice.timer | `/var/run/reboot-required`, `/var/run/reboot-required.pkgs`, und `fwupdmgr get-updates`, wenn dieser Befehl mit 0 endet | Eine neue Menge. Dieselbe Prüfsumme in `reboot-notice.seen` sendet keine Post mehr. | Kein Befehlsblock. |
 
-Der Timer ist `OnBootSec=20min` und `OnUnitActiveSec=6h`, mit `Persistent=true`.
+Der Timer ist `OnUnitActiveSec=6h`, mit `Persistent=false`.
 
-`Nice` ist 19, `IOSchedulingClass` ist `idle`, und `CPUQuota` ist 20 % der ganzen Maschine.
+Die Startkette führt diesen Hinweis nach der verzögerten Prüfung aus.
+
+`Nice` ist 19, `IOSchedulingClass` ist `idle`, und `CPUQuota` ist 50 % der ganzen Maschine.
 
 Ein laufendes `steam`, `steamwebhelper`, `lutris`, `heroic`, `wineserver` oder `gamescope` überspringt die Post.
 

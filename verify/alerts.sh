@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : verify/alerts.sh
-# Updated at : 2026-10-14
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
@@ -89,9 +89,9 @@ else
 fi
 
 section "PASSE AU DEMARRAGE"
-timer_word="$(unit_word hfu-boot-scan.timer)"
-printf '%-36s %s\n' "hfu-boot-scan.timer" "${timer_word}"
-[[ "${timer_word}" == "OK" ]] || note_fail "timer de passe au démarrage ${timer_word}"
+timer_word="$(unit_word hfu-boot-chain.timer)"
+printf '%-36s %s\n' "hfu-boot-chain.timer" "${timer_word}"
+[[ "${timer_word}" == "OK" ]] || note_fail "timer de la chaîne de démarrage ${timer_word}"
 idle_word="$(unit_word hfu-idle-scan.timer)"
 printf '%-36s %s\n' "hfu-idle-scan.timer" "${idle_word}"
 [[ "${idle_word}" == "OK" ]] || note_fail "timer de passe différée ${idle_word}"

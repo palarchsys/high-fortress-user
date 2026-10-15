@@ -115,11 +115,17 @@ It also prunes `proc`, `sys`, `dev`, `var/lib/docker`, `var/lib/libvirt`, `libvi
 
 It reads files with `clamscan` inside the boot unit.
 
-The unit caps that pass at 20% of the whole machine.
+The unit caps that pass at 50% of the whole machine.
 
 The number is written when cron is configured.
 
 A later change in the CPU count needs that step again.
+
+`hfu-boot-chain.service` runs this pass, then the deferred scan, then the reboot notice.
+
+The chain starts when `multi-user.target` is reached.
+
+A failure of one pass does not stop the next one.
 
 Brave, Thunderbird and Discord stay in this pass.
 
@@ -143,8 +149,8 @@ The mail then says that the remaining files were not read.
 
 | Setting | Value |
 | --- | --- |
-| timer | `OnBootSec=15min`, `OnUnitActiveSec=1h`, `Persistent=true` |
-| limits | `Nice` 19, `IOSchedulingClass=idle`, `CPUQuota` 20% of the whole machine |
+| timer | `OnUnitActiveSec=1h`, `Persistent=false` |
+| limits | `Nice` 19, `IOSchedulingClass=idle`, `CPUQuota` 50% of the whole machine |
 | wait | `steam`, `steamwebhelper`, `lutris`, `heroic`, `wineserver`, `gamescope` |
 | skipped directories | `shadercache`, `downloading` |
 | files | executables of any size, and other files of 25M or less newer than `scan-skip.stamp` |
@@ -222,9 +228,11 @@ The installer leaves both unchanged.
 | --- | --- | --- | --- |
 | reboot-notice.sh in hfu-reboot-notice.timer | `/var/run/reboot-required`, `/var/run/reboot-required.pkgs`, and `fwupdmgr get-updates` when that command exits 0 | A new set. The same digest in `reboot-notice.seen` does not send mail again. | No command block. |
 
-The timer is `OnBootSec=20min` and `OnUnitActiveSec=6h`, with `Persistent=true`.
+The timer is `OnUnitActiveSec=6h`, with `Persistent=false`.
 
-`Nice` is 19, `IOSchedulingClass` is `idle`, and `CPUQuota` is 20% of the whole machine.
+The boot chain runs this notice after the deferred scan.
+
+`Nice` is 19, `IOSchedulingClass` is `idle`, and `CPUQuota` is 50% of the whole machine.
 
 A running `steam`, `steamwebhelper`, `lutris`, `heroic`, `wineserver` or `gamescope` skips the mail.
 

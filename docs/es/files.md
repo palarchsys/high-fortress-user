@@ -21,12 +21,14 @@ Cada fila es un archivo que el instalador escribe, con el modo que el script fij
 | /opt/high-fortress-user/cron/rkhunter-mirrors.sha256    | Huella de mirrors.dat después de una actualización lograda.                                              | 600                          |
 | /etc/cron.d/high-fortress-user                          | Solo SHELL y PATH.                                                                                       | 600                          |
 | /etc/systemd/system/hfu-boot-scan.service               | Unidad de la pasada de arranque.                                                                         | 644                          |
-| /etc/systemd/system/hfu-boot-scan.timer                 | Lanza la pasada 2 minutos después del arranque.                                                          | 644                          |
+| /etc/systemd/system/hfu-boot-chain.service              | Lanza la pasada, luego el análisis diferido, luego el aviso de reinicio.                                | 644                          |
+| /etc/systemd/system/hfu-boot-chain.timer                | Lanza la cadena cuando multi-user.target está alcanzado.                                                 | 644                          |
 | /etc/systemd/system/hfu-idle-scan.service               | Análisis diferido de las rutas excluidas.                                                                | 644                          |
-| /etc/systemd/system/hfu-idle-scan.timer                 | Lanza ese análisis 15 minutos después del arranque y después cada hora.                                  | 644                          |
+| /etc/systemd/system/hfu-idle-scan.timer                 | Relanza ese análisis cada hora después de la cadena.                                                     | 644                          |
 | /etc/systemd/system/hfu-reboot-notice.service           | Aviso cuando un reinicio es útil. El script no reinicia la máquina.                                      | 644                          |
-| /etc/systemd/system/hfu-reboot-notice.timer             | Lanza ese aviso 20 minutos después del arranque y después cada 6 horas.                                  | 644                          |
+| /etc/systemd/system/hfu-reboot-notice.timer             | Relanza ese aviso cada 6 horas después de la cadena.                                                     | 644                          |
 | /opt/high-fortress-user/bin/scan-skip.sh                | Lista, añade o quita una ruta excluida y reinicia ClamAV cuando el bloque cambia.                         | 755                          |
+| /opt/high-fortress-user/bin/boot-check.sh               | Comprueba que los servicios de seguridad del arranque terminaron esta sesión.                            | 755                          |
 | /opt/high-fortress-user/cron/scan-skip.paths            | Rutas excluidas. Se crea solo cuando el archivo no existe.                                               | 644                          |
 | /opt/high-fortress-user/cron/scan-skip.stamp            | Sello de tiempo del análisis diferido.                                                                   | 644                          |
 | /opt/high-fortress-user/cron/scan-skip.seen             | Pares de firma y ruta ya enviados por el análisis diferido.                                              | 600                          |
