@@ -118,6 +118,12 @@ Los valores que no se preguntan se escriben desde `hfu_config_set_builtin_defaul
 
 El correo sale solo si `HF_MAIL_ALERTS=1`, si `WATCHDOG_MAIL` está definido y si `/opt/high-fortress-user/cron/bin/send.sh` es ejecutable. Un control limpio no envía correo. Si una línea del diario es desconocida, no lance la orden. Conserve el correo.
 
+Un control que se detiene antes de su fin normal envía correo.
+
+El correo nombra el control.
+
+Nombra la señal, o el código de salida.
+
 ### AIDE
 
 El mensaje contiene la línea de resumen y un extracto del diario, después la nota y el bloque de orden. La ruta del diario en el correo es el archivo real. La forma es `/opt/high-fortress-user/cron/security_logs/aide-YYYYMMDD-HHMMSS.log`.
@@ -170,6 +176,16 @@ Un archivo ilegible, sin línea `FOUND`, no envía correo.
 
 Las líneas `Known viruses` e `Infected files` no se copian en el correo.
 
+Un proceso `clamscan` detenido por una señal envía correo.
+
+El correo nombra la señal y cada archivo no leído.
+
+Los demás archivos de la pasada se analizan.
+
+Dos fallos seguidos detienen la pasada de ClamAV.
+
+El correo dice entonces que los archivos restantes no se leyeron.
+
 ### Análisis ClamAV diferido
 
 El mensaje contiene el resumen y el extracto del diario.
@@ -177,6 +193,18 @@ El mensaje contiene el resumen y el extracto del diario.
 Este correo no añade un bloque de orden.
 
 Una firma y una ruta ya guardadas en `/opt/high-fortress-user/cron/scan-skip.seen` no vuelven a enviar correo.
+
+Un proceso `clamscan` detenido por una señal envía correo.
+
+El correo nombra la señal y cada archivo no leído.
+
+Los demás archivos de la pasada se analizan.
+
+Dos fallos seguidos detienen la pasada de ClamAV.
+
+El correo dice entonces que los archivos restantes no se leyeron.
+
+El sello permanece en su sitio.
 
 La forma del diario es `/opt/high-fortress-user/cron/security_logs/idle-scan-YYYYMMDD-HHMMSS.log`.
 

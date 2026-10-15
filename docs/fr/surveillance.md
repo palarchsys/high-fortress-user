@@ -119,6 +119,16 @@ Brave, Thunderbird et Discord restent dans cette passe.
 
 Un fichier illisible, sans ligne `FOUND`, n'envoie pas de courrier.
 
+Un processus `clamscan` arrêté par un signal envoie un courrier.
+
+Le courrier nomme le signal et chaque fichier non lu.
+
+Les autres fichiers de la passe sont analysés.
+
+Deux plantages de suite arrêtent la passe ClamAV.
+
+Le courrier dit alors que les fichiers restants n'ont pas été lus.
+
 ## Analyse ClamAV différée
 
 | Service qui surveille                | Zones                                                                                                | Ce qui part en alerte                                                                                                      | Commande du courrier     |
@@ -135,6 +145,18 @@ Un fichier illisible, sans ligne `FOUND`, n'envoie pas de courrier.
 | tampon | n'avance qu'après une passe propre |
 | couverts | `/var/jeux`, `$HOME/.steam`, `$HOME/.local/share/Steam` |
 | non couverts | `$HOME/.cache`, `$HOME/snap` |
+
+Un processus `clamscan` arrêté par un signal envoie un courrier.
+
+Le courrier nomme le signal et chaque fichier non lu.
+
+Les autres fichiers de la passe sont analysés.
+
+Deux plantages de suite arrêtent la passe ClamAV.
+
+Le courrier dit alors que les fichiers restants n'ont pas été lus.
+
+Le tampon reste en place.
 
 ## debsums
 

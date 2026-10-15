@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/clamav-event.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
@@ -21,6 +21,7 @@ quarantine="/var/lib/clamav/quarantine/${base}"
 LOG_FILE="${LOG_DIR}/clamav-onaccess-${STAMP}.log"
 ALERT_FILE="${ALERT_DIR}/clamav-onaccess-${STAMP}.txt"
 MODULE_NAME="Clamav"
+hfu_arm_crash_mail "ClamAV accès"
 printf '%s\n' \
     "Signature : ${virus}" \
     "Fichier : ${base}" \

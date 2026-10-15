@@ -14,7 +14,7 @@ Jede Zeile ist eine Datei, die das Installationsprogramm schreibt, mit dem Modus
 | /opt/high-fortress-user/bin/aide-refresh-db.sh          | Baut die AIDE-Basis neu.                                                                                          | 755                          |
 | /opt/high-fortress-user/bin/chkrootkit-ignore-log.sh    | Speichert erkannte chkrootkit-Zeilen.                                                                             | 755                          |
 | /opt/high-fortress-user/bin/debsums-ignore-log.sh       | Speichert erkannte debsums-Zeilen.                                                                                | 755                          |
-| /opt/high-fortress-user/cron/bin/*.sh                   | Prüfskripte und mail.sh. Eigentümer root.                                                                         | 750                          |
+| /opt/high-fortress-user/cron/bin/*.sh                   | Prüfskripte, mail.sh und gemeinsames watchdog.sh. Eigentümer root.                                               | 750                          |
 | /opt/high-fortress-user/cron/bin/mail.html              | Mail-Vorlage.                                                                                                     | 644                          |
 | /opt/high-fortress-user/cron/bin/chkrootkit.ignore      | Mitgelieferte chkrootkit-Muster.                                                                                  | 664                          |
 | /opt/high-fortress-user/cron/mail.conf                  | HF_MAIL_ALERTS, WATCHDOG_MAIL, PROJECT_NAME, MAIL_TEMPLATE.                                                       | 600                          |

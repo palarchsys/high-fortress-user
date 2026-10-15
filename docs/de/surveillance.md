@@ -119,6 +119,16 @@ Brave, Thunderbird und Discord bleiben in diesem Lauf.
 
 Eine unlesbare Datei ohne Zeile `FOUND` sendet keine Post.
 
+Ein durch ein Signal gestoppter `clamscan` sendet Post.
+
+Die Post nennt das Signal und jede ungelesene Datei.
+
+Die übrigen Dateien des Laufs werden geprüft.
+
+Zwei Abstürze nacheinander stoppen den ClamAV-Lauf.
+
+Die Post sagt dann, dass die restlichen Dateien nicht gelesen wurden.
+
 ## Verzögerte ClamAV-Prüfung
 
 | Dienst, der prüft                   | Zonen                                                                                                      | Was alarmiert wird                                                                                                              | Postbefehl               |
@@ -135,6 +145,18 @@ Eine unlesbare Datei ohne Zeile `FOUND` sendet keine Post.
 | Stempel | rückt nur nach einem sauberen Lauf vor |
 | abgedeckt | `/var/jeux`, `$HOME/.steam`, `$HOME/.local/share/Steam` |
 | nicht abgedeckt | `$HOME/.cache`, `$HOME/snap` |
+
+Ein durch ein Signal gestoppter `clamscan` sendet Post.
+
+Die Post nennt das Signal und jede ungelesene Datei.
+
+Die übrigen Dateien des Laufs werden geprüft.
+
+Zwei Abstürze nacheinander stoppen den ClamAV-Lauf.
+
+Die Post sagt dann, dass die restlichen Dateien nicht gelesen wurden.
+
+Der Stempel bleibt stehen.
 
 ## debsums
 

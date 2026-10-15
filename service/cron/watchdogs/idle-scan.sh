@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/idle-scan.sh
-# Updated at : 2026-10-14
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
@@ -15,6 +15,7 @@ source "${HERE}/scan-skip-lib.sh"
 LOG_FILE="${LOG_DIR}/idle-scan-${STAMP}.log"
 ALERT_FILE="${ALERT_DIR}/idle-scan-${STAMP}.txt"
 : > "${LOG_FILE}"
+hfu_arm_crash_mail "analyse différée"
 
 busy=""
 for name in steam steamwebhelper lutris heroic wineserver gamescope; do
@@ -35,7 +36,7 @@ fi
 
 hfu_scan_skip_collect
 file_list="$(mktemp)"
-trap 'rm -f "${file_list}"' EXIT
+trap 'st=$?; rm -f "${file_list}"; hfu_crash_mail_now "${st}"' EXIT
 stamp="${HFU_BASE}/cron/scan-skip.stamp"
 if [[ ${#HFU_SCAN_SKIP_OK[@]} -gt 0 ]]; then
     for path in "${HFU_SCAN_SKIP_OK[@]}"; do
@@ -64,18 +65,24 @@ if [[ ${#HFU_SCAN_SKIP_OK[@]} -gt 0 ]]; then
 fi
 
 set +e
+trap '' PIPE
 if [[ -s "${file_list}" ]]; then
-    xargs -0 -r -n 80 clamscan --infected --no-summary < "${file_list}" >> "${LOG_FILE}" 2>&1
+    hfu_clamscan_list "${file_list}" >> "${LOG_FILE}" 2>&1
     rc=$?
 else
     rc=0
 fi
+trap - PIPE
 set -e
 kind="ok"
+crashed=0
 if [[ -s "${file_list}" ]]; then
     kind="$(hfu_clam_kind "${LOG_FILE}")"
-    if [[ "${kind}" == "ok" && "${rc}" -ne 0 && "${rc}" -ne 123 ]]; then
+    if [[ "${kind}" == "ok" && "${rc}" -ne 0 ]]; then
         kind="error"
+    fi
+    if hfu_clam_report; then
+        crashed=1
     fi
 fi
 
@@ -119,6 +126,9 @@ PY
     else
         log_ok "infections déjà signalées"
     fi
+    exit 0
+fi
+if [[ "${crashed}" -eq 1 ]]; then
     exit 0
 fi
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : test/suites/08_mail.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
@@ -12,7 +12,9 @@ tpl="${HF_ROOT}/template/mail.html"
 
 if grep -q '^MAIL_TEMPLATE="mail.html"$' "${HF_ROOT}/config/global.conf" \
    && grep -q 'hf_install_mail_templates' "${HF_ROOT}/service/cron/configure.sh" \
-   && grep -q 'hf_render_mail' "${HF_ROOT}/service/cron/watchdogs/send.sh" \
+   && grep -q 'hf_deliver_mail' "${HF_ROOT}/service/cron/watchdogs/send.sh" \
+   && grep -q 'hf_render_mail' "${MONO}/core/watchdog.sh" \
+   && grep -q 'core/watchdog.sh' "${HF_ROOT}/service/cron/configure.sh" \
    && ! grep -q 'HF_MAIL_REDACT=1' "${HF_ROOT}/service/cron/watchdogs/send.sh" \
    && grep -q 'NOTE_CMD' "${tpl}" \
    && grep -q '<!--NOTE_START-->' "${tpl}" \

@@ -119,6 +119,16 @@ Brave, Thunderbird and Discord stay in this pass.
 
 A file that cannot be read, with no `FOUND` line, does not send mail.
 
+A `clamscan` process stopped by a signal sends mail.
+
+The mail names the signal and each file that was not read.
+
+The other files of the pass are still scanned.
+
+Two crashes in a row stop the ClamAV pass.
+
+The mail then says that the remaining files were not read.
+
 ## ClamAV idle scan
 
 | Service that watches                 | Zones                                                                                                              | What is alerted                                                                                          | Mail command      |
@@ -135,6 +145,18 @@ A file that cannot be read, with no `FOUND` line, does not send mail.
 | stamp | advances only after a clean pass |
 | covered | `/var/jeux`, `$HOME/.steam`, `$HOME/.local/share/Steam` |
 | not covered | `$HOME/.cache`, `$HOME/snap` |
+
+A `clamscan` process stopped by a signal sends mail.
+
+The mail names the signal and each file that was not read.
+
+The other files of the pass are still scanned.
+
+Two crashes in a row stop the ClamAV pass.
+
+The mail then says that the remaining files were not read.
+
+The stamp stays in place.
 
 ## debsums
 

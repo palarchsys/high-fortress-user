@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : test/suites/02_file_graph.sh
-# Updated at : 2026-10-14
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
@@ -187,12 +187,30 @@ if [[ -f "${skip_lib}" && -f "${skip_apply}" && -f "${skip_cmd}" && -f "${skip_i
         END { exit !(apply && aide && aide > apply) }
       ' "${skip_boot}" \
    && ! grep -q 'clamdscan' "${skip_clam}" \
-   && grep -q 'clamscan --infected --no-summary' "${skip_clam}" \
+   && grep -q 'hfu_clamscan_list' "${skip_clam}" \
+   && grep -q 'hfu_clam_report' "${skip_clam}" \
+   && grep -q 'clamscan --infected --no-summary' "${HF_ROOT}/../core/watchdog.sh" \
+   && grep -q 'planté signal' "${HF_ROOT}/../core/watchdog.sh" \
+   && grep -q 'tool="clamscan"' "${HF_ROOT}/../core/watchdog.sh" \
    && grep -q 'scan-skip.sh list' "${skip_cmd}" \
    && grep -q 'scan-skip.sh add' "${skip_cmd}" \
    && grep -q 'scan-skip.sh del' "${skip_cmd}" \
    && grep -q 'pgrep -x' "${skip_idle}" \
-   && grep -q 'clamscan --infected --no-summary' "${skip_idle}" \
+   && grep -q 'hfu_clamscan_list' "${skip_idle}" \
+   && grep -q 'hfu_clam_report' "${skip_idle}" \
+   && ! grep -q 'interrompu, aucun virus' "${skip_clam}" \
+   && ! grep -q 'interrompu, aucun virus' "${skip_idle}" \
+   && grep -q 'hfu_crash_sentence' "${skip_boot}" \
+   && grep -q 'hfu_crash_sentence' "${HF_ROOT}/service/cron/watchdogs/aide.sh" \
+   && grep -q 'hfu_crash_sentence' "${HF_ROOT}/service/cron/watchdogs/rkhunter.sh" \
+   && grep -q 'hfu_crash_sentence' "${HF_ROOT}/service/cron/watchdogs/chkrootkit.sh" \
+   && grep -q 'hfu_crash_sentence' "${HF_ROOT}/service/cron/watchdogs/debsums.sh" \
+   && grep -q 'log_alert "clamscan : infection(s)' "${skip_clam}" \
+   && grep -q 'log_alert "AIDE: changements détectés' "${HF_ROOT}/service/cron/watchdogs/aide.sh" \
+   && grep -q 'log_alert "rkhunter warnings' "${HF_ROOT}/service/cron/watchdogs/rkhunter.sh" \
+   && grep -q 'log_alert "chkrootkit a produit une sortie' "${HF_ROOT}/service/cron/watchdogs/chkrootkit.sh" \
+   && grep -q 'log_alert "debsums : fichiers modifiés' "${HF_ROOT}/service/cron/watchdogs/debsums.sh" \
+   && grep -q 'log_alert "ClamAV :' "${HF_ROOT}/service/cron/watchdogs/clamav-event.sh" \
    && grep -q 'hfu_clam_kind' "${skip_clam}" \
    && grep -q 'hfu_clam_kind' "${skip_idle}" \
    && grep -q 'ALLOWDEVFILE=/dev/log' "${HF_ROOT}/service/rkhunter/configure.sh" \
@@ -203,6 +221,98 @@ if [[ -f "${skip_lib}" && -f "${skip_apply}" && -f "${skip_cmd}" && -f "${skip_i
     hf_pass "graph.scan-skip" "fichier de chemins, commande, passe différée, sans Brave ni Discord ni Thunderbird"
 else
     hf_fail "graph.scan-skip" "les exclusions passent par scan-skip.paths et ne retirent pas Brave, Discord ni Thunderbird"
+fi
+
+hf_section "alerte de plantage et incident"
+crash_rc=0
+bash -s -- "${HF_ROOT}" << 'CRASH' || crash_rc=$?
+set -euo pipefail
+root="$1"
+work="$(mktemp -d)"
+trap 'rm -rf "${work}"' EXIT
+mkdir -p "${work}/cron/bin" "${work}/bin"
+cat > "${work}/cron/mail.conf" << EOF
+HF_MAIL_ALERTS="1"
+WATCHDOG_MAIL="alerts@example.com"
+PROJECT_NAME="High-Fortress User"
+EOF
+cat > "${work}/cron/bin/send.sh" << 'EOF'
+#!/usr/bin/env bash
+printf '%s\n----\n' "${CONTENT}" >> "${HFU_SENT}"
+EOF
+chmod 755 "${work}/cron/bin/send.sh"
+cat > "${work}/bin/clamscan" << 'EOF'
+#!/usr/bin/env bash
+for f in "$@"; do
+    [[ "${f}" == "--" ]] && continue
+    printf 'scan %s\n' "${f}" >> "${HFU_SEEN}"
+    case "${f}" in
+        *bad*) kill -s SEGV $$ ;;
+        *virus*) printf '%s: Eicar-Test-Signature FOUND\n' "${f}"; exit 1 ;;
+    esac
+done
+exit 0
+EOF
+chmod 755 "${work}/bin/clamscan"
+export HFU_BASE="${work}" HFU_SENT="${work}/sent.txt" HFU_SEEN="${work}/seen.txt" PATH="${work}/bin:${PATH}"
+# shellcheck disable=SC1091
+source "${root}/service/cron/watchdogs/common.sh"
+sentence="$(hfu_crash_sentence "AIDE" 139)"
+printf '%s' "${sentence}" | grep -q 'signal 11'
+printf '%s' "${sentence}" | grep -q 'erreur interne du programme'
+LOG_FILE="${work}/clam.log"
+ALERT_FILE="${work}/clam.txt"
+: > "${LOG_FILE}"
+list="${work}/list"
+printf '/ok\0/bad\0/virus\0/after\0' > "${list}"
+hfu_clamscan_list "${list}" >> "${LOG_FILE}" 2>&1
+grep -q 'clamscan planté signal 11 sur /bad' "${LOG_FILE}"
+grep -q 'scan /after' "${HFU_SEEN}"
+hfu_clam_report
+kind="$(hfu_clam_kind "${LOG_FILE}")"
+[[ "${kind}" == "infected" ]]
+log_alert "clamscan : infection(s) (voir ${LOG_FILE})"
+grep -q 'Ce fichier n'"'"'a pas été analysé' "${HFU_SENT}"
+grep -q 'clamscan planté signal 11 sur /bad' "${HFU_SENT}"
+grep -q 'clamscan : infection(s)' "${HFU_SENT}"
+grep -q 'Eicar-Test-Signature FOUND' "${HFU_SENT}"
+: > "${HFU_SEEN}"
+: > "${LOG_FILE}"
+: > "${HFU_SENT}"
+printf '/bad1\0/bad2\0/later\0' > "${list}"
+hfu_clamscan_list "${list}" >> "${LOG_FILE}" 2>&1
+grep -q 'contrôle arrêté' "${LOG_FILE}"
+! grep -q 'scan /later' "${HFU_SEEN}"
+hfu_clam_report
+grep -q 'deux fois de suite' "${HFU_SENT}"
+grep -q 'fichiers restants n'"'"'ont pas été analysés' "${HFU_SENT}"
+: > "${list}"
+: > "${LOG_FILE}"
+: > "${HFU_SENT}"
+empty_rc=0
+set +e
+hfu_clamscan_list "${list}" >> "${LOG_FILE}" 2>&1
+empty_rc=$?
+set -e
+[[ "${empty_rc}" -eq 0 ]]
+[[ ! -s "${HFU_SENT}" ]]
+: > "${HFU_SENT}"
+bash -c '
+set -euo pipefail
+export HFU_BASE="'"${work}"'" HFU_SENT="'"${HFU_SENT}"'"
+source "'"${root}"'/service/cron/watchdogs/common.sh"
+LOG_FILE="'"${work}"'/dead.log"
+ALERT_FILE="'"${work}"'/dead.txt"
+: > "${LOG_FILE}"
+hfu_arm_crash_mail "essai"
+exit 3
+' || true
+grep -q "s'est arrêté (code 3)" "${HFU_SENT}"
+CRASH
+if [[ "${crash_rc}" -eq 0 ]]; then
+    hf_pass "graph.crash-mail" "plantage nommé, suite du lot, infection encore signalée"
+else
+    hf_fail "graph.crash-mail" "le courrier de plantage ou d'infection n'a pas le texte attendu"
 fi
 
 hf_section "durcissement quotidien"

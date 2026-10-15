@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/reboot-notice.sh
-# Updated at : 2026-10-14
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
@@ -14,6 +14,7 @@ LOG_FILE="${LOG_DIR}/reboot-notice-${STAMP}.log"
 ALERT_FILE="${ALERT_DIR}/reboot-notice-${STAMP}.txt"
 : > "${LOG_FILE}"
 MODULE_NAME="reboot"
+hfu_arm_crash_mail "avis de redémarrage"
 
 busy=""
 for name in steam steamwebhelper lutris heroic wineserver gamescope; do

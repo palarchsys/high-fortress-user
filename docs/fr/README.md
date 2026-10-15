@@ -118,6 +118,12 @@ Les valeurs qui ne sont pas demandées sont écrites depuis `hfu_config_set_buil
 
 Le courrier part seulement si `HF_MAIL_ALERTS=1`, si `WATCHDOG_MAIL` est défini, et si `/opt/high-fortress-user/cron/bin/send.sh` est exécutable. Un contrôle propre n'envoie pas de courrier. Si une ligne du journal est inconnue, ne lancez pas la commande. Gardez le courrier.
 
+Un contrôle qui s'arrête avant sa fin envoie un courrier.
+
+Le courrier nomme le contrôle.
+
+Il nomme le signal, ou le code de sortie.
+
 ### AIDE
 
 Le message contient la ligne de résumé et un extrait du journal, puis la note et le bloc de commande. Le chemin du journal dans le courrier est le fichier réel. La forme est `/opt/high-fortress-user/cron/security_logs/aide-YYYYMMDD-HHMMSS.log`.
@@ -170,6 +176,16 @@ Un fichier illisible, sans ligne `FOUND`, n'envoie pas de courrier.
 
 Les lignes `Known viruses` et `Infected files` ne sont pas recopiées dans le courrier.
 
+Un processus `clamscan` arrêté par un signal envoie un courrier.
+
+Le courrier nomme le signal et chaque fichier non lu.
+
+Les autres fichiers de la passe sont analysés.
+
+Deux plantages de suite arrêtent la passe ClamAV.
+
+Le courrier dit alors que les fichiers restants n'ont pas été lus.
+
 ### Analyse ClamAV différée
 
 Le message contient le résumé et l'extrait du journal.
@@ -177,6 +193,18 @@ Le message contient le résumé et l'extrait du journal.
 Ce courrier n'ajoute pas de bloc de commande.
 
 Une signature et un chemin déjà enregistrés dans `/opt/high-fortress-user/cron/scan-skip.seen` ne renvoient pas de courrier.
+
+Un processus `clamscan` arrêté par un signal envoie un courrier.
+
+Le courrier nomme le signal et chaque fichier non lu.
+
+Les autres fichiers de la passe sont analysés.
+
+Deux plantages de suite arrêtent la passe ClamAV.
+
+Le courrier dit alors que les fichiers restants n'ont pas été lus.
+
+Le tampon reste en place.
 
 La forme du journal est `/opt/high-fortress-user/cron/security_logs/idle-scan-YYYYMMDD-HHMMSS.log`.
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/configure.sh
-# Updated at : 2026-10-14
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
@@ -32,6 +32,10 @@ mail_src="$(readlink -f "${DIR_INSTALL_PATH}/core/mail.sh")"
 [[ -f "${mail_src}" ]] || error "core/mail.sh introuvable (${DIR_INSTALL_PATH}/core/mail.sh)"
 cp -f "${mail_src}" "${CONFIG_BASE_DIR}/cron/bin/mail.sh"
 chmod 750 "${CONFIG_BASE_DIR}/cron/bin/mail.sh"
+watch_src="$(readlink -f "${DIR_INSTALL_PATH}/core/watchdog.sh")"
+[[ -f "${watch_src}" ]] || error "core/watchdog.sh introuvable (${DIR_INSTALL_PATH}/core/watchdog.sh)"
+cp -f "${watch_src}" "${CONFIG_BASE_DIR}/cron/bin/watchdog.sh"
+chmod 750 "${CONFIG_BASE_DIR}/cron/bin/watchdog.sh"
 
 umask 077
 cat > "${CONFIG_BASE_DIR}/cron/mail.conf" << EOF

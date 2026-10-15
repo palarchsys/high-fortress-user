@@ -119,6 +119,16 @@ Brave, Thunderbird y Discord permanecen en esta pasada.
 
 Un archivo ilegible, sin línea `FOUND`, no envía correo.
 
+Un proceso `clamscan` detenido por una señal envía correo.
+
+El correo nombra la señal y cada archivo no leído.
+
+Los demás archivos de la pasada se analizan.
+
+Dos fallos seguidos detienen la pasada de ClamAV.
+
+El correo dice entonces que los archivos restantes no se leyeron.
+
 ## Análisis ClamAV diferido
 
 | Servicio que vigila                  | Zonas                                                                                                         | Qué se alerta                                                                                                                    | Orden del correo         |
@@ -135,6 +145,18 @@ Un archivo ilegible, sin línea `FOUND`, no envía correo.
 | sello | avanza solo tras una pasada limpia |
 | cubiertas | `/var/jeux`, `$HOME/.steam`, `$HOME/.local/share/Steam` |
 | no cubiertas | `$HOME/.cache`, `$HOME/snap` |
+
+Un proceso `clamscan` detenido por una señal envía correo.
+
+El correo nombra la señal y cada archivo no leído.
+
+Los demás archivos de la pasada se analizan.
+
+Dos fallos seguidos detienen la pasada de ClamAV.
+
+El correo dice entonces que los archivos restantes no se leyeron.
+
+El sello permanece en su sitio.
 
 ## debsums
 

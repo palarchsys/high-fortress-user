@@ -118,6 +118,12 @@ Values that are not asked are written from `hfu_config_set_builtin_defaults` and
 
 Mail is sent only when `HF_MAIL_ALERTS=1`, `WATCHDOG_MAIL` is set, and `/opt/high-fortress-user/cron/bin/send.sh` is executable. A clean check does not send mail. If a journal line is unknown, do not run the command. Keep the mail.
 
+A check that stops before its normal end sends mail.
+
+The mail names the check.
+
+It names the signal, or the exit code.
+
 ### AIDE
 
 The message contains the summary line and an excerpt of the journal, then the note and the command block. The journal path in the mail is the real file. The form is `/opt/high-fortress-user/cron/security_logs/aide-YYYYMMDD-HHMMSS.log`.
@@ -170,6 +176,16 @@ A file that cannot be read, with no `FOUND` line, does not send mail.
 
 The lines `Known viruses` and `Infected files` are not copied into the mail.
 
+A `clamscan` process stopped by a signal sends mail.
+
+The mail names the signal and each file that was not read.
+
+The other files of the pass are still scanned.
+
+Two crashes in a row stop the ClamAV pass.
+
+The mail then says that the remaining files were not read.
+
 ### ClamAV idle scan
 
 The message contains the summary and the journal excerpt.
@@ -177,6 +193,18 @@ The message contains the summary and the journal excerpt.
 This mail does not add a command block.
 
 A signature and path already stored in `/opt/high-fortress-user/cron/scan-skip.seen` do not send mail again.
+
+A `clamscan` process stopped by a signal sends mail.
+
+The mail names the signal and each file that was not read.
+
+The other files of the pass are still scanned.
+
+Two crashes in a row stop the ClamAV pass.
+
+The mail then says that the remaining files were not read.
+
+The stamp stays in place.
 
 The journal form is `/opt/high-fortress-user/cron/security_logs/idle-scan-YYYYMMDD-HHMMSS.log`.
 

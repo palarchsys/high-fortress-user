@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/rkhunter.sh
-# Updated at : 2026-10-14
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
@@ -36,7 +36,9 @@ set +e
 rkhunter --check --skip-keypress --report-warnings-only --nocolors >> "${LOG_FILE}" 2>&1
 rc=$?
 set -e
-if [[ "${rc}" -ge 2 ]]; then
+if [[ "${rc}" -ge 128 ]]; then
+    log_alert "$(hfu_crash_sentence "rkhunter" "${rc}")"
+elif [[ "${rc}" -ge 2 ]]; then
     log_alert "rkhunter erreur rc=${rc}"
 elif [[ "${rc}" -eq 1 ]]; then
     log_alert "rkhunter warnings (voir ${LOG_FILE})"

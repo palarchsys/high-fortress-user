@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/aide.sh
-# Updated at : 2026-10-05
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
@@ -22,6 +22,8 @@ set -e
 
 if [[ "${rc}" -eq 0 ]]; then
     log_ok "AIDE: aucun changement"
+elif [[ "${rc}" -ge 128 ]]; then
+    log_alert "$(hfu_crash_sentence "AIDE" "${rc}")"
 elif [[ "${rc}" -ge 1 && "${rc}" -le 7 ]]; then
     HFU_AIDE_REFRESH=1 \
         log_alert "AIDE: changements détectés (code ${rc}, détail ${LOG_FILE})"

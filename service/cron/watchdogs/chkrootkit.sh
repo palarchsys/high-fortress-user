@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/chkrootkit.sh
-# Updated at : 2026-10-05
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
@@ -21,7 +21,13 @@ if ! command -v chkrootkit >/dev/null; then
 fi
 set +e
 chkrootkit -q -s 'NetworkManager|wpa_supplicant|systemd-networkd' > "${LOG_FILE}" 2>&1
+rc=$?
 set -e
+crashed=0
+if [[ "${rc}" -ge 128 ]]; then
+    log_alert "$(hfu_crash_sentence "chkrootkit" "${rc}")"
+    crashed=1
+fi
 if [[ -f "${IGNORE}" || -f "${LOCAL_IGNORE}" ]]; then
     python3 - "${LOG_FILE}" "${IGNORE}" "${LOCAL_IGNORE}" << 'PY'
 import re
@@ -76,7 +82,7 @@ fi
 if [[ -s "${LOG_FILE}" ]]; then
     HFU_CHKROOTKIT_IGNORE=1 \
         log_alert "chkrootkit a produit une sortie (voir ${LOG_FILE})"
-else
+elif [[ "${crashed}" -eq 0 ]]; then
     log_ok "chkrootkit silencieux (OK)"
 fi
 exit 0

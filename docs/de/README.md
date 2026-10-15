@@ -118,6 +118,12 @@ Werte, die nicht gefragt werden, kommen aus `hfu_config_set_builtin_defaults` un
 
 Post geht nur ab, wenn `HF_MAIL_ALERTS=1` ist, `WATCHDOG_MAIL` gesetzt ist und `/opt/high-fortress-user/cron/bin/send.sh` ausführbar ist. Eine saubere Kontrolle sendet keine Post. Wenn eine Journalzeile unbekannt ist, starten Sie den Befehl nicht. Behalten Sie die Post.
 
+Eine Prüfung, die vor ihrem normalen Ende stoppt, sendet Post.
+
+Die Post nennt die Prüfung.
+
+Die Post nennt das Signal oder den Code.
+
 ### AIDE
 
 Die Nachricht enthält die Zusammenfassungszeile und einen Auszug des Journals, dann den Hinweis und den Befehlsblock. Der Journalpfad in der Post ist die echte Datei. Die Form ist `/opt/high-fortress-user/cron/security_logs/aide-YYYYMMDD-HHMMSS.log`.
@@ -170,6 +176,16 @@ Eine unlesbare Datei ohne Zeile `FOUND` sendet keine Post.
 
 Die Zeilen `Known viruses` und `Infected files` werden nicht in die Post übernommen.
 
+Ein durch ein Signal gestoppter `clamscan` sendet Post.
+
+Die Post nennt das Signal und jede ungelesene Datei.
+
+Die übrigen Dateien des Laufs werden geprüft.
+
+Zwei Abstürze nacheinander stoppen den ClamAV-Lauf.
+
+Die Post sagt dann, dass die restlichen Dateien nicht gelesen wurden.
+
 ### Verzögerte ClamAV-Prüfung
 
 Die Nachricht enthält die Zusammenfassung und den Journalauszug.
@@ -177,6 +193,18 @@ Die Nachricht enthält die Zusammenfassung und den Journalauszug.
 Diese Post fügt keinen Befehlsblock hinzu.
 
 Eine Signatur und ein Pfad, die schon in `/opt/high-fortress-user/cron/scan-skip.seen` stehen, senden keine Post mehr.
+
+Ein durch ein Signal gestoppter `clamscan` sendet Post.
+
+Die Post nennt das Signal und jede ungelesene Datei.
+
+Die übrigen Dateien des Laufs werden geprüft.
+
+Zwei Abstürze nacheinander stoppen den ClamAV-Lauf.
+
+Die Post sagt dann, dass die restlichen Dateien nicht gelesen wurden.
+
+Der Stempel bleibt stehen.
 
 Die Journalform ist `/opt/high-fortress-user/cron/security_logs/idle-scan-YYYYMMDD-HHMMSS.log`.
 

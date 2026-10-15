@@ -14,7 +14,7 @@ Chaque ligne est un fichier que l'installeur écrit, avec le mode que le script 
 | /opt/high-fortress-user/bin/aide-refresh-db.sh          | Reconstruit la base AIDE.                                                                                         | 755                          |
 | /opt/high-fortress-user/bin/chkrootkit-ignore-log.sh    | Enregistre les lignes chkrootkit reconnues.                                                                       | 755                          |
 | /opt/high-fortress-user/bin/debsums-ignore-log.sh       | Enregistre les lignes debsums reconnues.                                                                          | 755                          |
-| /opt/high-fortress-user/cron/bin/*.sh                   | Scripts de contrôle et mail.sh. Propriétaire root.                                                                | 750                          |
+| /opt/high-fortress-user/cron/bin/*.sh                   | Scripts de contrôle, mail.sh et watchdog.sh partagé. Propriétaire root.                                          | 750                          |
 | /opt/high-fortress-user/cron/bin/mail.html              | Modèle de courrier.                                                                                               | 644                          |
 | /opt/high-fortress-user/cron/bin/chkrootkit.ignore      | Motifs chkrootkit livrés.                                                                                         | 664                          |
 | /opt/high-fortress-user/cron/mail.conf                  | HF_MAIL_ALERTS, WATCHDOG_MAIL, PROJECT_NAME, MAIL_TEMPLATE.                                                       | 600                          |

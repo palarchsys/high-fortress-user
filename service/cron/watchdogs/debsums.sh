@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/debsums.sh
-# Updated at : 2026-10-14
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
@@ -20,7 +20,13 @@ if ! command -v debsums >/dev/null; then
 fi
 set +e
 debsums -s > "${LOG_FILE}" 2>&1
+rc=$?
 set -e
+crashed=0
+if [[ "${rc}" -ge 128 ]]; then
+    log_alert "$(hfu_crash_sentence "debsums" "${rc}")"
+    crashed=1
+fi
 python3 - "${LOG_FILE}" "${IGNORE}" "${LOCAL_IGNORE}" "${HFU_BASE}" << 'PY'
 import hashlib
 import re
@@ -77,7 +83,7 @@ PY
 if [[ -s "${LOG_FILE}" ]]; then
     HFU_DEBSUMS_IGNORE=1 \
         log_alert "debsums : fichiers modifiés (voir ${LOG_FILE})"
-else
+elif [[ "${crashed}" -eq 0 ]]; then
     log_ok "debsums OK"
 fi
 exit 0

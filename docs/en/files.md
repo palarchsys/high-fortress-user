@@ -14,7 +14,7 @@ Each row is a file the installer writes, with the mode the script sets. Files in
 | /opt/high-fortress-user/bin/aide-refresh-db.sh          | Rebuilds the AIDE baseline.                                                                      | 755                          |
 | /opt/high-fortress-user/bin/chkrootkit-ignore-log.sh    | Records recognized chkrootkit lines.                                                             | 755                          |
 | /opt/high-fortress-user/bin/debsums-ignore-log.sh       | Records recognized debsums lines.                                                                | 755                          |
-| /opt/high-fortress-user/cron/bin/*.sh                   | Watch scripts and mail.sh. Owner root.                                                           | 750                          |
+| /opt/high-fortress-user/cron/bin/*.sh                   | Watch scripts, mail.sh, and shared watchdog.sh. Owner root.                                      | 750                          |
 | /opt/high-fortress-user/cron/bin/mail.html              | Mail template.                                                                                   | 644                          |
 | /opt/high-fortress-user/cron/bin/chkrootkit.ignore      | Shipped chkrootkit patterns.                                                                     | 664                          |
 | /opt/high-fortress-user/cron/mail.conf                  | HF_MAIL_ALERTS, WATCHDOG_MAIL, PROJECT_NAME, MAIL_TEMPLATE.                                      | 600                          |
