@@ -8,7 +8,7 @@
 | ----------------------- | --------------------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------- |
 | aide.sh in boot-scan.sh | /etc/aide/aide.conf, database /var/lib/aide/aide.db | Änderungen, oder ein Code ungleich null, der kein sauberes Ergebnis ist. | `sudo bash /opt/high-fortress-user/bin/aide-refresh-db.sh` |
 
-Flüchtige Pfade, Journale, Caches und die Cron-Berichtverzeichnisse sind in `service/aide/aide.conf` ausgeschlossen, damit die Basis nicht von diesen Dateien neu geschrieben wird.
+Flüchtige Pfade, Journale, Caches und die Cron-Berichtverzeichnisse sind in `config/aide/aide.conf` ausgeschlossen, damit die Basis nicht von diesen Dateien neu geschrieben wird.
 
 Der Kontenblock wird nach `!/home/` angehängt.
 
@@ -36,7 +36,9 @@ Sie erzeugen nicht die Warnung `Suspicious file types found in /dev`.
 | ----------------------------- | ----------------------- | -------------------------------------------------- | ---------------------------------------------------------------------------- |
 | chkrootkit.sh in boot-scan.sh | /usr/sbin/chkrootkit -q | Jede verbleibende Ausgabe nach den Ignorierlisten. | `sudo bash /opt/high-fortress-user/bin/chkrootkit-ignore-log.sh '<journal>'` |
 
-Bekannte Zeilen stehen in `cron/bin/chkrootkit.ignore` und in `cron/chkrootkit.local.ignore`. Die lokale Datei wird nur durch den Befehl aus der Post gefüllt, und nur für Zeilen, die Sie erkennen.
+Bekannte Zeilen stehen in `src/config/chkrootkit/chkrootkit.ignore` und in `cron/chkrootkit.local.ignore`.
+
+Die lokale Datei wird nur durch den Befehl aus der Post gefüllt, und nur für Zeilen, die Sie erkennen.
 
 ## ClamAV beim Zugriff
 
@@ -83,7 +85,7 @@ Es ist kein separates Konto.
 
 `.clamav-quarantine-lock.*` ist eine Verschiebesperre, keine Schadsoftware.
 
-`clamav-event.sh` endet mit 0 vor `log_alert`.
+`clamav-event.sh` endet mit 0 vor `hf_log_alert`.
 
 `scan-skip.sh` ändert die Liste.
 

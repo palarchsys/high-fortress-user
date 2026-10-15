@@ -12,11 +12,30 @@ source "${HFU_BASE}/cron/bin/common.sh"
 LOG_FILE="${LOG_DIR}/chkrootkit-${STAMP}.log"
 ALERT_FILE="${ALERT_DIR}/chkrootkit-${STAMP}.txt"
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-IGNORE="${HERE}/chkrootkit.ignore"
+if [[ -f "${HFU_BASE}/src/core/fs.sh" ]]; then
+    # shellcheck disable=SC1091
+    source "${HFU_BASE}/src/core/fs.sh"
+elif [[ -f "${HERE}/../../../core/fs.sh" ]]; then
+    # shellcheck disable=SC1091
+    source "${HERE}/../../../core/fs.sh"
+fi
+IGNORE=""
+if declare -F hf_locate_config_file >/dev/null 2>&1; then
+    IGNORE="$(hf_locate_config_file chkrootkit/chkrootkit.ignore || true)"
+fi
+if [[ ! -f "${IGNORE}" && -f "${HERE}/../../../config/chkrootkit/chkrootkit.ignore" ]]; then
+    IGNORE="${HERE}/../../../config/chkrootkit/chkrootkit.ignore"
+fi
+if [[ ! -f "${IGNORE}" && -f "${HERE}/chkrootkit.ignore" ]]; then
+    IGNORE="${HERE}/chkrootkit.ignore"
+fi
+if [[ ! -f "${IGNORE}" ]]; then
+    IGNORE="${HFU_BASE}/src/config/chkrootkit/chkrootkit.ignore"
+fi
 
 LOCAL_IGNORE="${HFU_BASE}/cron/chkrootkit.local.ignore"
 if ! command -v chkrootkit >/dev/null; then
-    log_ok "chkrootkit absent — skip"
+    hfu_log_pass "chkrootkit absent — skip"
     exit 0
 fi
 set +e
@@ -25,7 +44,7 @@ rc=$?
 set -e
 crashed=0
 if [[ "${rc}" -ge 128 ]]; then
-    log_alert "$(hfu_crash_sentence "chkrootkit" "${rc}")"
+    hf_log_alert "$(hf_get_crash_sentence "chkrootkit" "${rc}")"
     crashed=1
 fi
 if [[ -f "${IGNORE}" || -f "${LOCAL_IGNORE}" ]]; then
@@ -81,8 +100,8 @@ PY
 fi
 if [[ -s "${LOG_FILE}" ]]; then
     HFU_CHKROOTKIT_IGNORE=1 \
-        log_alert "chkrootkit a produit une sortie (voir ${LOG_FILE})"
+        hf_log_alert "chkrootkit a produit une sortie (voir ${LOG_FILE})"
 elif [[ "${crashed}" -eq 0 ]]; then
-    log_ok "chkrootkit silencieux (OK)"
+    hfu_log_pass "chkrootkit silencieux (OK)"
 fi
 exit 0

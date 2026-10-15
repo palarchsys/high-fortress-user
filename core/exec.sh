@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : core/exec.sh
-# Updated at : 2026-10-05
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
-run_silent() {
+hf_run_silent() {
     local cmd_output
     local exit_code=0
 
@@ -15,10 +15,10 @@ run_silent() {
         return 0
     fi
 
-    error "$cmd_output"
+    hf_log_error "$cmd_output"
 }
 
-run_quiet() {
+hf_run_quiet() {
     local cmd_output
     local exit_code=0
 
@@ -27,23 +27,23 @@ run_quiet() {
         printf '%s\n' "${cmd_output}" >> "${HF_LOG_FILE}"
     fi
     if [[ "${exit_code}" -ne 0 ]]; then
-        error "${cmd_output:-commande échouée (rc=${exit_code})}"
+        hf_log_error "${cmd_output:-commande échouée (rc=${exit_code})}"
     fi
 }
 
-try_silent() {
+hf_run_optional() {
     local cmd_output
     local exit_code=0
 
     cmd_output=$("$@" 2>&1) || exit_code=$?
     if [[ $exit_code -ne 0 && -n "$cmd_output" ]]; then
-        debug "$cmd_output"
+        hf_log_debug "$cmd_output"
     fi
 
     return 0
 }
 
-run_silent_apt() {
+hf_run_silent_apt() {
     local cmd_output
     local exit_code=0
     local attempt=0
@@ -73,17 +73,17 @@ run_silent_apt() {
             continue
         fi
 
-        error "$cmd_output"
+        hf_log_error "$cmd_output"
     done
 
     echo ""
     echo ""
 
-    error "Timeout : verrou apt toujours occupé après ${max_attempts} tentatives !" >&2
+    hf_log_error "Timeout : verrou apt toujours occupé après ${max_attempts} tentatives !" >&2
     exit 1
 }
 
-run_steps() {
+hf_run_step() {
     local dir_install_path="$1"
     local server_type=""
     shift
@@ -100,22 +100,22 @@ run_steps() {
     local -a steps=("$@")
 
     [[ ${#steps[@]} -eq 0 ]] && {
-        error "Aucun step fourni"
+        hf_log_error "Aucun step fourni"
         return 1
     }
 
     [[ -z "$dir_install_path" || ! -d "$dir_install_path" ]] && {
-        error "dir_install_path invalide : '$dir_install_path'"
+        hf_log_error "dir_install_path invalide : '$dir_install_path'"
         return 1
     }
 
     local step full_path step_exit step_log
     for step in "${steps[@]}"; do
         full_path="${dir_install_path}/${step}"
-        step_on "Exécution de ${step}"
+        hf_set_step_visible "Exécution de ${step}"
 
         if [[ ! -f "$full_path" ]]; then
-            error "Fichier introuvable : $full_path"
+            hf_log_error "Fichier introuvable : $full_path"
             exit 1
         fi
 

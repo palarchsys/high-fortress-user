@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/unbound/install.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
-DIR_INSTALL_PATH="${1}"
-export DIR_INSTALL_PATH
-source "${DIR_INSTALL_PATH}/core/lib.sh"
-source "${DIR_INSTALL_PATH}/config/global.conf"
-require_root
+HF_INSTALL_DIRECTORY="${1}"
+export HF_INSTALL_DIRECTORY
+source "${HF_INSTALL_DIRECTORY}/core/lib.sh"
+source "${HF_INSTALL_DIRECTORY}/config/global.conf"
+hf_require_root
 
-title "Installation Unbound"
-info "Installation d'Unbound"
-run_silent_apt install -y unbound dns-root-data
-success "Unbound installé"
+hf_log_title "Installation Unbound"
+hf_log_info "Installation d'Unbound"
+hf_run_silent_apt install -y unbound dns-root-data
+hf_log_success "Unbound installé"

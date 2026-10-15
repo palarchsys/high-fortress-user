@@ -1,3 +1,9 @@
+# =============================================================================
+# File       : .gitignore
+# Updated at : 2026-10-15
+# Creator    : palarchsys
+# =============================================================================
+
 # Jeton Ubuntu Pro et mot de passe d'application Gmail.
 # Écrit par configure.sh, en mode 600.
 secrets.conf
@@ -7,7 +13,7 @@ secrets.conf
 human.tsv
 
 # Rapports de lynis.sh, et copie de l'installation
-# lorsque DEBUG_INSTALL_LOGS=1 dans global.conf.
+# lorsque HF_DEBUG_INSTALL_LOG=1 dans global.conf.
 logs/
 
 # Rapports du banc statique.

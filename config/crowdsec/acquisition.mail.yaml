@@ -1,0 +1,11 @@
+# =============================================================================
+# File       : config/crowdsec/acquisition.mail.yaml
+# Updated at : 2026-10-15
+# Creator    : palarchsys
+# =============================================================================
+
+---
+source: file
+file: /var/log/mail.log
+labels:
+  type: syslog

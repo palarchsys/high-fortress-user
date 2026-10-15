@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : test/run.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
 set -euo pipefail
 
-HF_TEST_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-HF_ROOT="$(cd -- "${HF_TEST_DIR}/.." && pwd)"
+HFT_TEST_DIRECTORY="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+HFT_ROOT="$(cd -- "${HFT_TEST_DIRECTORY}/.." && pwd)"
 
 PROFILE=""
 while [[ $# -gt 0 ]]; do
@@ -33,7 +33,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "${PROFILE}" ]]; then
-    if [[ -f "${HF_ROOT}/config/global.conf" ]] && grep -qE '^(SERVER_TYPE="WORKSTATION"|PROJECT_SLUG="high-fortress-user")$' "${HF_ROOT}/config/global.conf"; then
+    if [[ -f "${HFT_ROOT}/config/global.conf" ]] && grep -qE '^(HFS_SERVER_TYPE="WORKSTATION"|HFU_PROJECT_SLUG="high-fortress-user")$' "${HFT_ROOT}/config/global.conf"; then
         PROFILE="WORKSTATION"
     else
         PROFILE="ALL"
@@ -49,7 +49,7 @@ case "${PROFILE}" in
 esac
 
 product_ws=0
-if [[ -f "${HF_ROOT}/config/global.conf" ]] && grep -qE '^(SERVER_TYPE="WORKSTATION"|PROJECT_SLUG="high-fortress-user")$' "${HF_ROOT}/config/global.conf"; then
+if [[ -f "${HFT_ROOT}/config/global.conf" ]] && grep -qE '^(HFS_SERVER_TYPE="WORKSTATION"|HFU_PROJECT_SLUG="high-fortress-user")$' "${HFT_ROOT}/config/global.conf"; then
     product_ws=1
 fi
 if [[ "${product_ws}" -eq 1 && "${PROFILE}" != "WORKSTATION" ]]; then
@@ -61,22 +61,22 @@ if [[ "${product_ws}" -eq 0 && "${PROFILE}" == "WORKSTATION" ]]; then
     exit 2
 fi
 
-if [[ -f "${HF_ROOT}/core/test-harness.sh" ]]; then
+if [[ -f "${HFT_ROOT}/core/test-harness.sh" ]]; then
     # shellcheck disable=SC1091
-    source "${HF_ROOT}/core/test-harness.sh"
-elif [[ -f "${HF_ROOT}/../core/test-harness.sh" ]]; then
+    source "${HFT_ROOT}/core/test-harness.sh"
+elif [[ -f "${HFT_ROOT}/../core/test-harness.sh" ]]; then
     # shellcheck disable=SC1091
-    source "${HF_ROOT}/../core/test-harness.sh"
+    source "${HFT_ROOT}/../core/test-harness.sh"
 else
-    printf 'test-harness.sh introuvable depuis %s\n' "${HF_ROOT}" >&2
+    printf 'test-harness.sh introuvable depuis %s\n' "${HFT_ROOT}" >&2
     exit 1
 fi
 
-if [[ -f "${HF_TEST_DIR}/lib.sh" ]]; then
+if [[ -f "${HFT_TEST_DIRECTORY}/lib.sh" ]]; then
     # shellcheck disable=SC1091
-    source "${HF_TEST_DIR}/lib.sh"
+    source "${HFT_TEST_DIRECTORY}/lib.sh"
 fi
 
-hf_test_begin
-hf_test_run_suites
-hf_test_finish
+hft_begin
+hft_run_suite
+hft_finish

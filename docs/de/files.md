@@ -16,8 +16,8 @@ Jede Zeile ist eine Datei, die das Installationsprogramm schreibt, mit dem Modus
 | /opt/high-fortress-user/bin/debsums-ignore-log.sh       | Speichert erkannte debsums-Zeilen.                                                                                | 755                          |
 | /opt/high-fortress-user/cron/bin/*.sh                   | Prüfskripte, mail.sh und gemeinsames watchdog.sh. Eigentümer root.                                               | 750                          |
 | /opt/high-fortress-user/cron/bin/mail.html              | Mail-Vorlage.                                                                                                     | 644                          |
-| /opt/high-fortress-user/cron/bin/chkrootkit.ignore      | Mitgelieferte chkrootkit-Muster.                                                                                  | 664                          |
-| /opt/high-fortress-user/cron/mail.conf                  | HF_MAIL_ALERTS, WATCHDOG_MAIL, PROJECT_NAME, MAIL_TEMPLATE.                                                       | 600                          |
+| /opt/high-fortress-user/src/config/chkrootkit/chkrootkit.ignore | Mitgelieferte chkrootkit-Muster.                                                                                  | 664                          |
+| /opt/high-fortress-user/cron/mail.conf                  | HF_MAIL_ALERTS, HF_WATCHDOG_MAIL, HF_PROJECT_NAME, HF_MAIL_TEMPLATE.                                                       | 600                          |
 | /opt/high-fortress-user/cron/rkhunter-mirrors.sha256    | Stempel von mirrors.dat nach einem erfolgreichen Update.                                                          | 600                          |
 | /etc/cron.d/high-fortress-user                          | Nur SHELL und PATH.                                                                                               | 600                          |
 | /etc/systemd/system/hfu-boot-scan.service               | Unit der Startprüfung.                                                                                            | 644                          |
@@ -29,14 +29,14 @@ Jede Zeile ist eine Datei, die das Installationsprogramm schreibt, mit dem Modus
 | /etc/systemd/system/hfu-reboot-notice.timer             | Wiederholt diesen Hinweis alle 6 Stunden nach der Kette.                                                  | 644                          |
 | /opt/high-fortress-user/bin/scan-skip.sh                | Listet, fügt hinzu oder entfernt einen ausgeschlossenen Pfad und startet ClamAV neu, wenn der Block sich ändert. | 755                          |
 | /opt/high-fortress-user/bin/boot-check.sh               | Prüft, dass die Sicherheitsdienste des Starts diese Sitzung beendet haben.                                       | 755                          |
-| /opt/high-fortress-user/cron/scan-skip.paths            | Ausgeschlossene Pfade. Wird nur angelegt, wenn die Datei fehlt.                                                   | 644                          |
+| /opt/high-fortress-user/src/config/clamav/scan-skip.paths | Ausgeschlossene Pfade. Die Vorlage wird nur gefüllt, wenn die Datei noch fehlt.                                   | 644                          |
 | /opt/high-fortress-user/cron/scan-skip.stamp            | Zeitstempel der verzögerten Prüfung.                                                                              | 644                          |
 | /opt/high-fortress-user/cron/scan-skip.seen             | Schon gemeldete Paare aus Signatur und Pfad der verzögerten Prüfung.                                              | 600                          |
 | /opt/high-fortress-user/cron/reboot-notice.seen         | Prüfsumme der zuletzt gemeldeten Neustartmenge.                                                          | 600                          |
 | /var/jeux                                                   | Leeres Verzeichnis für eine Spielbibliothek. Kein separates Konto.                                                | 750                          |
 | /etc/ssh/sshd_config.d/00-high-fortress-user.conf       | SSH-Politik dieses Arbeitsplatzes.                                                                                | 644                          |
 | /etc/ssh/sshd_banner                                    | Anmeldebanner.                                                                                                    | 644                          |
-| /etc/aide/aide.conf                                     | AIDE-Politik mit ersetztem CONFIG_BASE_DIR.                                                                       | written by redirection       |
+| /etc/aide/aide.conf                                     | AIDE-Politik mit ersetztem HF_CONFIG_BASE_DIRECTORY.                                                                       | written by redirection       |
 | /var/lib/aide/aide.db                                   | AIDE-Basis.                                                                                                       | created by aide --init       |
 | /etc/clamav/clamd.conf                                  | Zugriffspfade, ergänzt von service/clamav/configure.sh.                                                           | package file, lines appended |
 | /var/lib/clamav/quarantine                              | Quarantäneverzeichnis.                                                                                            | 750                          |
@@ -47,8 +47,6 @@ Jede Zeile ist eine Datei, die das Installationsprogramm schreibt, mit dem Modus
 | /etc/systemd/system/hfu-unbound-root-hints.path         | Path-Unit für Root-Hints.                                                                                         | 644                          |
 | /etc/apt/sources.list.d/lynis.list                      | CISOfy-Lynis-Herkunft.                                                                                            | 644                          |
 | /etc/apt/keyrings/cisofy-software.gpg                   | Lynis-Schlüssel.                                                                                                  | 644                          |
-| /etc/apt/sources.list.d/mozilla.sources                 | Thunderbird-Herkunft.                                                                                             | 644                          |
-| /etc/apt/sources.list.d/brave-browser-release.sources   | Brave-Herkunft.                                                                                                   | 644                          |
 | /etc/apt/apt.conf.d/51high-fortress-user                | Unbeaufsichtigte Upgrades, Neustart aus.                                                                          | written by redirection       |
 | /etc/sysctl.d/90-high-fortress-user.conf                | Arbeitsplatz-Sysctl.                                                                                              | 644                          |
 | /etc/sysctl.d/99-zzz-high-fortress-user.conf            | Kopie der Sysctl-Datei, zuletzt angewendet.                                                                       | 644                          |

@@ -1,0 +1,9 @@
+# =============================================================================
+# File       : config/crowdsec/preferences
+# Updated at : 2026-10-15
+# Creator    : palarchsys
+# =============================================================================
+
+Package: crowdsec*
+Pin: origin packagecloud.io
+Pin-Priority: 700

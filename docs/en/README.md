@@ -30,7 +30,7 @@ You need `sudo` for `./hf configure`, `./hf run`, and the checks.
 
 ### Curl
 
-`install.sh` also installs `curl`, `ca-certificates` and `tar`, downloads branch `main`, and writes the sources to `/opt/high-fortress-user/src`. It then runs `scripts/configure.sh`. If `global.conf` already contains `HF_PREPARED=1`, `secrets.conf` exists, and `scripts/configure.sh --check` passes, it runs `scripts/run.sh` instead.
+`install.sh` also installs `curl`, `ca-certificates` and `tar`, downloads branch `main`, and writes the sources to `/opt/high-fortress-user/src`. It then runs `scripts/configure.sh`. If `global.conf` already contains `HF_CONFIG_PREPARED=1`, `secrets.conf` exists, and `scripts/configure.sh --check` passes, it runs `scripts/run.sh` instead.
 
 ```bash
 sudo apt-get update
@@ -59,12 +59,12 @@ sudo ./hf configure
 | Serveur          | `host:port`, for example `smtp-mail.outlook.com:587`. No brackets. Asked only when alerts are enabled.                                              | Nothing on a first run.                                  |
 | Login            | An e-mail address.                                                                                                                                  | Nothing on a first run.                                  |
 | Password         | The provider application password, 8 to 128 characters. Spaces are removed. Quotes, `$`, `\` and backticks are refused. Never the account password. | Nothing. A second line asks for confirmation.            |
-| From             | An e-mail address. `WATCHDOG_MAIL` receives the same address.                                                                                       | Nothing on a first run.                                  |
-| Mode test        | `0` or `1`.                                                                                                                                         | The current `MODE_TEST`. The shipped default is `[1]`.   |
+| From             | An e-mail address. `HF_WATCHDOG_MAIL` receives the same address.                                                                                       | Nothing on a first run.                                  |
+| Mode test        | `0` or `1`.                                                                                                                                         | The current `HF_MODE_TEST`. The shipped default is `[1]`.   |
 
 When alerts are enabled, `swaks` must receive an SMTP `250`. The success line is `Essai d'envoi accepté.` `HF_MAIL_ALERTS` becomes `1`. When alerts are disabled, the success line is `Alertes e-mail coupées. Les contrôles partiront sans envoi.` and the mail variables are cleared.
 
-Values that are not asked are written from `hfu_config_set_builtin_defaults` and from the shipped `global.conf`. They are listed in [configuration.md](configuration.md). No random password is generated.
+Values that are not asked are written from `hfu_set_config_default` and from the shipped `global.conf`. They are listed in [configuration.md](configuration.md). No random password is generated.
 
 ## Installed software and services
 
@@ -87,11 +87,6 @@ Values that are not asked are written from `hfu_config_set_builtin_defaults` and
 | postfix                                         | Ubuntu archive, only when `HF_MAIL_ALERTS=1`                                            | Sends alert mail.                                                                                                            |
 | lynis                                           | https://packages.cisofy.com/community/lynis/deb/ stable main                            | Hardening audit. The key is `https://packages.cisofy.com/keys/cisofy-software-public.key`.                                   |
 | ubuntu-pro-client                               | Ubuntu archive                                                                          | Attaches the Ubuntu Pro token.                                                                                               |
-| brave-browser                                   | https://brave-browser-apt-release.s3.brave.com/brave-browser.sources                    | Web browser.                                                                                                                 |
-| thunderbird                                     | https://packages.mozilla.org/apt suite thunderbird-deb                                  | Mail client from Mozilla packages, not the snap.                                                                             |
-| keepassxc                                       | Ubuntu archive                                                                          | Password database.                                                                                                           |
-| discord                                         | https://discord.com/api/download?platform=linux&format=deb                              | Discord client.                                                                                                              |
-| Vencord                                         | https://github.com/Vencord/Installer/releases/latest/download/VencordInstallerCli-linux | Installed into the Discord client by `service/desktop/install.sh`.                                                           |
 | acct, sysstat, libpam-pwquality                 | Ubuntu archive                                                                          | Process accounting, activity stats, password quality.                                                                        |
 | rng-tools-debian, haveged                       | Ubuntu archive                                                                          | Entropy sources.                                                                                                             |
 | apt-listchanges, needrestart, apt-show-versions | Ubuntu archive                                                                          | Package change notices and restart checks.                                                                                   |
@@ -103,12 +98,12 @@ Values that are not asked are written from `hfu_config_set_builtin_defaults` and
 | Firewall | `ufw default deny incoming`, `ufw default allow outgoing`, `ufw default allow routed`. Loopback is allowed in and out. SSH on the detected port is limited to each directly connected prefix. When no prefix is up, the limit from any source stays.                                                                                                                                                                                                                                                                                              |
 | DNS      | Unbound listens on `127.0.0.1` and `::1`. systemd-resolved and NetworkManager are pointed at that resolver. IPv6 DNS stays enabled (`do-ip6: yes`).                                                                                                                                                                                                                                                                                                        |
 | SSH      | `PermitRootLogin no`. `PasswordAuthentication yes`. `PubkeyAuthentication yes`. Banner `/etc/ssh/sshd_banner`. `MaxAuthTries 4`. `AllowTcpForwarding no`. `AllowAgentForwarding no`.                                                                                                                                                                                                                                                                                                                           |
-| Kernel   | `/etc/sysctl.d/90-high-fortress-user.conf` is copied to `/etc/sysctl.d/99-zzz-high-fortress-user.conf`. IPv6 stays enabled. IPv6 redirects and source routing are refused. User namespaces stay enabled. `dccp`, `sctp`, `rds` and `tipc` are blacklisted. Unused filesystems are blacklisted. Core dumps are set to 0. `PWQUALITY_MINLEN` is 12.                                                                                                          |
+| Kernel   | `/etc/sysctl.d/90-high-fortress-user.conf` is copied to `/etc/sysctl.d/99-zzz-high-fortress-user.conf`. IPv6 stays enabled. IPv6 redirects and source routing are refused. User namespaces stay enabled. `dccp`, `sctp`, `rds` and `tipc` are blacklisted. Unused filesystems are blacklisted. Core dumps are set to 0. `HFU_PAM_PASSWORD_MIN_LENGTH` is 12.                                                                                                          |
 | AppArmor | Distribution profiles stay. `service/apparmor/userns.sh` adds `hfu-brave`, `hfu-discord`, `hfu-thunderbird`, and `hfu-steam` when Steam is not already covered.                                                                                                                                                                                                                                                                                            |
-| Checks   | `hfu-boot-chain.timer` starts `hfu-boot-chain.service` when `multi-user.target` is reached (`OnBootSec=0`, `Persistent=false`). The chain runs `hfu-boot-scan.service`, then `hfu-idle-scan.service`, then `hfu-reboot-notice.service`. The boot pass runs AIDE, rkhunter, chkrootkit, ClamAV and debsums. `Nice` is `WATCHDOG_LIMIT_NICE` (19), `IOSchedulingClass=idle`, `CPUQuota` is `WATCHDOG_CPU_LIMIT` times the CPU count, so 50 is 50% of the whole machine. `/etc/cron.d/high-fortress-user` contains only `SHELL` and `PATH`. The user crontab is not modified. Mail is sent only when a check finds something and `HF_MAIL_ALERTS=1`. `hfu-idle-scan.timer` repeats the deferred scan every hour. `hfu-reboot-notice.timer` repeats the notice every 6 hours, and sends mail when a reboot is useful and no game is running. The rules are in [surveillance.md](surveillance.md). |
-| Lynis    | `LYNIS_MIN_SCORE` is 80. `verify/workstation.sh` accepts a `hardening_index` greater than or equal to that score.                                                                                                                                                                                                                                                                                                                                          |
+| Checks   | `hfu-boot-chain.timer` starts `hfu-boot-chain.service` when `multi-user.target` is reached (`OnBootSec=0`, `Persistent=false`). The chain runs `hfu-boot-scan.service`, then `hfu-idle-scan.service`, then `hfu-reboot-notice.service`. The boot pass runs AIDE, rkhunter, chkrootkit, ClamAV and debsums. `Nice` is `HF_WATCHDOG_LIMIT_NICE` (19), `IOSchedulingClass=idle`, `CPUQuota` is `HF_WATCHDOG_CPU_LIMIT` times the CPU count, so 50 is 50% of the whole machine. `/etc/cron.d/high-fortress-user` contains only `SHELL` and `PATH`. The user crontab is not modified. Mail is sent only when a check finds something and `HF_MAIL_ALERTS=1`. `hfu-idle-scan.timer` repeats the deferred scan every hour. `hfu-reboot-notice.timer` repeats the notice every 6 hours, and sends mail when a reboot is useful and no game is running. The rules are in [surveillance.md](surveillance.md). |
+| Lynis    | `HF_LYNIS_MIN_SCORE` is 80. `verify/workstation.sh` accepts a `hardening_index` greater than or equal to that score.                                                                                                                                                                                                                                                                                                                                          |
 | Journals | Install journals are `<source>/logs/install-YYYYMMDD-HHMMSS-user/`. Security journals are `/opt/high-fortress-user/cron/security_logs/`. Journald storage is persistent.                                                                                                                                                                                                                                                                                   |
-| Packages | The Firefox and Thunderbird snaps are removed. `snapd` is kept. The `firefox` package is held. On amd64, the i386 architecture is enabled. Steam is not installed by this program.                                                                                                                                                                                                                                                                         |
+| Packages | The Firefox and Thunderbird snaps stay. `snapd` stays installed. The `firefox` package is not held. This program does not install Brave, Discord, Thunderbird, KeePassXC or Vencord. On amd64, the i386 architecture is enabled. Steam is not installed by this program. |
 | Brave        | `DnsOverHttpsMode` is `off`. `BuiltInDnsClientEnabled` is false. `HttpsOnlyMode` is `force_balanced_enabled`. HTTP stays allowed for `localhost`, `127.0.0.1`, `[::1]`, `[*.]local` and each detected default gateway. WebUSB, WebHID and serial ask. `BrowserGuestModeEnabled` is false. Extensions stay as they are. |
 | Thunderbird  | `mailnews.message_display.disable_remote_image` is true, with status `user`. A remote image loads after a click. HTML reading and attachment download stay. |
 | Session      | The screen locks after 1200 seconds. `lock-enabled` is true, `lock-delay` is 0, and `ubuntu-lock-on-suspend` is true. These keys stay changeable. KeePassXC sets `LockDatabaseScreenLock` and `LockDatabaseIdle` to true, and `LockDatabaseIdleSeconds` to 900. The database path stays. The suspend delay stays. A later configure writes these values again. |
@@ -116,7 +111,7 @@ Values that are not asked are written from `hfu_config_set_builtin_defaults` and
 
 ## Alert emails
 
-Mail is sent only when `HF_MAIL_ALERTS=1`, `WATCHDOG_MAIL` is set, and `/opt/high-fortress-user/cron/bin/send.sh` is executable. A clean check does not send mail. If a journal line is unknown, do not run the command. Keep the mail.
+Mail is sent only when `HF_MAIL_ALERTS=1`, `HF_WATCHDOG_MAIL` is set, and `/opt/high-fortress-user/cron/bin/send.sh` is executable. A clean check does not send mail. If a journal line is unknown, do not run the command. Keep the mail.
 
 A check that stops before its normal end sends mail.
 
@@ -160,7 +155,7 @@ The file shipped by Ubuntu does not match that package checksum.
 
 ### ClamAV on access
 
-The message contains the signature, the file name, the original path and the quarantine path, then the note and a `sudo ls` command. The command is built for the quarantined file named in the mail. A file whose basename matches `.clamav-quarantine-lock.*` does not send mail. The script exits 0 before the journal and before `log_alert`.
+The message contains the signature, the file name, the original path and the quarantine path, then the note and a `sudo ls` command. The command is built for the quarantined file named in the mail. A file whose basename matches `.clamav-quarantine-lock.*` does not send mail. The script exits 0 before the journal and before `hf_log_alert`.
 
 ```bash
 sudo ls -la -- /var/lib/clamav/quarantine/<file>
@@ -321,6 +316,12 @@ sudo bash /opt/high-fortress-user/bin/scan-skip.sh list
 sudo bash /opt/high-fortress-user/bin/scan-skip.sh add /var/jeux/steam
 sudo bash /opt/high-fortress-user/bin/scan-skip.sh del /var/jeux/steam
 ```
+
+The list file is `/opt/high-fortress-user/src/config/clamav/scan-skip.paths`.
+
+An existing list stays in place when the installer runs again.
+
+A list still stored in `/opt/high-fortress-user/cron/scan-skip.paths` is copied once, when the new file is still the template.
 
 | Action | Printed line |
 | --- | --- |

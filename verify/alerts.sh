@@ -29,12 +29,12 @@ elif [[ -n "${1:-}" ]]; then
     exit 2
 fi
 
-DIR_INSTALL_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-export DIR_INSTALL_PATH
+HF_INSTALL_DIRECTORY="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+export HF_INSTALL_DIRECTORY
 # shellcheck disable=SC1091
-source "${DIR_INSTALL_PATH}/config/global.conf"
+source "${HF_INSTALL_DIRECTORY}/config/global.conf"
 
-BASE="${CONFIG_BASE_DIR:-/opt/high-fortress-user}"
+BASE="${HF_CONFIG_BASE_DIRECTORY:-/opt/high-fortress-user}"
 BIN="${BASE}/cron/bin"
 LOG_DIR="${BASE}/cron/security_logs"
 MAIL_CONF="${BASE}/cron/mail.conf"
@@ -49,25 +49,25 @@ FAIL=0
 WARN=0
 REASONS=()
 
-section() {
+hfu_report_section() {
     printf '\n===== %s =====\n' "$1"
 }
 
-note_fail() {
+hfu_record_fail() {
     FAIL=$((FAIL + 1))
     REASONS+=("ECHEC   $*")
 }
 
-note_warn() {
+hfu_record_warn() {
     WARN=$((WARN + 1))
     REASONS+=("A_VOIR  $*")
 }
 
-note_ok() {
+hfu_record_pass() {
     printf 'OK      %s\n' "$*"
 }
 
-unit_word() {
+hfu_check_unit_word() {
     local unit="$1"
     local active
     active="$(systemctl is-active "${unit}" 2>/dev/null || true)"
@@ -88,27 +88,29 @@ else
     printf 'alertes : coupées\n'
 fi
 
-section "PASSE AU DEMARRAGE"
-timer_word="$(unit_word hfu-boot-chain.timer)"
+hfu_report_section "PASSE AU DEMARRAGE"
+timer_word="$(hfu_check_unit_word hfu-boot-chain.timer)"
 printf '%-36s %s\n' "hfu-boot-chain.timer" "${timer_word}"
-[[ "${timer_word}" == "OK" ]] || note_fail "timer de la chaîne de démarrage ${timer_word}"
-idle_word="$(unit_word hfu-idle-scan.timer)"
+[[ "${timer_word}" == "OK" ]] || hfu_record_fail "timer de la chaîne de démarrage ${timer_word}"
+idle_word="$(hfu_check_unit_word hfu-idle-scan.timer)"
 printf '%-36s %s\n' "hfu-idle-scan.timer" "${idle_word}"
-[[ "${idle_word}" == "OK" ]] || note_fail "timer de passe différée ${idle_word}"
+[[ "${idle_word}" == "OK" ]] || hfu_record_fail "timer de passe différée ${idle_word}"
 if [[ -x "${BIN}/boot-scan.sh" ]]; then
-    note_ok "boot-scan.sh exécutable"
+    hfu_record_pass "boot-scan.sh exécutable"
 else
-    note_fail "boot-scan.sh absent de ${BIN}"
+    hfu_record_fail "boot-scan.sh absent de ${BIN}"
 fi
 if [[ -x "${BIN}/idle-scan.sh" ]]; then
-    note_ok "idle-scan.sh exécutable"
+    hfu_record_pass "idle-scan.sh exécutable"
 else
-    note_fail "idle-scan.sh absent de ${BIN}"
+    hfu_record_fail "idle-scan.sh absent de ${BIN}"
 fi
-if [[ -x "${BASE}/bin/scan-skip.sh" && -f "${BASE}/cron/scan-skip.paths" ]]; then
-    note_ok "commande scan-skip.sh et liste des chemins"
+skip_list="${BASE}/src/config/clamav/scan-skip.paths"
+[[ -f "${skip_list}" ]] || skip_list="${BASE}/cron/scan-skip.paths"
+if [[ -x "${BASE}/bin/scan-skip.sh" && -f "${skip_list}" ]]; then
+    hfu_record_pass "commande scan-skip.sh et liste des chemins"
 else
-    note_fail "scan-skip.sh ou scan-skip.paths absent"
+    hfu_record_fail "scan-skip.sh ou scan-skip.paths absent"
 fi
 printf '%-16s %-12s %s\n' "Module" "Script" "Lancé par"
 for pair in "Aide aide.sh" "Rkhunter rkhunter.sh" "Chkrootkit chkrootkit.sh" "Clamav clamav.sh" "Debsums debsums.sh"; do
@@ -121,40 +123,40 @@ for pair in "Aide aide.sh" "Rkhunter rkhunter.sh" "Chkrootkit chkrootkit.sh" "Cl
         word="NON_EXEC"
     fi
     printf '%-16s %-12s %s\n' "${label}" "${word}" "démarrage"
-    [[ "${word}" == "OK" ]] || note_fail "${label} : ${BIN}/${script} inutilisable"
+    [[ "${word}" == "OK" ]] || hfu_record_fail "${label} : ${BIN}/${script} inutilisable"
 done
 
 if [[ -x "${BIN}/clamav-event.sh" ]] && grep -q 'clamav-event.sh' /etc/clamav/clamd.conf 2>/dev/null; then
-    note_ok "ClamAV à l'accès : VirusEvent pointe vers clamav-event.sh"
+    hfu_record_pass "ClamAV à l'accès : VirusEvent pointe vers clamav-event.sh"
 else
-    note_fail "ClamAV à l'accès : VirusEvent ou clamav-event.sh absent"
+    hfu_record_fail "ClamAV à l'accès : VirusEvent ou clamav-event.sh absent"
 fi
 
-section "SERVICES"
+hfu_report_section "SERVICES"
 clam_unit="clamav-clamonacc.service"
-if [[ "$(unit_word clamonacc.service)" == "OK" ]]; then
+if [[ "$(hfu_check_unit_word clamonacc.service)" == "OK" ]]; then
     clam_unit="clamonacc.service"
 fi
 for unit in clamav-daemon.service clamav-freshclam.service "${clam_unit}" fail2ban.service auditd.service crowdsec.service crowdsec-firewall-bouncer.service; do
-    word="$(unit_word "${unit}")"
+    word="$(hfu_check_unit_word "${unit}")"
     printf '%-36s %s\n' "${unit}" "${word}"
-    [[ "${word}" == "OK" ]] || note_fail "service ${unit} ${word}"
+    [[ "${word}" == "OK" ]] || hfu_record_fail "service ${unit} ${word}"
 done
 if [[ "${HF_MAIL_ALERTS:-0}" == "1" ]]; then
-    word="$(unit_word postfix.service)"
+    word="$(hfu_check_unit_word postfix.service)"
     printf '%-36s %s\n' "postfix.service" "${word}"
-    [[ "${word}" == "OK" ]] || note_fail "postfix ${word}"
+    [[ "${word}" == "OK" ]] || hfu_record_fail "postfix ${word}"
 else
-    note_ok "postfix non exigé : alertes coupées"
+    hfu_record_pass "postfix non exigé : alertes coupées"
 fi
 printf 'Fail2Ban, Auditd et CrowdSec n’ont pas de courrier propre. Le courrier vient de la passe et de ClamAV.\n'
 
-section "DERNIER PASSAGE"
+hfu_report_section "DERNIER PASSAGE"
 if systemctl show hfu-boot-scan.service -p ExecMainExitTimestamp --value --no-pager 2>/dev/null | grep -q .; then
     printf 'dernier démarrage de la passe : %s\n' "$(systemctl show hfu-boot-scan.service -p ExecMainExitTimestamp --value --no-pager 2>/dev/null)"
     printf 'résultat systemd               : %s\n' "$(systemctl show hfu-boot-scan.service -p Result --value --no-pager 2>/dev/null)"
 else
-    note_warn "la passe de démarrage n'a pas encore de résultat systemd"
+    hfu_record_warn "la passe de démarrage n'a pas encore de résultat systemd"
 fi
 printf '%-16s %-12s %s\n' "Module" "Journal" "Modifié"
 for name in aide rkhunter chkrootkit clamav debsums; do
@@ -167,36 +169,36 @@ for name in aide rkhunter chkrootkit clamav debsums; do
     fi
 done
 
-section "CHEMIN DU COURRIER"
+hfu_report_section "CHEMIN DU COURRIER"
 if [[ -x "${BIN}/send.sh" ]]; then
-    note_ok "send.sh exécutable"
+    hfu_record_pass "send.sh exécutable"
 else
-    note_fail "send.sh absent de ${BIN}"
+    hfu_record_fail "send.sh absent de ${BIN}"
 fi
 if [[ -f "${BIN}/mail.html" || -f "${BIN}/template/mail.html" ]]; then
-    note_ok "modèle HTML présent"
+    hfu_record_pass "modèle HTML présent"
 else
-    note_fail "modèle HTML absent de ${BIN}"
+    hfu_record_fail "modèle HTML absent de ${BIN}"
 fi
 if command -v mail >/dev/null 2>&1; then
-    note_ok "commande mail présente"
+    hfu_record_pass "commande mail présente"
 else
-    note_fail "commande mail absente"
+    hfu_record_fail "commande mail absente"
 fi
-if [[ "${HF_MAIL_ALERTS:-0}" == "1" && -z "${WATCHDOG_MAIL:-}" ]]; then
-    note_fail "alertes activées sans destinataire"
+if [[ "${HF_MAIL_ALERTS:-0}" == "1" && -z "${HF_WATCHDOG_MAIL:-}" ]]; then
+    hfu_record_fail "alertes activées sans destinataire"
 elif [[ "${HF_MAIL_ALERTS:-0}" == "1" ]]; then
-    note_ok "destinataire défini"
+    hfu_record_pass "destinataire défini"
 else
-    note_ok "aucun destinataire exigé : alertes coupées"
+    hfu_record_pass "aucun destinataire exigé : alertes coupées"
 fi
 
 if [[ "${send}" -eq 0 ]]; then
-    note_ok "essai non lancé (--no-send)"
+    hfu_record_pass "essai non lancé (--no-send)"
 elif [[ "${HF_MAIL_ALERTS:-0}" != "1" ]]; then
-    note_ok "essai non lancé : alertes coupées"
+    hfu_record_pass "essai non lancé : alertes coupées"
 elif [[ "${FAIL}" -ne 0 ]]; then
-    note_warn "essai non lancé : le chemin du courrier a déjà un échec"
+    hfu_record_warn "essai non lancé : le chemin du courrier a déjà un échec"
 else
     stamp="$(date +%Y%m%d-%H%M%S)"
     export DATE="$(date '+%Y-%m-%d %H:%M:%S')"
@@ -205,12 +207,12 @@ else
     export CONTENT="Contrôle High-Fortress User. Ce message confirme que les alertes partent. Jeton ${stamp}."
     export NOTE=""
     export NOTE_CMD=""
-    export PROJECT_NAME="${PROJECT_NAME:-High-Fortress User}"
-    export MAIL_TEMPLATE="${MAIL_TEMPLATE:-mail.html}"
+    export HF_PROJECT_NAME="${HF_PROJECT_NAME:-High-Fortress User}"
+    export HF_MAIL_TEMPLATE="${HF_MAIL_TEMPLATE:-mail.html}"
     started="$(date +%s)"
     probe="$(bash "${BIN}/send.sh" 2>&1 || true)"
     if printf '%s\n' "${probe}" | grep -q 'Mail non envoyé'; then
-        note_fail "essai refusé par send.sh"
+        hfu_record_fail "essai refusé par send.sh"
         printf '%s\n' "${probe}" | sed -n '1,8p'
     else
         ack=""
@@ -220,23 +222,23 @@ else
             [[ -n "${ack}" ]] && break
         done
         if [[ "${ack}" == *status=sent* ]]; then
-            note_ok "essai parti (status=sent, sujet se terminant par Contrôle)"
+            hfu_record_pass "essai parti (status=sent, sujet se terminant par Contrôle)"
         elif [[ "${ack}" == *status=deferred* || "${ack}" == *status=bounced* ]]; then
-            note_fail "essai non remis (SMTP deferred ou bounced)"
+            hfu_record_fail "essai non remis (SMTP deferred ou bounced)"
         elif [[ -z "$(mailq 2>/dev/null | sed -n '1p' | grep -v 'Mail queue is empty' || true)" ]]; then
-            note_warn "essai accepté localement, accusé SMTP pas encore dans le journal"
+            hfu_record_warn "essai accepté localement, accusé SMTP pas encore dans le journal"
         else
-            note_fail "essai encore en file d'attente"
+            hfu_record_fail "essai encore en file d'attente"
         fi
     fi
 fi
 
 if [[ "${#REASONS[@]}" -gt 0 ]]; then
-    section "A CORRIGER"
+    hfu_report_section "A CORRIGER"
     printf '%s\n' "${REASONS[@]}"
 fi
 
-section "RESULTAT"
+hfu_report_section "RESULTAT"
 if [[ "${FAIL}" -eq 0 && "${WARN}" -eq 0 ]]; then
     printf 'Résultat : OK\n'
     exit 0

@@ -16,8 +16,8 @@ Cada fila es un archivo que el instalador escribe, con el modo que el script fij
 | /opt/high-fortress-user/bin/debsums-ignore-log.sh       | Registra las líneas debsums reconocidas.                                                                 | 755                          |
 | /opt/high-fortress-user/cron/bin/*.sh                   | Scripts de control, mail.sh y watchdog.sh compartido. Propietario root.                                 | 750                          |
 | /opt/high-fortress-user/cron/bin/mail.html              | Plantilla de correo.                                                                                     | 644                          |
-| /opt/high-fortress-user/cron/bin/chkrootkit.ignore      | Patrones chkrootkit entregados.                                                                          | 664                          |
-| /opt/high-fortress-user/cron/mail.conf                  | HF_MAIL_ALERTS, WATCHDOG_MAIL, PROJECT_NAME, MAIL_TEMPLATE.                                              | 600                          |
+| /opt/high-fortress-user/src/config/chkrootkit/chkrootkit.ignore | Patrones chkrootkit entregados.                                                                          | 664                          |
+| /opt/high-fortress-user/cron/mail.conf                  | HF_MAIL_ALERTS, HF_WATCHDOG_MAIL, HF_PROJECT_NAME, HF_MAIL_TEMPLATE.                                              | 600                          |
 | /opt/high-fortress-user/cron/rkhunter-mirrors.sha256    | Huella de mirrors.dat después de una actualización lograda.                                              | 600                          |
 | /etc/cron.d/high-fortress-user                          | Solo SHELL y PATH.                                                                                       | 600                          |
 | /etc/systemd/system/hfu-boot-scan.service               | Unidad de la pasada de arranque.                                                                         | 644                          |
@@ -29,14 +29,14 @@ Cada fila es un archivo que el instalador escribe, con el modo que el script fij
 | /etc/systemd/system/hfu-reboot-notice.timer             | Relanza ese aviso cada 6 horas después de la cadena.                                                     | 644                          |
 | /opt/high-fortress-user/bin/scan-skip.sh                | Lista, añade o quita una ruta excluida y reinicia ClamAV cuando el bloque cambia.                         | 755                          |
 | /opt/high-fortress-user/bin/boot-check.sh               | Comprueba que los servicios de seguridad del arranque terminaron esta sesión.                            | 755                          |
-| /opt/high-fortress-user/cron/scan-skip.paths            | Rutas excluidas. Se crea solo cuando el archivo no existe.                                               | 644                          |
+| /opt/high-fortress-user/src/config/clamav/scan-skip.paths | Rutas excluidas. La plantilla se rellena solo cuando el archivo sigue ausente.                           | 644                          |
 | /opt/high-fortress-user/cron/scan-skip.stamp            | Sello de tiempo del análisis diferido.                                                                   | 644                          |
 | /opt/high-fortress-user/cron/scan-skip.seen             | Pares de firma y ruta ya enviados por el análisis diferido.                                              | 600                          |
 | /opt/high-fortress-user/cron/reboot-notice.seen         | Huella del último conjunto de reinicio ya enviado.                                                       | 600                          |
 | /var/jeux                                                   | Directorio vacío para una biblioteca de juegos. No es una cuenta distinta.                               | 750                          |
 | /etc/ssh/sshd_config.d/00-high-fortress-user.conf       | Política SSH de este puesto.                                                                             | 644                          |
 | /etc/ssh/sshd_banner                                    | Banner de acceso.                                                                                        | 644                          |
-| /etc/aide/aide.conf                                     | Política AIDE con CONFIG_BASE_DIR sustituido.                                                            | written by redirection       |
+| /etc/aide/aide.conf                                     | Política AIDE con HF_CONFIG_BASE_DIRECTORY sustituido.                                                            | written by redirection       |
 | /var/lib/aide/aide.db                                   | Base AIDE.                                                                                               | created by aide --init       |
 | /etc/clamav/clamd.conf                                  | Rutas de acceso añadidas por service/clamav/configure.sh.                                                | package file, lines appended |
 | /var/lib/clamav/quarantine                              | Directorio de cuarentena.                                                                                | 750                          |
@@ -47,8 +47,6 @@ Cada fila es un archivo que el instalador escribe, con el modo que el script fij
 | /etc/systemd/system/hfu-unbound-root-hints.path         | Unidad path de las indicaciones raíz.                                                                    | 644                          |
 | /etc/apt/sources.list.d/lynis.list                      | Origen Lynis CISOfy.                                                                                     | 644                          |
 | /etc/apt/keyrings/cisofy-software.gpg                   | Clave Lynis.                                                                                             | 644                          |
-| /etc/apt/sources.list.d/mozilla.sources                 | Origen Thunderbird.                                                                                      | 644                          |
-| /etc/apt/sources.list.d/brave-browser-release.sources   | Origen Brave.                                                                                            | 644                          |
 | /etc/apt/apt.conf.d/51high-fortress-user                | Actualizaciones automáticas, reinicio cortado.                                                           | written by redirection       |
 | /etc/sysctl.d/90-high-fortress-user.conf                | Sysctl del puesto.                                                                                       | 644                          |
 | /etc/sysctl.d/99-zzz-high-fortress-user.conf            | Copia del archivo sysctl aplicada al final.                                                              | 644                          |

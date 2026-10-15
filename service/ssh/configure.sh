@@ -1,30 +1,30 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/ssh/configure.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
-DIR_INSTALL_PATH="${1}"
-export DIR_INSTALL_PATH
+HF_INSTALL_DIRECTORY="${1}"
+export HF_INSTALL_DIRECTORY
 
 # shellcheck disable=SC2155
 readonly DIR_SCRIPT_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 
-source "${DIR_INSTALL_PATH}/core/lib.sh"
-source "${DIR_INSTALL_PATH}/config/global.conf"
+source "${HF_INSTALL_DIRECTORY}/core/lib.sh"
+source "${HF_INSTALL_DIRECTORY}/config/global.conf"
 
-require_root
-detect_ssh_port
+hf_require_root
+hf_get_ssh_port
 
-title "Configuration SSH (drop-in)"
-info "Port détecté : ${SSH_PORT} (conservé)"
-info "Configuration de SSH"
-backup_file_once /etc/ssh/sshd_config
+hf_log_title "Configuration SSH (drop-in)"
+hf_log_info "Port détecté : ${SSH_PORT} (conservé)"
+hf_log_info "Configuration de SSH"
+hf_copy_backup /etc/ssh/sshd_config
 
-ensure_dir /etc/ssh/sshd_config.d 755
+hf_ensure_directory /etc/ssh/sshd_config.d 755
 
-install -m 644 "${DIR_SCRIPT_PATH}/00-high-fortress-user.conf" /etc/ssh/sshd_config.d/00-high-fortress-user.conf
+install -m 644 "$(hf_locate_config_file ssh/00-high-fortress-user.conf)" /etc/ssh/sshd_config.d/00-high-fortress-user.conf
 rm -f /etc/ssh/sshd_config.d/99-high-fortress-user.conf
 
 if [[ -f /etc/ssh/sshd_config ]]; then
@@ -41,11 +41,7 @@ if [[ -f /etc/ssh/sshd_config ]]; then
         && rm -f /etc/ssh/sshd_config.hfu
 
     if ! grep -q 'High-Fortress User permit-root' /etc/ssh/sshd_config; then
-        cat >> /etc/ssh/sshd_config << 'EOF'
-
-Match all
-    PermitRootLogin no
-EOF
+        cat "$(hf_locate_config_file ssh/99-permit-root.conf)" >> /etc/ssh/sshd_config
     fi
 fi
 for snippet in /etc/ssh/sshd_config.d/*.conf; do
@@ -56,23 +52,23 @@ for snippet in /etc/ssh/sshd_config.d/*.conf; do
     fi
 done
 
-ensure_dir "$(dirname "${SSH_BANNER_PATH}")" 755
-ensure_dir /run/sshd 755
-printf '%s\n' "${BANNER_MESSAGE}" > "${SSH_BANNER_PATH}"
-chmod 644 "${SSH_BANNER_PATH}"
+hf_ensure_directory "$(dirname "${HF_SSH_BANNER_PATH}")" 755
+hf_ensure_directory /run/sshd 755
+printf '%s\n' "${HF_BANNER_MESSAGE}" > "${HF_SSH_BANNER_PATH}"
+chmod 644 "${HF_SSH_BANNER_PATH}"
 
-info "Test de syntaxe sshd"
+hf_log_info "Test de syntaxe sshd"
 if ! sshd -t; then
-    error "sshd -t a échoué — drop-in retiré"
+    hf_log_error "sshd -t a échoué — drop-in retiré"
 fi
 root_login="$(sshd -T 2>/dev/null | awk '/^permitrootlogin /{print $2; exit}')"
 if [[ "${root_login}" != "no" ]]; then
-    error "PermitRootLogin effectif : ${root_login:-inconnu}. Attendu : no."
+    hf_log_error "PermitRootLogin effectif : ${root_login:-inconnu}. Attendu : no."
 fi
 
-info "Passage de SSH en service (pas seulement l'activation par socket)"
-try_silent systemctl disable --now ssh.socket
-try_silent systemctl unmask "${SSH_SERVICE_NAME}.service"
-run_silent systemctl enable --now "${SSH_SERVICE_NAME}.service"
-run_silent systemctl reload-or-restart "${SSH_SERVICE_NAME}"
-success "SSH durci (root interdit, mot de passe gardé, port ${SSH_PORT})"
+hf_log_info "Passage de SSH en service (pas seulement l'activation par socket)"
+hf_run_optional systemctl disable --now ssh.socket
+hf_run_optional systemctl unmask "${HF_SSH_SERVICE_NAME}.service"
+hf_run_silent systemctl enable --now "${HF_SSH_SERVICE_NAME}.service"
+hf_run_silent systemctl reload-or-restart "${HF_SSH_SERVICE_NAME}"
+hf_log_success "SSH durci (root interdit, mot de passe gardé, port ${SSH_PORT})"

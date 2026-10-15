@@ -1,66 +1,66 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/postfix/configure.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
-DIR_INSTALL_PATH="${1}"
-export DIR_INSTALL_PATH
+HF_INSTALL_DIRECTORY="${1}"
+export HF_INSTALL_DIRECTORY
 
-source "${DIR_INSTALL_PATH}/core/lib.sh"
-source "${DIR_INSTALL_PATH}/config/global.conf"
-require_root
+source "${HF_INSTALL_DIRECTORY}/core/lib.sh"
+source "${HF_INSTALL_DIRECTORY}/config/global.conf"
+hf_require_root
 
 if [[ "${HF_MAIL_ALERTS:-0}" != "1" ]]; then
-    info "Alertes e-mail coupées : Postfix n'est pas configuré."
+    hf_log_info "Alertes e-mail coupées : Postfix n'est pas configuré."
     exit 0
 fi
 
-title "Identifiants SMTP"
-info "Enregistrement de la carte SASL"
-relay_host="${POSTFIX_MAIL_SMTP%:*}"
-relay_port="${POSTFIX_MAIL_SMTP##*:}"
+hf_log_title "Identifiants SMTP"
+hf_log_info "Enregistrement de la carte SASL"
+relay_host="${HF_POSTFIX_MAIL_SMTP%:*}"
+relay_port="${HF_POSTFIX_MAIL_SMTP##*:}"
 relayhost="[${relay_host}]:${relay_port}"
 install -d -m 755 /etc/postfix
 umask 077
-printf '%s %s:%s\n' "${relayhost}" "${POSTFIX_SMTP_LOGIN}" "${POSTFIX_MAIL_PASS}" \
+printf '%s %s:%s\n' "${relayhost}" "${HF_POSTFIX_SMTP_LOGIN}" "${HF_POSTFIX_MAIL_PASSWORD}" \
     > /etc/postfix/sasl_passwd
 umask 022
-run_silent postmap /etc/postfix/sasl_passwd
+hf_run_silent postmap /etc/postfix/sasl_passwd
 chmod 600 /etc/postfix/sasl_passwd /etc/postfix/sasl_passwd.db
-success "Carte SASL enregistrée (lecture root seulement)"
+hf_log_success "Carte SASL enregistrée (lecture root seulement)"
 
-title "Nom de courrier"
-info "Configuration du nom de courrier"
+hf_log_title "Nom de courrier"
+hf_log_info "Configuration du nom de courrier"
 printf '%s\n' "$(hostname -f)" > /etc/mailname
 chmod 644 /etc/mailname
-success "mailname enregistré ($(hostname -f))"
+hf_log_success "mailname enregistré ($(hostname -f))"
 
-title "Relais et réécriture de l'expéditeur"
-info "Configuration du relais et de l'expéditeur"
-postconf -e "myhostname = $(hostname -f)"
-postconf -e "myorigin = /etc/mailname"
-postconf -e "relayhost = ${relayhost}"
-postconf -e "smtp_sasl_auth_enable = yes"
-postconf -e "smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd"
-postconf -e "smtp_sasl_security_options = noanonymous"
-postconf -e "smtp_tls_security_level = encrypt"
-postconf -e "smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt"
-postconf -e "inet_interfaces = loopback-only"
-postconf -e "inet_protocols = all"
-postconf -e "default_transport = smtp"
-postconf -e "smtpd_banner = ${PROJECT_NAME} ESMTP"
-postconf -e "disable_vrfy_command = yes"
-
-printf '/.*/ %s\n' "${POSTFIX_MAIL_ADDRESS}" > /etc/postfix/sender_canonical
+hf_log_title "Relais et réécriture de l'expéditeur"
+hf_log_info "Configuration du relais et de l'expéditeur"
+printf '/.*/ %s\n' "${HF_POSTFIX_MAIL_ADDRESS}" > /etc/postfix/sender_canonical
 chmod 644 /etc/postfix/sender_canonical
-postconf -e "sender_canonical_maps = regexp:/etc/postfix/sender_canonical"
-success "Expéditeur local réécrit, tout part comme ${POSTFIX_MAIL_ADDRESS}"
 
-info "Redémarrage de Postfix"
-run_silent systemctl restart postfix
+hfu_apply_postfix() {
+    local line key value host
+    host="$(hostname -f)"
+    while IFS= read -r line || [[ -n "${line}" ]]; do
+        [[ -z "${line}" || "${line}" == \#* ]] && continue
+        key="${line%%=*}"
+        value="${line#*=}"
+        value="${value//__HOSTNAME__/${host}}"
+        value="${value//__RELAYHOST__/${relayhost}}"
+        value="${value//__PROJECT_NAME__/${HF_PROJECT_NAME}}"
+        postconf -e "${key} = ${value}"
+    done < "$(hf_locate_config_file postfix/main.cf.keys)"
+}
+hfu_apply_postfix
+hf_log_success "Expéditeur local réécrit, tout part comme ${HF_POSTFIX_MAIL_ADDRESS}"
+
+hf_log_info "Redémarrage de Postfix"
+hf_run_silent systemctl restart postfix
 if ! systemctl is-active --quiet postfix; then
-    error "Postfix n'est pas actif après la configuration."
+    hf_log_error "Postfix n'est pas actif après la configuration."
 fi
-success "Postfix activé, écoute limitée à localhost"
+hf_log_success "Postfix activé, écoute limitée à localhost"

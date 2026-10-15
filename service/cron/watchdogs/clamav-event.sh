@@ -21,7 +21,7 @@ quarantine="/var/lib/clamav/quarantine/${base}"
 LOG_FILE="${LOG_DIR}/clamav-onaccess-${STAMP}.log"
 ALERT_FILE="${ALERT_DIR}/clamav-onaccess-${STAMP}.txt"
 MODULE_NAME="Clamav"
-hfu_arm_crash_mail "ClamAV accès"
+hf_arm_crash_mail "ClamAV accès"
 printf '%s\n' \
     "Signature : ${virus}" \
     "Fichier : ${base}" \
@@ -29,4 +29,4 @@ printf '%s\n' \
     "Quarantaine : ${quarantine}" > "${LOG_FILE}"
 logger -t high-fortress-user -p auth.warning "ClamAV ${virus} origine=${file} quarantaine=${quarantine}"
 HFU_CLAMAV_QUARANTINE="${quarantine}" \
-    log_alert "ClamAV : ${virus} dans ${file}"
+    hf_log_alert "ClamAV : ${virus} dans ${file}"

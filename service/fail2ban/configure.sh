@@ -1,42 +1,25 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/fail2ban/configure.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
-DIR_INSTALL_PATH="${1}"
-export DIR_INSTALL_PATH
+HF_INSTALL_DIRECTORY="${1}"
+export HF_INSTALL_DIRECTORY
 
-source "${DIR_INSTALL_PATH}/core/lib.sh"
-source "${DIR_INSTALL_PATH}/config/global.conf"
-require_root
-detect_ssh_port
+source "${HF_INSTALL_DIRECTORY}/core/lib.sh"
+source "${HF_INSTALL_DIRECTORY}/config/global.conf"
+hf_require_root
+hf_get_ssh_port
 
-title "Configuration Fail2Ban"
-info "Configuration de Fail2Ban"
-tee /etc/fail2ban/jail.local > /dev/null << EOF
-[DEFAULT]
-allowipv6 = auto
-banaction = ufw
-banaction_allports = ufw
-bantime = 1h
-findtime = 10m
-maxretry = 5
-backend = systemd
+hf_log_title "Configuration Fail2Ban"
+hf_log_info "Configuration de Fail2Ban"
+envsubst '$SSH_PORT' < "$(hf_locate_config_file fail2ban/jail.local)" > /etc/fail2ban/jail.local
+chmod 644 /etc/fail2ban/jail.local
+hf_log_success "jail.local posé (sshd port ${SSH_PORT})"
 
-[sshd]
-enabled = true
-port = ${SSH_PORT}
-filter = sshd
-logpath = /var/log/auth.log
-backend = systemd
-maxretry = 5
-bantime = 1h
-EOF
-success "jail.local posé (sshd port ${SSH_PORT})"
-
-info "Activation de Fail2Ban"
-run_silent systemctl enable --now fail2ban
-try_silent fail2ban-client reload
-success "Fail2Ban activé"
+hf_log_info "Activation de Fail2Ban"
+hf_run_silent systemctl enable --now fail2ban
+hf_run_optional fail2ban-client reload
+hf_log_success "Fail2Ban activé"

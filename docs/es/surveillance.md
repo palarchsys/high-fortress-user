@@ -8,7 +8,7 @@
 | ----------------------- | --------------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------- |
 | aide.sh in boot-scan.sh | /etc/aide/aide.conf, database /var/lib/aide/aide.db | Cambios, o un código distinto de cero que no es un resultado limpio. | `sudo bash /opt/high-fortress-user/bin/aide-refresh-db.sh` |
 
-Las rutas volátiles, los diarios, las cachés y los directorios de informes cron están excluidos en `service/aide/aide.conf` para que la base no sea reescrita por esos archivos.
+Las rutas volátiles, los diarios, las cachés y los directorios de informes cron están excluidos en `config/aide/aide.conf` para que la base no sea reescrita por esos archivos.
 
 El bloque de la cuenta se añade después de `!/home/`.
 
@@ -36,7 +36,9 @@ No producen el aviso `Suspicious file types found in /dev`.
 | ----------------------------- | ----------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | chkrootkit.sh in boot-scan.sh | /usr/sbin/chkrootkit -q | Cualquier salida restante después de las listas de exclusión. | `sudo bash /opt/high-fortress-user/bin/chkrootkit-ignore-log.sh '<journal>'` |
 
-Las líneas conocidas están en `cron/bin/chkrootkit.ignore` y en `cron/chkrootkit.local.ignore`. El archivo local se llena solo con la orden del correo, y solo para líneas que usted reconoce.
+Las líneas conocidas están en `src/config/chkrootkit/chkrootkit.ignore` y en `cron/chkrootkit.local.ignore`.
+
+El archivo local se llena solo con la orden del correo, y solo para líneas que usted reconoce.
 
 ## ClamAV al acceso
 
@@ -83,7 +85,7 @@ No es una cuenta distinta.
 
 `.clamav-quarantine-lock.*` es un cerrojo de desplazamiento, no un programa dañino.
 
-`clamav-event.sh` sale con 0 antes de `log_alert`.
+`clamav-event.sh` sale con 0 antes de `hf_log_alert`.
 
 `scan-skip.sh` cambia la lista.
 

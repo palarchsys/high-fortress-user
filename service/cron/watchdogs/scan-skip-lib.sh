@@ -1,14 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/scan-skip-lib.sh
-# Updated at : 2026-10-14
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
 HFU_BASE="${HFU_BASE:-/opt/high-fortress-user}"
-HFU_SCAN_SKIP_FILE="${HFU_BASE}/cron/scan-skip.paths"
 
-hfu_scan_skip_norm() {
+hfu_render_scan_skip_path() {
     python3 - "$1" << 'PY'
 import os
 import sys
@@ -19,14 +18,14 @@ print(os.path.normpath(raw))
 PY
 }
 
-hfu_scan_skip_forbidden() {
+hfu_check_scan_skip_forbidden() {
     printf '%s\n' / /home /opt /tmp /etc /usr /var /boot /root
     if [[ -f /etc/clamav/clamd.conf ]]; then
         awk '/^OnAccessIncludePath[[:space:]]/{print $2}' /etc/clamav/clamd.conf
     fi
 }
 
-hfu_scan_skip_home() {
+hfu_get_scan_skip_home() {
     local line trimmed home homes=""
     if [[ "${HFU_SCAN_SKIP_HOME:-}" =~ ^/home/[^/]+$ ]]; then
         printf '%s\n' "${HFU_SCAN_SKIP_HOME}"
@@ -57,10 +56,10 @@ hfu_scan_skip_home() {
     printf '%s\n' "${homes}"
 }
 
-hfu_scan_skip_accept() {
+hfu_check_scan_skip_path() {
     local norm bad home=""
-    norm="$(hfu_scan_skip_norm "$1")" || return 1
-    home="$(hfu_scan_skip_home || true)"
+    norm="$(hfu_render_scan_skip_path "$1")" || return 1
+    home="$(hfu_get_scan_skip_home || true)"
     if [[ "${norm}" == /var/jeux || "${norm}" == /var/jeux/* ]]; then
         :
     elif [[ -n "${home}" && "${norm}" == "${home}/"* ]]; then
@@ -72,13 +71,13 @@ hfu_scan_skip_accept() {
         [[ -z "${bad}" ]] && continue
         [[ "${norm}" == "${bad}" ]] && return 1
         [[ "${bad}" == "${norm}/"* ]] && return 1
-    done < <(hfu_scan_skip_forbidden)
+    done < <(hfu_check_scan_skip_forbidden)
     [[ "${norm}" =~ ^/home/[^/]+$ ]] && return 1
     printf '%s\n' "${norm}"
 }
 
-hfu_scan_skip_collect() {
-    HFU_SCAN_SKIP_OK=()
+hfu_collect_scan_skip_path() {
+    HFU_SCAN_SKIP_VALID=()
     HFU_SCAN_SKIP_BAD=()
     [[ -f "${HFU_SCAN_SKIP_FILE}" ]] || return 0
     local line norm seen="|"
@@ -86,34 +85,87 @@ hfu_scan_skip_collect() {
         line="${line#"${line%%[![:space:]]*}"}"
         line="${line%"${line##*[![:space:]]}"}"
         [[ -z "${line}" || "${line}" == \#* ]] && continue
-        if norm="$(hfu_scan_skip_accept "${line}")"; then
+        if norm="$(hfu_check_scan_skip_path "${line}")"; then
             [[ "${seen}" == *"|${norm}|"* ]] && continue
             seen="${seen}${norm}|"
-            HFU_SCAN_SKIP_OK+=("${norm}")
+            HFU_SCAN_SKIP_VALID+=("${norm}")
         else
             HFU_SCAN_SKIP_BAD+=("${line}")
         fi
     done < "${HFU_SCAN_SKIP_FILE}"
 }
 
-hfu_scan_skip_ensure_file() {
-    local home="$1"
-    [[ -f "${HFU_SCAN_SKIP_FILE}" ]] && return 0
-    [[ "${home}" =~ ^/home/[^/]+$ && -d "${home}" ]] || return 1
-    install -d -m 755 "${HFU_BASE}/cron"
-    cat > "${HFU_SCAN_SKIP_FILE}" << EOF
-# Chemins exclus du scan bloquant et de la passe de démarrage.
-# home=${home}
-# Un chemin sous ce home, ou sous /var/jeux. Brave, Thunderbird et Discord restent analysés.
-# sudo bash ${HFU_BASE}/bin/scan-skip.sh list
-# sudo bash ${HFU_BASE}/bin/scan-skip.sh add /chemin
-# sudo bash ${HFU_BASE}/bin/scan-skip.sh del /chemin
-${home}/.steam
-${home}/.local/share/Steam
-${home}/.cache
-${home}/snap
-/var/jeux
-EOF
-    chmod 644 "${HFU_SCAN_SKIP_FILE}"
-    chown root:root "${HFU_SCAN_SKIP_FILE}"
+hfu_locate_scan_skip_file() {
+    local here candidate found
+    here="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+    if ! declare -F hf_locate_config_file >/dev/null 2>&1; then
+        for candidate in \
+            "${HF_INSTALL_DIRECTORY:-}/core/fs.sh" \
+            "${here}/../../../core/fs.sh" \
+            "${here}/../../../../core/fs.sh" \
+            "${here}/../../src/core/fs.sh" \
+            "${HFU_BASE}/src/core/fs.sh"
+        do
+            [[ -n "${candidate}" && -f "${candidate}" ]] || continue
+            # shellcheck disable=SC1090
+            source "${candidate}"
+            break
+        done
+    fi
+    if declare -F hf_locate_config_file >/dev/null 2>&1; then
+        if found="$(hf_locate_config_file clamav/scan-skip.paths)"; then
+            printf '%s\n' "${found}"
+            return 0
+        fi
+    fi
+    for candidate in \
+        "${HF_INSTALL_DIRECTORY:-}/config/clamav/scan-skip.paths" \
+        "${here}/../../../config/clamav/scan-skip.paths" \
+        "${here}/../../src/config/clamav/scan-skip.paths" \
+        "${HFU_BASE}/src/config/clamav/scan-skip.paths"
+    do
+        [[ -n "${candidate}" && -f "${candidate}" ]] || continue
+        printf '%s\n' "${candidate}"
+        return 0
+    done
+    if [[ -n "${HF_INSTALL_DIRECTORY:-}" ]]; then
+        printf '%s\n' "${HF_INSTALL_DIRECTORY}/config/clamav/scan-skip.paths"
+        return 0
+    fi
+    printf '%s\n' "${HFU_BASE}/src/config/clamav/scan-skip.paths"
 }
+
+hfu_ensure_scan_skip_file() {
+    local home="$1"
+    local template legacy dest base
+    template="$(hfu_locate_scan_skip_file)"
+    legacy="${HFU_BASE}/cron/scan-skip.paths"
+    dest="${template}"
+    if [[ "${dest}" != "${HFU_BASE}/"* ]]; then
+        if [[ -z "${HF_CONFIG_BASE_DIRECTORY:-}" || "${dest}" != "${HF_CONFIG_BASE_DIRECTORY}/"* ]]; then
+            dest="${HFU_BASE}/src/config/clamav/scan-skip.paths"
+        fi
+    fi
+    HFU_SCAN_SKIP_FILE="${dest}"
+    if [[ -f "${dest}" ]] && ! grep -q '__HOME__' "${dest}"; then
+        return 0
+    fi
+    if [[ -f "${legacy}" ]]; then
+        install -d -m 755 "$(dirname "${dest}")"
+        cp -a "${legacy}" "${dest}"
+        chmod 644 "${dest}"
+        chown root:root "${dest}"
+        return 0
+    fi
+    [[ "${home}" =~ ^/home/[^/]+$ && -d "${home}" ]] || return 1
+    [[ -f "${template}" ]] || return 1
+    base="${HFU_BASE}"
+    install -d -m 755 "$(dirname "${dest}")"
+    sed -e "s|__HOME__|${home}|g" -e "s|__HFU_BASE__|${base}|g" "${template}" > "${dest}.new"
+    cat "${dest}.new" > "${dest}"
+    rm -f "${dest}.new"
+    chmod 644 "${dest}"
+    chown root:root "${dest}"
+}
+
+HFU_SCAN_SKIP_FILE="$(hfu_locate_scan_skip_file)"

@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/apparmor/configure.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
-DIR_INSTALL_PATH="${1}"
-export DIR_INSTALL_PATH
+HF_INSTALL_DIRECTORY="${1}"
+export HF_INSTALL_DIRECTORY
 
-source "${DIR_INSTALL_PATH}/core/lib.sh"
-source "${DIR_INSTALL_PATH}/config/global.conf"
-require_root
+source "${HF_INSTALL_DIRECTORY}/core/lib.sh"
+source "${HF_INSTALL_DIRECTORY}/config/global.conf"
+hf_require_root
 
-title "Activation AppArmor"
-info "Activation d'AppArmor"
-run_silent systemctl enable --now apparmor
-success "AppArmor activé"
-info "Les profils Ubuntu restent en l'état."
-info "La restriction des user namespaces reste celle du système."
+hf_log_title "Activation AppArmor"
+hf_log_info "Activation d'AppArmor"
+hf_run_silent systemctl enable --now apparmor
+hf_log_success "AppArmor activé"
+hf_log_info "Les profils Ubuntu restent en l'état."
+hf_log_info "La restriction des user namespaces reste celle du système."

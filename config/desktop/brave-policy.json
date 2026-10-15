@@ -1,0 +1,9 @@
+{
+  "DnsOverHttpsMode": "off",
+  "BuiltInDnsClientEnabled": false,
+  "HttpsOnlyMode": "force_balanced_enabled",
+  "DefaultWebUsbGuardSetting": 3,
+  "DefaultWebHidGuardSetting": 3,
+  "DefaultSerialGuardSetting": 3,
+  "BrowserGuestModeEnabled": false
+}

@@ -1,0 +1,16 @@
+# =============================================================================
+# File       : config/cron/hfu-boot-chain.service
+# Updated at : 2026-10-15
+# Creator    : palarchsys
+# =============================================================================
+
+[Unit]
+Description=Enchaîne la passe, l'analyse différée et l'avis de redémarrage
+After=multi-user.target
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+ExecStart=-${systemctl_bin} start --wait hfu-boot-scan.service
+ExecStart=-${systemctl_bin} start --wait hfu-idle-scan.service
+ExecStart=-${systemctl_bin} start --wait hfu-reboot-notice.service

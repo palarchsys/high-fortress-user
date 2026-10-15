@@ -1,0 +1,14 @@
+# =============================================================================
+# File       : config/apparmor/hfu-steam
+# Updated at : 2026-10-15
+# Creator    : palarchsys
+# =============================================================================
+
+abi <abi/4.0>,
+include <tunables/global>
+
+profile hfu-steam /usr/{bin/steam,games/steam,lib/steam/bin_steam.sh} flags=(unconfined) {
+  userns,
+
+  include if exists <local/hfu-steam>
+}

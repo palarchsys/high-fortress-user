@@ -1,0 +1,17 @@
+# =============================================================================
+# File       : config/cron/hfu-boot-chain.timer
+# Updated at : 2026-10-15
+# Creator    : palarchsys
+# =============================================================================
+
+[Unit]
+Description=Lance la chaîne de sécurité à chaque démarrage
+
+[Timer]
+OnBootSec=${HFU_BOOT_ON_BOOT_SEC}
+AccuracySec=${HFU_BOOT_ACCURACY}
+Persistent=${HFU_TIMER_PERSISTENT}
+Unit=hfu-boot-chain.service
+
+[Install]
+WantedBy=timers.target

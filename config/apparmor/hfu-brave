@@ -1,0 +1,14 @@
+# =============================================================================
+# File       : config/apparmor/hfu-brave
+# Updated at : 2026-10-15
+# Creator    : palarchsys
+# =============================================================================
+
+abi <abi/4.0>,
+include <tunables/global>
+
+profile hfu-brave /opt/brave.com/brave{,-beta,-nightly}/{brave,chrome} flags=(unconfined) {
+  userns,
+
+  include if exists <local/hfu-brave>
+}

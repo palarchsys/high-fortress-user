@@ -1,101 +1,28 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : system/snap-remove.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
-DIR_INSTALL_PATH="${1}"
-export DIR_INSTALL_PATH
+HF_INSTALL_DIRECTORY="${1}"
+export HF_INSTALL_DIRECTORY
 
-source "${DIR_INSTALL_PATH}/core/lib.sh"
-source "${DIR_INSTALL_PATH}/config/global.conf"
-require_root
-detect_current_user
+source "${HF_INSTALL_DIRECTORY}/core/lib.sh"
+source "${HF_INSTALL_DIRECTORY}/config/global.conf"
+hf_require_root
 
-HFU_ONACCESS_PAUSED=0
-hfu_daemon_reload() {
-    systemctl daemon-reload >/dev/null 2>&1 || true
-}
-hfu_resume_onaccess() {
-    [[ "${HFU_ONACCESS_PAUSED:-0}" -eq 1 ]] || return 0
-    HFU_ONACCESS_PAUSED=0
-    local unit
-    hfu_daemon_reload
-    for unit in clamav-clamonacc.service clamonacc.service; do
-        if systemctl cat "${unit}" >/dev/null 2>&1; then
-            systemctl start "${unit}" >/dev/null 2>&1 || true
-            return 0
-        fi
-    done
-}
-hfu_pause_onaccess() {
-    local unit
-    hfu_daemon_reload
-    for unit in clamav-clamonacc.service clamonacc.service; do
-        if systemctl is-active --quiet "${unit}" 2>/dev/null; then
-            info "Suspension de ${unit}"
-            timeout 20 systemctl stop "${unit}" >/dev/null 2>&1 || true
-            HFU_ONACCESS_PAUSED=1
-        fi
-    done
-    trap hfu_resume_onaccess EXIT
-}
-
-title "Retrait des snaps Firefox et Thunderbird"
+hf_log_title "Conservation de snapd"
 export DEBIAN_FRONTEND=noninteractive
 export NEEDRESTART_MODE=a
 export APT_LISTCHANGES_FRONTEND=none
 
-hfu_pause_onaccess
-if [[ "${HFU_ONACCESS_PAUSED}" -eq 1 ]]; then
-    info "ClamAV en pause le temps de démonter les snaps."
-fi
-
-repair_log="${HF_LOG_DIR:-/var/log/high-fortress-user}/snap-remove.log"
-mkdir -p "$(dirname "${repair_log}")"
-
 rm -f /etc/apt/preferences.d/no-snap.pref
 apt-mark unhold snapd >/dev/null 2>&1 || true
+apt-mark unhold firefox >/dev/null 2>&1 || true
 if ! dpkg-query -W -f '${Status}' snapd 2>/dev/null | grep -q 'install ok'; then
-    info "Réinstallation de snapd."
-    run_silent_apt install -y snapd
+    hf_log_info "Réinstallation de snapd."
+    hf_run_silent_apt install -y snapd
 fi
 
-for name in firefox thunderbird; do
-    if ! command -v snap >/dev/null 2>&1 || ! snap list "${name}" >/dev/null 2>&1; then
-        info "Snap ${name} absent"
-        continue
-    fi
-    info "Arrêt du snap ${name}"
-    timeout 30 snap stop "${name}" </dev/null >>"${repair_log}" 2>&1 || true
-    pkill -f "/snap/${name}/" >/dev/null 2>&1 || true
-    info "Retrait du snap ${name}"
-    if ! timeout 90 snap remove --purge "${name}" </dev/null >>"${repair_log}" 2>&1; then
-        warn "Retrait du snap ${name} non terminé"
-    else
-        success "Snap ${name} retiré"
-    fi
-done
-
-for pkg in firefox thunderbird; do
-    info "Contrôle du paquet de transition ${pkg}"
-    ver="$(dpkg-query -W -f '${Version}' "${pkg}" 2>/dev/null || true)"
-    if [[ "${ver}" == *snap* ]]; then
-        info "Purge du paquet de transition ${pkg}"
-        run_silent_apt purge -y "${pkg}"
-        success "Paquet de transition ${pkg} retiré"
-    fi
-done
-info "Contrôle du blocage du paquet firefox"
-if apt-mark showhold 2>/dev/null | grep -qx firefox; then
-    info "Paquet firefox déjà bloqué"
-else
-    info "Blocage du paquet firefox"
-    apt-mark hold firefox >/dev/null
-    success "Paquet firefox bloqué"
-fi
-
-info "Fin du retrait des snaps Firefox et Thunderbird"
-hfu_resume_onaccess
-success "snapd conservé, Firefox et Thunderbird snaps retirés"
+hf_log_success "snapd conservé. Firefox et Thunderbird ne sont pas retirés."

@@ -1,42 +1,42 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : system/configure.sh
-# Updated at : 2026-10-14
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
-DIR_INSTALL_PATH="${1}"
-export DIR_INSTALL_PATH
+HF_INSTALL_DIRECTORY="${1}"
+export HF_INSTALL_DIRECTORY
 
 # shellcheck disable=SC2155
 readonly DIR_SCRIPT_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 
-source "${DIR_INSTALL_PATH}/core/lib.sh"
-source "${DIR_INSTALL_PATH}/config/global.conf"
+source "${HF_INSTALL_DIRECTORY}/core/lib.sh"
+source "${HF_INSTALL_DIRECTORY}/config/global.conf"
 
-require_root
-detect_current_user
+hf_require_root
+hf_get_current_user
 
-title "Algorithme des mots de passe (Lynis AUTH-9229)"
-info "Configuration d'ENCRYPT_METHOD YESCRYPT (aucun chpasswd, aucun chage)"
+hf_log_title "Algorithme des mots de passe (Lynis AUTH-9229)"
+hf_log_info "Configuration d'ENCRYPT_METHOD YESCRYPT (aucun chpasswd, aucun chage)"
 if grep -q "^ENCRYPT_METHOD" /etc/login.defs; then
     sed -i 's/^ENCRYPT_METHOD.*/ENCRYPT_METHOD YESCRYPT/' /etc/login.defs
 else
     echo "ENCRYPT_METHOD YESCRYPT" >> /etc/login.defs
 fi
-success "YESCRYPT pour les nouveaux hash, anciens intacts"
+hf_log_success "YESCRYPT pour les nouveaux hash, anciens intacts"
 
-title "Bannières (Lynis BANN-7126)"
-info "Pose des bannières"
-backup_file_once /etc/issue
-printf '%s\n' "${BANNER_MESSAGE}" > /etc/issue
+hf_log_title "Bannières (Lynis BANN-7126)"
+hf_log_info "Pose des bannières"
+hf_copy_backup /etc/issue
+printf '%s\n' "${HF_BANNER_MESSAGE}" > /etc/issue
 cp -f /etc/issue /etc/issue.net
-success "Bannières posées (/etc/issue et /etc/issue.net)"
+hf_log_success "Bannières posées (/etc/issue et /etc/issue.net)"
 
-title "Qualité exigée lors d'un changement de mot de passe"
-info "Configuration de pwquality"
+hf_log_title "Qualité exigée lors d'un changement de mot de passe"
+hf_log_info "Configuration de pwquality"
 tee /etc/security/pwquality.conf > /dev/null << EOF
-minlen = ${PWQUALITY_MINLEN}
+minlen = ${HFU_PAM_PASSWORD_MIN_LENGTH}
 minclass = 3
 dcredit = -1
 ucredit = -1
@@ -44,30 +44,30 @@ lcredit = -1
 ocredit = -1
 retry = 3
 EOF
-success "pwquality configuré (minlen=${PWQUALITY_MINLEN}, pas 32 : desktop utilisable)"
+hf_log_success "pwquality configuré (minlen=${HFU_PAM_PASSWORD_MIN_LENGTH}, pas 32 : desktop utilisable)"
 
 if [[ -f /etc/pam.d/common-password ]] && ! grep -q "rounds=65536" /etc/pam.d/common-password; then
     sed -i 's/\(pam_unix\.so.*\)/\1 rounds=65536/' /etc/pam.d/common-password 2>/dev/null || true
 fi
 
-info "Configuration de pam_faillock (pam-auth-update, sans sed sur common-auth)"
+hf_log_info "Configuration de pam_faillock (pam-auth-update, sans sed sur common-auth)"
 tee /etc/security/faillock.conf > /dev/null << EOF
-deny = ${FAILLOCK_DENY}
-unlock_time = ${FAILLOCK_UNLOCK}
-fail_interval = ${FAILLOCK_FAIL_INTERVAL}
+deny = ${HFU_FAILLOCK_DENY}
+unlock_time = ${HFU_FAILLOCK_UNLOCK}
+fail_interval = ${HFU_FAILLOCK_FAIL_INTERVAL}
 even_deny_root
-root_unlock_time = ${FAILLOCK_UNLOCK}
+root_unlock_time = ${HFU_FAILLOCK_UNLOCK}
 EOF
 sed -i '/pam_faillock\.so/d' /etc/pam.d/common-auth /etc/pam.d/common-account 2>/dev/null || true
-install -m 644 "${DIR_SCRIPT_PATH}/pam-configs/faillock" /usr/share/pam-configs/faillock
-install -m 644 "${DIR_SCRIPT_PATH}/pam-configs/faillock-preauth" /usr/share/pam-configs/faillock-preauth
+install -m 644 "$(hf_locate_config_file system/pam-configs/faillock)" /usr/share/pam-configs/faillock
+install -m 644 "$(hf_locate_config_file system/pam-configs/faillock-preauth)" /usr/share/pam-configs/faillock-preauth
 export DEBIAN_FRONTEND=noninteractive
 pam-auth-update --force
 
 pam-auth-update --enable faillock faillock-preauth --force
-success "pam_faillock configuré"
+hf_log_success "pam_faillock configuré"
 
-info "Durcissement de login.defs (UMASK et FAILLOG, comptes existants gardés)"
+hf_log_info "Durcissement de login.defs (UMASK et FAILLOG, comptes existants gardés)"
 if ! grep -q "^UMASK" /etc/login.defs; then
     echo "UMASK 027" >> /etc/login.defs
 else
@@ -78,9 +78,9 @@ grep -q "^SHA_CRYPT_MAX_ROUNDS" /etc/login.defs || echo "SHA_CRYPT_MAX_ROUNDS 65
 sed -i 's/^#*FAILLOG_ENAB.*/FAILLOG_ENAB yes/' /etc/login.defs
 grep -q "^FAILLOG_ENAB" /etc/login.defs || echo "FAILLOG_ENAB yes" >> /etc/login.defs
 
-success "login.defs durci — aucun chage sur ${CURRENT_USER} / root"
+hf_log_success "login.defs durci — aucun chage sur ${CURRENT_USER} / root"
 
-info "Configuration de l'UMASK 027 (pas de TMOUT sur le terminal)"
+hf_log_info "Configuration de l'UMASK 027 (pas de TMOUT sur le terminal)"
 if ! grep -q "^umask" /etc/profile; then
     echo "umask 027" >> /etc/profile
 else
@@ -95,9 +95,9 @@ tee /etc/profile.d/hardening.sh > /dev/null << EOF
 umask 027
 EOF
 chmod 644 /etc/profile.d/hardening.sh
-success "UMASK 027 appliqué"
+hf_log_success "UMASK 027 appliqué"
 
-info "Configuration du sudoers (umask 0022, apt ne crée pas de bibliothèques en 640)"
+hf_log_info "Configuration du sudoers (umask 0022, apt ne crée pas de bibliothèques en 640)"
 
 install -d -m 755 /etc/sudoers.d
 cat > /etc/sudoers.d/high-fortress-user-umask << 'EOF'
@@ -107,24 +107,24 @@ EOF
 chmod 440 /etc/sudoers.d/high-fortress-user-umask
 if ! visudo -cf /etc/sudoers.d/high-fortress-user-umask >/dev/null; then
     rm -f /etc/sudoers.d/high-fortress-user-umask
-    error "sudoers umask invalide — fichier retiré"
+    hf_log_error "sudoers umask invalide — fichier retiré"
 fi
-success "sudoers posé (umask 0022 pour apt et les outils root)"
+hf_log_success "sudoers posé (umask 0022 pour apt et les outils root)"
 
-info "Mémoire sudo de 5 minutes"
+hf_log_info "Mémoire sudo de 5 minutes"
 cat > /etc/sudoers.d/high-fortress-user-timeout << 'EOF'
 Defaults timestamp_timeout=5
 EOF
 chmod 440 /etc/sudoers.d/high-fortress-user-timeout
 if ! visudo -cf /etc/sudoers.d/high-fortress-user-timeout >/dev/null; then
     rm -f /etc/sudoers.d/high-fortress-user-timeout
-    error "sudoers timeout invalide — fichier retiré"
+    hf_log_error "sudoers timeout invalide — fichier retiré"
 fi
-success "sudo redemande le mot de passe après 5 minutes"
+hf_log_success "sudo redemande le mot de passe après 5 minutes"
 
-title "journald persistant (Lynis LOG-*)"
-info "Configuration de journald"
-ensure_dir /etc/systemd/journald.conf.d 755
+hf_log_title "journald persistant (Lynis LOG-*)"
+hf_log_info "Configuration de journald"
+hf_ensure_directory /etc/systemd/journald.conf.d 755
 tee /etc/systemd/journald.conf.d/persistent.conf > /dev/null << EOF
 [Journal]
 Storage=persistent
@@ -133,15 +133,15 @@ RuntimeMaxUse=64M
 ForwardToSyslog=no
 EOF
 rm -f /etc/systemd/journald.conf.d/volatile.conf
-run_silent systemctl restart systemd-journald
-success "Journald rendu persistant"
+hf_run_silent systemctl restart systemd-journald
+hf_log_success "Journald rendu persistant"
 
-title "Sysctl workstation"
-info "Navigateurs et Steam : IPv6 et user namespaces actifs."
+hf_log_title "Sysctl workstation"
+hf_log_info "Navigateurs et Steam : IPv6 et user namespaces actifs."
 
 ip_forward=1
 rp_filter=2
-info "Application du sysctl (ip_forward=1, rp_filter=2)"
+hf_log_info "Application du sysctl (ip_forward=1, rp_filter=2)"
 
 tee /etc/sysctl.d/90-high-fortress-user.conf > /dev/null << EOF
 
@@ -192,22 +192,22 @@ EOF
 
 cp -f /etc/sysctl.d/90-high-fortress-user.conf /etc/sysctl.d/99-zzz-high-fortress-user.conf
 chmod 644 /etc/sysctl.d/90-high-fortress-user.conf /etc/sysctl.d/99-zzz-high-fortress-user.conf
-install -d -m 755 "${CONFIG_BASE_DIR}/cron/bin"
+install -d -m 755 "${HF_CONFIG_BASE_DIRECTORY}/cron/bin"
 install -m 755 "${DIR_SCRIPT_PATH}/hfu-sysctl-apply.sh" \
-    "${CONFIG_BASE_DIR}/cron/bin/hfu-sysctl-apply.sh"
-sed "s|__HF_BASE__|${CONFIG_BASE_DIR}|g" "${DIR_SCRIPT_PATH}/hfu-sysctl.service" \
+    "${HF_CONFIG_BASE_DIRECTORY}/cron/bin/hfu-sysctl-apply.sh"
+sed "s|__HF_BASE__|${HF_CONFIG_BASE_DIRECTORY}|g" "$(hf_locate_config_file system/hfu-sysctl.service)" \
     > /etc/systemd/system/high-fortress-user-sysctl.service
 
 rm -f /etc/systemd/system/docker.service.wants/high-fortress-user-sysctl.service
 rm -f /etc/systemd/system/libvirtd.service.wants/high-fortress-user-sysctl.service
-run_silent systemctl daemon-reload
-run_silent systemctl enable --now high-fortress-user-sysctl.service
-run_silent sysctl --system
-success "Sysctl appliqué"
+hf_run_silent systemctl daemon-reload
+hf_run_silent systemctl enable --now high-fortress-user-sysctl.service
+hf_run_silent sysctl --system
+hf_log_success "Sysctl appliqué"
 
-info "Resserrement des permissions des fichiers lus par Lynis"
+hf_log_info "Resserrement des permissions des fichiers lus par Lynis"
 
-hfu_strict_mode() {
+hfu_apply_strict_mode() {
     local mode="$1" owner="$2" group="$3" path="$4"
     [[ -e "${path}" ]] || return 0
     if dpkg-statoverride --list "${path}" >/dev/null 2>&1; then
@@ -216,12 +216,12 @@ hfu_strict_mode() {
     dpkg-statoverride --update --add "${owner}" "${group}" "${mode}" "${path}" >/dev/null
 }
 for cron_dir in /etc/cron.d /etc/cron.hourly /etc/cron.daily /etc/cron.weekly /etc/cron.monthly; do
-    hfu_strict_mode 700 root root "${cron_dir}"
+    hfu_apply_strict_mode 700 root root "${cron_dir}"
 done
-hfu_strict_mode 600 root root /etc/crontab
-hfu_strict_mode 600 root root /etc/ssh/sshd_config
-hfu_strict_mode 750 root root /etc/sudoers.d
-hfu_strict_mode 640 root lp /etc/cups/cupsd.conf
+hfu_apply_strict_mode 600 root root /etc/crontab
+hfu_apply_strict_mode 600 root root /etc/ssh/sshd_config
+hfu_apply_strict_mode 750 root root /etc/sudoers.d
+hfu_apply_strict_mode 640 root lp /etc/cups/cupsd.conf
 tee /etc/tmpfiles.d/high-fortress-user-cron.conf > /dev/null << 'EOF'
 z /etc/cron.d 0700 root root -
 z /etc/cron.hourly 0700 root root -
@@ -229,9 +229,9 @@ z /etc/cron.daily 0700 root root -
 z /etc/cron.weekly 0700 root root -
 z /etc/cron.monthly 0700 root root -
 EOF
-success "Permissions cron, sudoers, SSH et CUPS resserrées"
+hf_log_success "Permissions cron, sudoers, SSH et CUPS resserrées"
 
-info "Pose du profil Lynis (poste de travail, exceptions documentées)"
+hf_log_info "Pose du profil Lynis (poste de travail, exceptions documentées)"
 mkdir -p /etc/lynis
 tee /etc/lynis/custom.prf > /dev/null << 'EOF'
 machine-role=workstation
@@ -254,10 +254,10 @@ skip-test=TOOL-5002
 skip-test=LOGG-2154
 EOF
 chmod 644 /etc/lynis/custom.prf
-success "custom.prf Lynis posé"
+hf_log_success "custom.prf Lynis posé"
 
-title "Modules : protocoles et systèmes de fichiers inutiles"
-info "Blacklist des protocoles inutiles"
+hf_log_title "Modules : protocoles et systèmes de fichiers inutiles"
+hf_log_info "Blacklist des protocoles inutiles"
 tee /etc/modprobe.d/disable-uncommon-protocols.conf > /dev/null << EOF
 blacklist dccp
 blacklist sctp
@@ -268,9 +268,9 @@ install sctp /bin/true
 install rds /bin/true
 install tipc /bin/true
 EOF
-success "dccp/sctp/rds/tipc blacklistés"
+hf_log_success "dccp/sctp/rds/tipc blacklistés"
 
-info "Blacklist des systèmes de fichiers inutiles"
+hf_log_info "Blacklist des systèmes de fichiers inutiles"
 tee /etc/modprobe.d/disable-unused-fs.conf > /dev/null << 'EOF'
 install cramfs /bin/true
 install freevxfs /bin/true
@@ -285,22 +285,22 @@ blacklist hfsplus
 blacklist jffs2
 blacklist udf
 EOF
-success "FS inutiles blacklistés"
+hf_log_success "FS inutiles blacklistés"
 
 rm -f /etc/modules-load.d/kvm.conf
 
-title "Core dumps désactivés"
-info "Désactivation des core dumps"
+hf_log_title "Core dumps désactivés"
+hf_log_info "Désactivation des core dumps"
 tee /etc/security/limits.d/90-disable-core.conf > /dev/null << EOF
 * soft core 0
 * hard core 0
 EOF
-success "Limites core 0 posées"
+hf_log_success "Limites core 0 posées"
 
-title "Initramfs"
-info "Mise à jour de l'initramfs (modules blacklist)"
-try_silent update-initramfs -u
-success "Initramfs mis à jour (best-effort)"
+hf_log_title "Initramfs"
+hf_log_info "Mise à jour de l'initramfs (modules blacklist)"
+hf_run_optional update-initramfs -u
+hf_log_success "Initramfs mis à jour (best-effort)"
 
-info "Compte ${CURRENT_USER} : mot de passe inchangé."
-success "Configuration système workstation terminée"
+hf_log_info "Compte ${CURRENT_USER} : mot de passe inchangé."
+hf_log_success "Configuration système workstation terminée"

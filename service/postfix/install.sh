@@ -1,24 +1,23 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/postfix/install.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
-DIR_INSTALL_PATH="${1}"
-export DIR_INSTALL_PATH
+HF_INSTALL_DIRECTORY="${1}"
+export HF_INSTALL_DIRECTORY
 
-source "${DIR_INSTALL_PATH}/core/lib.sh"
-source "${DIR_INSTALL_PATH}/config/global.conf"
-require_root
+source "${HF_INSTALL_DIRECTORY}/core/lib.sh"
+source "${HF_INSTALL_DIRECTORY}/config/global.conf"
+hf_require_root
 
-title "Installation de Postfix"
-info "Installation de Postfix (envoi seul, Internet Site)"
-run_silent debconf-set-selections << EOF
-postfix postfix/main_mailer_type select Internet Site
-postfix postfix/mailname string $(hostname -f)
-postfix postfix/destinations string $(hostname -f), localhost.localdomain, localhost
-EOF
-run_silent_apt install --no-install-recommends -y postfix mailutils
-run_silent systemctl enable postfix
-success "Postfix installé"
+hf_log_title "Installation de Postfix"
+hf_log_info "Installation de Postfix (envoi seul, Internet Site)"
+debconf_tmp="$(mktemp)"
+sed "s|__HOSTNAME__|$(hostname -f)|g" "$(hf_locate_config_file postfix/debconf)" | grep -v '^#' > "${debconf_tmp}"
+hf_run_silent debconf-set-selections "${debconf_tmp}"
+rm -f "${debconf_tmp}"
+hf_run_silent_apt install --no-install-recommends -y postfix mailutils
+hf_run_silent systemctl enable postfix
+hf_log_success "Postfix installé"

@@ -12,14 +12,14 @@ source "${HFU_BASE}/cron/bin/common.sh"
 LOG_FILE="${LOG_DIR}/clamav-${STAMP}.log"
 ALERT_FILE="${ALERT_DIR}/clamav-${STAMP}.txt"
 if ! command -v clamscan >/dev/null; then
-    log_ok "clamscan absent — skip"
+    hfu_log_pass "clamscan absent — skip"
     exit 0
 fi
 
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
 source "${HERE}/scan-skip-lib.sh"
-hfu_scan_skip_collect
+hfu_collect_scan_skip_path
 
 onaccess=()
 if [[ -f /etc/clamav/clamd.conf ]]; then
@@ -39,8 +39,8 @@ find_args=()
 for path in "${onaccess[@]}"; do
     find_args+=( -path "${path}" -o -path "${path}/*" -o )
 done
-if [[ ${#HFU_SCAN_SKIP_OK[@]} -gt 0 ]]; then
-    for path in "${HFU_SCAN_SKIP_OK[@]}"; do
+if [[ ${#HFU_SCAN_SKIP_VALID[@]} -gt 0 ]]; then
+    for path in "${HFU_SCAN_SKIP_VALID[@]}"; do
         find_args+=( -path "${path}" -o -path "${path}/*" -o )
     done
 fi
@@ -57,21 +57,21 @@ find /home /opt /tmp \
 
 set +e
 trap '' PIPE
-hfu_clamscan_list "${file_list}" >> "${LOG_FILE}" 2>&1
+hf_list_clamav_scan "${file_list}" >> "${LOG_FILE}" 2>&1
 rc=$?
 trap - PIPE
 set -e
-kind="$(hfu_clam_kind "${LOG_FILE}")"
+kind="$(hf_get_clamav_kind "${LOG_FILE}")"
 if [[ "${kind}" == "ok" && "${rc}" -ne 0 ]]; then
     kind="error"
 fi
 
-hfu_clam_report || true
+hf_report_clamav || true
 if [[ "${kind}" == "infected" ]]; then
-    log_alert "clamscan : infection(s) (voir ${LOG_FILE})"
+    hf_log_alert "clamscan : infection(s) (voir ${LOG_FILE})"
 elif [[ "${kind}" == "error" ]]; then
-    log_alert "clamscan erreur rc=${rc}"
+    hf_log_alert "clamscan erreur rc=${rc}"
 elif ! grep -q 'clamscan planté signal' "${LOG_FILE}"; then
-    log_ok "clamscan OK"
+    hfu_log_pass "clamscan OK"
 fi
 exit 0

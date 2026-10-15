@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/ufw/install.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
-DIR_INSTALL_PATH="${1}"
-export DIR_INSTALL_PATH
+HF_INSTALL_DIRECTORY="${1}"
+export HF_INSTALL_DIRECTORY
 
-source "${DIR_INSTALL_PATH}/core/lib.sh"
-source "${DIR_INSTALL_PATH}/config/global.conf"
-require_root
+source "${HF_INSTALL_DIRECTORY}/core/lib.sh"
+source "${HF_INSTALL_DIRECTORY}/config/global.conf"
+hf_require_root
 
-title "Installation UFW"
-info "Installation d'UFW"
-run_silent_apt install -y ufw
-run_silent systemctl enable ufw
-success "UFW installé"
+hf_log_title "Installation UFW"
+hf_log_info "Installation d'UFW"
+hf_run_silent_apt install -y ufw
+hf_run_silent systemctl enable ufw
+hf_log_success "UFW installé"

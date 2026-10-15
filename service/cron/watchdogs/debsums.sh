@@ -15,7 +15,7 @@ HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 IGNORE="${HERE}/debsums.ignore"
 LOCAL_IGNORE="${HFU_BASE}/cron/debsums.local.ignore"
 if ! command -v debsums >/dev/null; then
-    log_ok "debsums absent — skip"
+    hfu_log_pass "debsums absent — skip"
     exit 0
 fi
 set +e
@@ -24,7 +24,7 @@ rc=$?
 set -e
 crashed=0
 if [[ "${rc}" -ge 128 ]]; then
-    log_alert "$(hfu_crash_sentence "debsums" "${rc}")"
+    hf_log_alert "$(hf_get_crash_sentence "debsums" "${rc}")"
     crashed=1
 fi
 python3 - "${LOG_FILE}" "${IGNORE}" "${LOCAL_IGNORE}" "${HFU_BASE}" << 'PY'
@@ -82,8 +82,8 @@ log_path.write_text(("\n".join(kept) + "\n") if kept else "")
 PY
 if [[ -s "${LOG_FILE}" ]]; then
     HFU_DEBSUMS_IGNORE=1 \
-        log_alert "debsums : fichiers modifiés (voir ${LOG_FILE})"
+        hf_log_alert "debsums : fichiers modifiés (voir ${LOG_FILE})"
 elif [[ "${crashed}" -eq 0 ]]; then
-    log_ok "debsums OK"
+    hfu_log_pass "debsums OK"
 fi
 exit 0

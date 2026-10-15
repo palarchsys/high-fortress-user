@@ -1,35 +1,35 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/rkhunter/init-db.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
-DIR_INSTALL_PATH="${1}"
-export DIR_INSTALL_PATH
+HF_INSTALL_DIRECTORY="${1}"
+export HF_INSTALL_DIRECTORY
 
-source "${DIR_INSTALL_PATH}/core/lib.sh"
-source "${DIR_INSTALL_PATH}/config/global.conf"
-require_root
+source "${HF_INSTALL_DIRECTORY}/core/lib.sh"
+source "${HF_INSTALL_DIRECTORY}/config/global.conf"
+hf_require_root
 
-title "Base de référence rkhunter"
-info "Enregistrement de la base de référence rkhunter"
+hf_log_title "Base de référence rkhunter"
+hf_log_info "Enregistrement de la base de référence rkhunter"
 rk_out=""
 rk_rc=0
 rk_out=$(rkhunter --update --nocolors 2>&1) || rk_rc=$?
 case "${rk_rc}" in
     0|2) ;;
-    *) warn "rkhunter --update rc=${rk_rc} (poursuivi) : ${rk_out}" ;;
+    *) hf_log_warn "rkhunter --update rc=${rk_rc} (poursuivi) : ${rk_out}" ;;
 esac
 
-if [[ ( "${rk_rc}" -eq 0 || "${rk_rc}" -eq 2 ) && -x "${CONFIG_BASE_DIR}/cron/bin/record-mirrors.sh" ]]; then
-    HFU_BASE="${CONFIG_BASE_DIR}" bash "${CONFIG_BASE_DIR}/cron/bin/record-mirrors.sh" save || true
+if [[ ( "${rk_rc}" -eq 0 || "${rk_rc}" -eq 2 ) && -x "${HF_CONFIG_BASE_DIRECTORY}/cron/bin/record-mirrors.sh" ]]; then
+    HFU_BASE="${HF_CONFIG_BASE_DIRECTORY}" bash "${HF_CONFIG_BASE_DIRECTORY}/cron/bin/record-mirrors.sh" save || true
 fi
 
-run_silent rkhunter --propupd
+hf_run_silent rkhunter --propupd
 rk_tmp="/var/lib/rkhunter/tmp"
 if [[ -d "${rk_tmp}" ]]; then
     cp -f -p /etc/passwd "${rk_tmp}/passwd"
     cp -f -p /etc/group "${rk_tmp}/group"
 fi
-success "Baseline rkhunter enregistrée"
+hf_log_success "Baseline rkhunter enregistrée"

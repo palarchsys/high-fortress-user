@@ -1,112 +1,76 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/apparmor/userns.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
-DIR_INSTALL_PATH="${1}"
-export DIR_INSTALL_PATH
+HF_INSTALL_DIRECTORY="${1}"
+export HF_INSTALL_DIRECTORY
 
-source "${DIR_INSTALL_PATH}/core/lib.sh"
-source "${DIR_INSTALL_PATH}/config/global.conf"
-require_root
+source "${HF_INSTALL_DIRECTORY}/core/lib.sh"
+source "${HF_INSTALL_DIRECTORY}/config/global.conf"
+hf_require_root
 
-title "Profils AppArmor userns"
+hf_log_title "Profils AppArmor userns"
 
-profile_covers() {
+hfu_check_userns_profile() {
     local token="$1"
     local self="$2"
     grep -R --exclude="${self}" --exclude-dir=disable --exclude-dir=local \
         -F -q -- "${token}" /etc/apparmor.d 2>/dev/null
 }
 
-install_userns_profile() {
+hfu_install_userns_profile() {
     local file="$1"
     local token="$2"
     local dest="/etc/apparmor.d/${file}"
-    if profile_covers "${token}" "${file}"; then
+    if hfu_check_userns_profile "${token}" "${file}"; then
         rm -f "${dest}"
-        info "${token} déjà couvert — pas de second profil"
+        hf_log_info "${token} déjà couvert — pas de second profil"
         cat >/dev/null
         return 0
     fi
-    info "Chargement du profil userns ${file}"
+    hf_log_info "Chargement du profil userns ${file}"
     cat > "${dest}"
     chmod 644 "${dest}"
     if apparmor_parser -r "${dest}"; then
-        success "Profil userns chargé : ${file}"
+        hf_log_success "Profil userns chargé : ${file}"
     else
-        warn "Profil ${file} refusé par le parseur — retiré"
+        hf_log_warn "Profil ${file} refusé par le parseur — retiré"
         rm -f "${dest}"
     fi
 }
 
-install_userns_profile hfu-brave "/opt/brave.com/brave/brave" << 'EOF'
-abi <abi/4.0>,
-include <tunables/global>
-
-profile hfu-brave /opt/brave.com/brave{,-beta,-nightly}/{brave,chrome} flags=(unconfined) {
-  userns,
-
-  include if exists <local/hfu-brave>
+hfu_write_userns_file() {
+    local file="$1"
+    local token="$2"
+    local rel="$3"
+    grep -v '^#' "$(hf_locate_config_file "apparmor/${rel}")" | hfu_install_userns_profile "${file}" "${token}"
 }
-EOF
 
-install_userns_profile hfu-discord "/usr/share/discord/Discord" << 'EOF'
-abi <abi/4.0>,
-include <tunables/global>
-
-profile hfu-discord /usr/share/{discord/Discord,discord-canary/DiscordCanary,discord-ptb/DiscordPTB} flags=(unconfined) {
-  userns,
-
-  include if exists <local/hfu-discord>
-}
-EOF
+hfu_write_userns_file hfu-brave "/opt/brave.com/brave/brave" hfu-brave
+hfu_write_userns_file hfu-discord "/usr/share/discord/Discord" hfu-discord
 
 if [[ -f /etc/apparmor.d/hfu-telegram ]]; then
-    try_silent apparmor_parser -R /etc/apparmor.d/hfu-telegram
+    hf_run_optional apparmor_parser -R /etc/apparmor.d/hfu-telegram
 fi
 if [[ -f /etc/apparmor.d/hfu-telegram-home ]]; then
-    try_silent apparmor_parser -R /etc/apparmor.d/hfu-telegram-home
+    hf_run_optional apparmor_parser -R /etc/apparmor.d/hfu-telegram-home
 fi
 rm -f /etc/apparmor.d/hfu-telegram /etc/apparmor.d/hfu-telegram-home
 
-if profile_covers "bin_steam.sh" "hfu-steam" \
-    || profile_covers "/usr/games/steam" "hfu-steam" \
-    || profile_covers "/usr/bin/steam" "hfu-steam"; then
+if hfu_check_userns_profile "bin_steam.sh" "hfu-steam" \
+    || hfu_check_userns_profile "/usr/games/steam" "hfu-steam" \
+    || hfu_check_userns_profile "/usr/bin/steam" "hfu-steam"; then
     rm -f /etc/apparmor.d/hfu-steam
-    info "Steam déjà couvert par un profil existant"
+    hf_log_info "Steam déjà couvert par un profil existant"
 else
-    install_userns_profile hfu-steam "/usr/bin/steam-not-covered" << 'EOF'
-abi <abi/4.0>,
-include <tunables/global>
-
-profile hfu-steam /usr/{bin/steam,games/steam,lib/steam/bin_steam.sh} flags=(unconfined) {
-  userns,
-
-  include if exists <local/hfu-steam>
-}
-EOF
+    hfu_write_userns_file hfu-steam "/usr/bin/steam-not-covered" hfu-steam
 fi
 
-install_userns_profile hfu-thunderbird "/usr/lib/thunderbird/thunderbird" << 'EOF'
-abi <abi/4.0>,
-include <tunables/global>
+hfu_write_userns_file hfu-thunderbird "/usr/lib/thunderbird/thunderbird" hfu-thunderbird
 
-profile hfu-thunderbird /usr/lib/thunderbird/thunderbird{,-bin} flags=(unconfined) {
-  userns,
-
-  include if exists <local/hfu-thunderbird>
-}
-
-profile hfu-thunderbird-opt /opt/thunderbird/thunderbird{,-bin} flags=(unconfined) {
-  userns,
-
-  include if exists <local/hfu-thunderbird-opt>
-}
-EOF
-
-info "Rechargement d'AppArmor"
-try_silent systemctl reload apparmor
-success "Profils userns chargés, restriction Ubuntu conservée"
+hf_log_info "Rechargement d'AppArmor"
+hf_run_optional systemctl reload apparmor
+hf_log_success "Profils userns chargés, restriction Ubuntu conservée"

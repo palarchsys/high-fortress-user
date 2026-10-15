@@ -1,0 +1,9 @@
+{  "policies": {
+    "Preferences": {
+      "mailnews.message_display.disable_remote_image": {
+        "Value": true,
+        "Status": "user"
+      }
+    }
+  }
+}

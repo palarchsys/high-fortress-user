@@ -1,0 +1,7 @@
+# =============================================================================
+# File       : config/crowdsec/audit.rule
+# Updated at : 2026-10-15
+# Creator    : palarchsys
+# =============================================================================
+
+-a always,exit -F arch=b64 -F dir=/etc/crowdsec -F perm=wa -F key=crowdsec-config

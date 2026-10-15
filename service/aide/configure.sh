@@ -1,26 +1,26 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/aide/configure.sh
-# Updated at : 2026-10-14
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
-DIR_INSTALL_PATH="${1}"
-export DIR_INSTALL_PATH
+HF_INSTALL_DIRECTORY="${1}"
+export HF_INSTALL_DIRECTORY
 
 # shellcheck disable=SC2155
 readonly DIR_SCRIPT_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 
-source "${DIR_INSTALL_PATH}/core/lib.sh"
-source "${DIR_INSTALL_PATH}/config/global.conf"
-require_root
-detect_current_user
+source "${HF_INSTALL_DIRECTORY}/core/lib.sh"
+source "${HF_INSTALL_DIRECTORY}/config/global.conf"
+hf_require_root
+hf_get_current_user
 
-title "Configuration AIDE"
-info "Configuration d'AIDE"
-ensure_dir /etc/aide 755
-ensure_dir /var/lib/aide 700
-sed "s|__HF_BASE__|${CONFIG_BASE_DIR}|g" "${DIR_SCRIPT_PATH}/aide.conf" > /etc/aide/aide.conf
+hf_log_title "Configuration AIDE"
+hf_log_info "Configuration d'AIDE"
+hf_ensure_directory /etc/aide 755
+hf_ensure_directory /var/lib/aide 700
+sed "s|__HF_BASE__|${HF_CONFIG_BASE_DIRECTORY}|g" "$(hf_locate_config_file aide/aide.conf)" > /etc/aide/aide.conf
 python3 - /etc/aide/aide.conf "${CURRENT_HOME}" << 'PY'
 import sys
 from pathlib import Path
@@ -56,7 +56,7 @@ block.append(end)
 out.extend(block)
 path.write_text("\n".join(out) + "\n")
 PY
-install -d -m 755 "${CONFIG_BASE_DIR}/bin"
-install -m 755 "${DIR_SCRIPT_PATH}/refresh-db.sh" "${CONFIG_BASE_DIR}/bin/aide-refresh-db.sh"
-success "aide.conf posé"
-info "Base AIDE après la purge des paquets et rkhunter."
+install -d -m 755 "${HF_CONFIG_BASE_DIRECTORY}/bin"
+install -m 755 "${DIR_SCRIPT_PATH}/refresh-db.sh" "${HF_CONFIG_BASE_DIRECTORY}/bin/aide-refresh-db.sh"
+hf_log_success "aide.conf posé"
+hf_log_info "Base AIDE après la purge des paquets et rkhunter."

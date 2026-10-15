@@ -1,6 +1,6 @@
 # =============================================================================
-# File       : service/cron/watchdogs/chkrootkit.ignore
-# Updated at : 2026-10-05
+# File       : config/chkrootkit/chkrootkit.ignore
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 

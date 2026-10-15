@@ -1,62 +1,62 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : system/purge.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
-DIR_INSTALL_PATH="${1}"
-export DIR_INSTALL_PATH
+HF_INSTALL_DIRECTORY="${1}"
+export HF_INSTALL_DIRECTORY
 
 # shellcheck disable=SC2034
 # shellcheck disable=SC2155
 readonly DIR_SCRIPT_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 
-source "${DIR_INSTALL_PATH}/core/lib.sh"
-source "${DIR_INSTALL_PATH}/config/global.conf"
+source "${HF_INSTALL_DIRECTORY}/core/lib.sh"
+source "${HF_INSTALL_DIRECTORY}/config/global.conf"
 
-require_root
+hf_require_root
 
-purge_rc_packages() {
+hfu_remove_removed_config_package() {
 
-    title "Purge des paquets rc (Lynis PKGS-7346)"
-    info "Contrôle des paquets rc"
+    hf_log_title "Purge des paquets rc (Lynis PKGS-7346)"
+    hf_log_info "Contrôle des paquets rc"
     mapfile -t rc_all < <(dpkg -l 2>/dev/null | awk '/^rc/{print $2}')
     rc_pkgs=()
     local p
     for p in "${rc_all[@]}"; do
         case "${p}" in
-            grub-pc|grub-pc-bin|grub-gfxpayload-lists) info "rc conservé (boot) : ${p}" ;;
+            grub-pc|grub-pc-bin|grub-gfxpayload-lists) hf_log_info "rc conservé (boot) : ${p}" ;;
             *) rc_pkgs+=("${p}") ;;
         esac
     done
     if [[ ${#rc_pkgs[@]} -gt 0 ]]; then
-        info "Purge des paquets rc (${rc_pkgs[*]})"
-        run_silent_apt purge -y "${rc_pkgs[@]}"
-        success "Paquets rc purgés (${#rc_pkgs[@]})"
+        hf_log_info "Purge des paquets rc (${rc_pkgs[*]})"
+        hf_run_silent_apt purge -y "${rc_pkgs[@]}"
+        hf_log_success "Paquets rc purgés (${#rc_pkgs[@]})"
     else
-        success "Aucun paquet rc à purger"
+        hf_log_success "Aucun paquet rc à purger"
     fi
 }
 
-if [[ "${HF_PURGE_RC_ONLY:-0}" == "1" ]]; then
-    purge_rc_packages
+if [[ "${HF_PURGE_REMOVED_CONFIG_ONLY:-0}" == "1" ]]; then
+    hfu_remove_removed_config_package
     exit 0
 fi
 
 if [[ "${HF_REAPPLY_LOCKS:-0}" == "1" ]]; then
 
-    title "Réapplication des désactivations"
-    info "Le dernier upgrade peut réactiver systemd-coredump."
+    hf_log_title "Réapplication des désactivations"
+    hf_log_info "Le dernier upgrade peut réactiver systemd-coredump."
 else
 
-purge_rc_packages
+hfu_remove_removed_config_package
 
-info "CUPS, bluetooth, avahi et compilateurs inchangés."
-success "Purge workstation terminée"
+hf_log_info "CUPS, bluetooth, avahi et compilateurs inchangés."
+hf_log_success "Purge workstation terminée"
 
 fi
 
-info "Masquage de systemd-coredump"
-try_silent systemctl mask systemd-coredump.socket
-success "systemd-coredump masqué"
+hf_log_info "Masquage de systemd-coredump"
+hf_run_optional systemctl mask systemd-coredump.socket
+hf_log_success "systemd-coredump masqué"

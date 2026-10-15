@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/usbguard/install.sh
-# Updated at : 2026-10-14
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
-DIR_INSTALL_PATH="${1}"
-export DIR_INSTALL_PATH
+HF_INSTALL_DIRECTORY="${1}"
+export HF_INSTALL_DIRECTORY
 
-source "${DIR_INSTALL_PATH}/core/lib.sh"
-source "${DIR_INSTALL_PATH}/config/global.conf"
-require_root
+source "${HF_INSTALL_DIRECTORY}/core/lib.sh"
+source "${HF_INSTALL_DIRECTORY}/config/global.conf"
+hf_require_root
 
-title "Installation USBGuard"
-info "Installation de USBGuard"
-run_silent_apt install -y usbguard usbguard-notifier
-try_silent systemctl disable --now usbguard
-success "USBGuard installé, service arrêté jusqu'à la politique"
+hf_log_title "Installation USBGuard"
+hf_log_info "Installation de USBGuard"
+hf_run_silent_apt install -y usbguard usbguard-notifier
+hf_run_optional systemctl disable --now usbguard
+hf_log_success "USBGuard installé, service arrêté jusqu'à la politique"

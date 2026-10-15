@@ -1,0 +1,14 @@
+# =============================================================================
+# File       : config/apparmor/hfu-discord
+# Updated at : 2026-10-15
+# Creator    : palarchsys
+# =============================================================================
+
+abi <abi/4.0>,
+include <tunables/global>
+
+profile hfu-discord /usr/share/{discord/Discord,discord-canary/DiscordCanary,discord-ptb/DiscordPTB} flags=(unconfined) {
+  userns,
+
+  include if exists <local/hfu-discord>
+}

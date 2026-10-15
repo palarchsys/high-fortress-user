@@ -8,7 +8,7 @@
 | ----------------------- | --------------------------------------------------- | ------------------------------------------------------- | ---------------------------------------------------------- |
 | aide.sh in boot-scan.sh | /etc/aide/aide.conf, database /var/lib/aide/aide.db | Changes, or a non-zero code that is not a clean result. | `sudo bash /opt/high-fortress-user/bin/aide-refresh-db.sh` |
 
-Volatile paths, logs, caches and the cron report directories are excluded in `service/aide/aide.conf` so the baseline is not rewritten by those files.
+Volatile paths, logs, caches and the cron report directories are excluded in `config/aide/aide.conf` so the baseline is not rewritten by those files.
 
 The account block is appended after `!/home/`.
 
@@ -36,7 +36,9 @@ They do not raise `Suspicious file types found in /dev`.
 | ----------------------------- | ----------------------- | -------------------------------------------- | ---------------------------------------------------------------------------- |
 | chkrootkit.sh in boot-scan.sh | /usr/sbin/chkrootkit -q | Any remaining output after the ignore lists. | `sudo bash /opt/high-fortress-user/bin/chkrootkit-ignore-log.sh '<journal>'` |
 
-Known lines live in `cron/bin/chkrootkit.ignore` and in `cron/chkrootkit.local.ignore`. The local file is filled only by the command from the mail, and only for lines you recognize.
+Known lines live in `src/config/chkrootkit/chkrootkit.ignore` and in `cron/chkrootkit.local.ignore`.
+
+The local file is filled only by the command from the mail, and only for lines you recognize.
 
 ## ClamAV on access
 
@@ -83,7 +85,7 @@ It is not a separate account.
 
 `.clamav-quarantine-lock.*` is a move lock, not malware.
 
-`clamav-event.sh` exits 0 before `log_alert`.
+`clamav-event.sh` exits 0 before `hf_log_alert`.
 
 `scan-skip.sh` changes the list.
 

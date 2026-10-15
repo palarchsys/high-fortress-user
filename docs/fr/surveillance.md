@@ -8,7 +8,7 @@
 | ----------------------- | --------------------------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------- |
 | aide.sh in boot-scan.sh | /etc/aide/aide.conf, database /var/lib/aide/aide.db | Des changements, ou un code non nul qui n'est pas un résultat propre. | `sudo bash /opt/high-fortress-user/bin/aide-refresh-db.sh` |
 
-Les chemins volatils, les journaux, les caches et les répertoires de rapports cron sont exclus dans `service/aide/aide.conf` afin que la base ne soit pas réécrite par ces fichiers.
+Les chemins volatils, les journaux, les caches et les répertoires de rapports cron sont exclus dans `config/aide/aide.conf` afin que la base ne soit pas réécrite par ces fichiers.
 
 Le bloc du compte est ajouté après `!/home/`.
 
@@ -36,7 +36,9 @@ Ils ne produisent pas l'avertissement `Suspicious file types found in /dev`.
 | ----------------------------- | ----------------------- | --------------------------------------------------- | ---------------------------------------------------------------------------- |
 | chkrootkit.sh in boot-scan.sh | /usr/sbin/chkrootkit -q | Toute sortie restante après les listes d'exclusion. | `sudo bash /opt/high-fortress-user/bin/chkrootkit-ignore-log.sh '<journal>'` |
 
-Les lignes connues sont dans `cron/bin/chkrootkit.ignore` et dans `cron/chkrootkit.local.ignore`. Le fichier local est rempli seulement par la commande du courrier, et seulement pour des lignes que vous reconnaissez.
+Les lignes connues sont dans `src/config/chkrootkit/chkrootkit.ignore` et dans `cron/chkrootkit.local.ignore`.
+
+Le fichier local est rempli seulement par la commande du courrier, et seulement pour des lignes que vous reconnaissez.
 
 ## ClamAV à l'accès
 
@@ -83,7 +85,7 @@ Ce n'est pas un compte séparé.
 
 `.clamav-quarantine-lock.*` est un verrou de déplacement, pas un logiciel malveillant.
 
-`clamav-event.sh` sort en 0 avant `log_alert`.
+`clamav-event.sh` sort en 0 avant `hf_log_alert`.
 
 `scan-skip.sh` modifie la liste.
 

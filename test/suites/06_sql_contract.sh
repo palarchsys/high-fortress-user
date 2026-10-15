@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : test/suites/06_sql_contract.sh
-# Updated at : 2026-10-14
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
-hf_section "contrat SQL"
+hft_section "contrat SQL"
 root=""
-here="${HF_ROOT}"
+here="${HFT_ROOT}"
 while [[ "${here}" != "/" ]]; do
     if [[ -f "${here}/agents/laws/server.md" ]]; then
         root="${here}"
@@ -26,12 +26,12 @@ if [[ -n "${root}" ]]; then
 fi
 
 if [[ -z "${root}" ]]; then
-    hf_fail "sql.contract" "agents/laws/server.md introuvable au-dessus du produit"
+    hft_fail "sql.contract" "agents/laws/server.md introuvable au-dessus du produit"
 elif [[ -f "${sql_server}" || -f "${sql_web}" ]]; then
-    hf_fail "sql.contract" "001_tables.sql est revenu dans server ou src/web"
+    hft_fail "sql.contract" "001_tables.sql est revenu dans server ou src/web"
 elif ! grep -qF 'high-fortress-web' "${law}" \
     || ! grep -qF 'ne crée pas les tables' "${law}"; then
-    hf_fail "sql.contract" "la loi serveur doit laisser les tables à high-fortress-web"
+    hft_fail "sql.contract" "la loi serveur doit laisser les tables à high-fortress-web"
 else
-    hf_pass "sql.contract" "tables générées par high-fortress-web, aucune copie dans server ni src/web"
+    hft_pass "sql.contract" "tables générées par high-fortress-web, aucune copie dans server ni src/web"
 fi

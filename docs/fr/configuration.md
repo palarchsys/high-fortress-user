@@ -2,60 +2,60 @@
 
 # Configuration
 
-Les noms et les défauts ci-dessous sont le `user/config/global.conf` livré et `hfu_config_set_builtin_defaults`. Les crochets d'une question sont la valeur qu'Entrée conserve.
+Les noms et les défauts ci-dessous sont le `user/config/global.conf` livré et `hfu_set_config_default`. Les crochets d'une question sont la valeur qu'Entrée conserve.
 
 ## Variables générales
 
 | Nom                        | Défaut                                                           | Effet                                                                                              |
 | -------------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| HF_PREPARED                | 1                                                                | Doit valoir 1, sinon le contrôle refuse les fichiers.                                              |
-| PROJECT_NAME               | High-Fortress User                                               | Affiché dans le courrier. Non demandé.                                                             |
-| PROJECT_SLUG               | high-fortress-user                                               | Fixé par le contrôle. Construit `CONFIG_BASE_DIR`.                                                 |
-| PROJECT_VERSION            | 0.2                                                              | Enregistrée. Non demandée.                                                                         |
-| CONFIG_BASE_DIR            | /opt/high-fortress-user                                          | Racine d'exécution. Dérivée de `PROJECT_SLUG`.                                                     |
-| SECRETS_DIR                | /opt/high-fortress-user/secrets                                  | Créé en mode 700. `secrets.conf` n'y est pas écrit.                                                |
-| DEBUG_INSTALL_LOGS         | 0                                                                | Présent dans le fichier. Les journaux d'installation vont toujours dans `<source>/logs/`.         |
-| MODE_TEST                  | 1                                                                | Demandé. `1` saute la question de retrait à la fin. `0` la pose.                                   |
-| LYNIS_MIN_SCORE            | 80                                                               | Indice de durcissement minimum accepté. Non demandé.                                               |
+| HF_CONFIG_PREPARED                | 1                                                                | Doit valoir 1, sinon le contrôle refuse les fichiers.                                              |
+| HF_PROJECT_NAME               | High-Fortress User                                               | Affiché dans le courrier. Non demandé.                                                             |
+| HFU_PROJECT_SLUG               | high-fortress-user                                               | Fixé par le contrôle. Construit `HF_CONFIG_BASE_DIRECTORY`.                                                 |
+| HF_PROJECT_VERSION            | 0.2                                                              | Enregistrée. Non demandée.                                                                         |
+| HF_CONFIG_BASE_DIRECTORY            | /opt/high-fortress-user                                          | Racine d'exécution. Dérivée de `HFU_PROJECT_SLUG`.                                                     |
+| HF_SECRET_DIRECTORY                | /opt/high-fortress-user/secrets                                  | Créé en mode 700. `secrets.conf` n'y est pas écrit.                                                |
+| HF_DEBUG_INSTALL_LOG         | 0                                                                | Présent dans le fichier. Les journaux d'installation vont toujours dans `<source>/logs/`.         |
+| HF_MODE_TEST                  | 1                                                                | Demandé. `1` saute la question de retrait à la fin. `0` la pose.                                   |
+| HF_LYNIS_MIN_SCORE            | 80                                                               | Indice de durcissement minimum accepté. Non demandé.                                               |
 | HFU_OS_ID                  | ubuntu                                                           | Fixé par le contrôle.                                                                              |
 | HFU_OS_VERSION             | 26.04                                                            | Fixé par le contrôle.                                                                              |
-| BANNER_MESSAGE             | text in global.conf                                              | Écrit dans `/etc/ssh/sshd_banner`. Non demandé.                                                    |
-| SSH_BANNER_PATH            | /etc/ssh/sshd_banner                                             | Fichier de bannière. Non demandé.                                                                  |
-| SSH_SERVICE_NAME           | ssh                                                              | Nom du service. Non demandé.                                                                       |
-| SSH_MAX_AUTH_TRIES         | 4                                                                | sshd `MaxAuthTries`. Non demandé.                                                                  |
-| SSH_CLIENT_ALIVE_INTERVAL  | 300                                                              | Intervalle sshd en secondes. Non demandé.                                                          |
-| SSH_CLIENT_ALIVE_COUNT_MAX | 2                                                                | Nombre de sondes sshd. Non demandé.                                                                |
-| SSH_LOGIN_GRACE_TIME       | 30                                                               | Délai sshd en secondes. Non demandé.                                                               |
-| PWQUALITY_MINLEN           | 12                                                               | Longueur minimale dans `/etc/security/pwquality.conf`. Non demandée.                               |
-| FAILLOCK_DENY              | 8                                                                | Échecs avant verrouillage. Non demandé.                                                            |
-| FAILLOCK_UNLOCK            | 600                                                              | Secondes de verrouillage. Non demandé.                                                             |
-| FAILLOCK_FAIL_INTERVAL     | 900                                                              | Fenêtre de comptage des échecs. Non demandée.                                                      |
-| WATCHDOG_CPU_LIMIT         | 50                                                               | Pourcentage de la machine pour une passe. L'unité écrit `CPUQuota` comme ce nombre fois le nombre de CPU. Non demandé. |
-| WATCHDOG_LIMIT_NICE        | 19                                                               | Valeur nice de la passe de démarrage. Non demandée.                                                |
-| WATCHDOG_LIMIT_IONICE      | 3                                                                | Classe ionice enregistrée dans le fichier. Le timer utilise `IOSchedulingClass=idle`. Non demandé. |
+| HF_BANNER_MESSAGE             | text in global.conf                                              | Écrit dans `/etc/ssh/sshd_banner`. Non demandé.                                                    |
+| HF_SSH_BANNER_PATH            | /etc/ssh/sshd_banner                                             | Fichier de bannière. Non demandé.                                                                  |
+| HF_SSH_SERVICE_NAME           | ssh                                                              | Nom du service. Non demandé.                                                                       |
+| HF_SSH_MAX_AUTH_TRIES         | 4                                                                | sshd `MaxAuthTries`. Non demandé.                                                                  |
+| HF_SSH_CLIENT_ALIVE_INTERVAL  | 300                                                              | Intervalle sshd en secondes. Non demandé.                                                          |
+| HF_SSH_CLIENT_ALIVE_COUNT_MAX | 2                                                                | Nombre de sondes sshd. Non demandé.                                                                |
+| HFU_SSH_LOGIN_GRACE_TIME       | 30                                                               | Délai sshd en secondes. Non demandé.                                                               |
+| HFU_PAM_PASSWORD_MIN_LENGTH           | 12                                                               | Longueur minimale dans `/etc/security/pwquality.conf`. Non demandée.                               |
+| HFU_FAILLOCK_DENY              | 8                                                                | Échecs avant verrouillage. Non demandé.                                                            |
+| HFU_FAILLOCK_UNLOCK            | 600                                                              | Secondes de verrouillage. Non demandé.                                                             |
+| HFU_FAILLOCK_FAIL_INTERVAL     | 900                                                              | Fenêtre de comptage des échecs. Non demandée.                                                      |
+| HF_WATCHDOG_CPU_LIMIT         | 50                                                               | Pourcentage de la machine pour une passe. L'unité écrit `CPUQuota` comme ce nombre fois le nombre de CPU. Non demandé. |
+| HF_WATCHDOG_LIMIT_NICE        | 19                                                               | Valeur nice de la passe de démarrage. Non demandée.                                                |
+| HF_WATCHDOG_LIMIT_IO_NICE      | 3                                                                | Classe ionice enregistrée dans le fichier. Le timer utilise `IOSchedulingClass=idle`. Non demandé. |
 | HF_MAIL_ALERTS             | 1 in the shipped file, 0 in the builtin default until you answer | Posé par la réponse sur les alertes.                                                               |
-| MAIL_TEMPLATE              | mail.html                                                        | Modèle HTML copié dans `cron/bin`. Non demandé.                                                    |
+| HF_MAIL_TEMPLATE              | mail.html                                                        | Modèle HTML copié dans `cron/bin`. Non demandé.                                                    |
 
 ## secrets.conf
 
-Le fichier est écrit dans `config/`, à côté de `global.conf`, mode `600`, propriétaire root. Il n'est pas écrit dans `SECRETS_DIR`. Les valeurs ne sont pas listées ici.
+Le fichier est écrit dans `config/`, à côté de `global.conf`, mode `600`, propriétaire root. Il n'est pas écrit dans `HF_SECRET_DIRECTORY`. Les valeurs ne sont pas listées ici.
 
 | Nom                  | Où           | Règle                                                            |
 | -------------------- | ------------ | ---------------------------------------------------------------- |
-| UBUNTU_PRO_TOKEN     | secrets.conf | Demandé. Obligatoire. Lettres et chiffres, 6 à 100.              |
-| POSTFIX_SMTP_LOGIN   | secrets.conf | Demandé seulement si les alertes sont activées.                  |
-| POSTFIX_MAIL_ADDRESS | secrets.conf | Adresse From. Copiée aussi dans `WATCHDOG_MAIL`.                 |
-| POSTFIX_MAIL_PASS    | secrets.conf | Mot de passe d'application, 8 à 128 caractères, espaces retirés. |
-| POSTFIX_MAIL_SMTP    | secrets.conf | `hôte:port` sans crochets.                                       |
-| WATCHDOG_MAIL        | secrets.conf | Même valeur que `POSTFIX_MAIL_ADDRESS`.                          |
-| HF_SECRETS_PREPARED  | secrets.conf | Posé à 1 par l'écriture. Non demandé.                            |
+| HF_UBUNTU_PRO_TOKEN     | secrets.conf | Demandé. Obligatoire. Lettres et chiffres, 6 à 100.              |
+| HF_POSTFIX_SMTP_LOGIN   | secrets.conf | Demandé seulement si les alertes sont activées.                  |
+| HF_POSTFIX_MAIL_ADDRESS | secrets.conf | Adresse From. Copiée aussi dans `HF_WATCHDOG_MAIL`.                 |
+| HF_POSTFIX_MAIL_PASSWORD    | secrets.conf | Mot de passe d'application, 8 à 128 caractères, espaces retirés. |
+| HF_POSTFIX_MAIL_SMTP    | secrets.conf | `hôte:port` sans crochets.                                       |
+| HF_WATCHDOG_MAIL        | secrets.conf | Même valeur que `HF_POSTFIX_MAIL_ADDRESS`.                          |
+| HF_SECRET_PREPARED  | secrets.conf | Posé à 1 par l'écriture. Non demandé.                            |
 
 ## Variables par service
 
 | Nom                           | Défaut                                    | Effet                                                                      |
 | ----------------------------- | ----------------------------------------- | -------------------------------------------------------------------------- |
 | OnAccessIncludePath           | Téléchargements et Bureau                 | `xdg-user-dir`, ou `$HOME/Downloads` et `$HOME/Desktop`.                   |
-| OnAccessExcludePath           | scan-skip.paths                           | Chemins acceptés sous le home de l'utilisateur, ou sous `/var/jeux`. |
+| OnAccessExcludePath           | config/clamav/scan-skip.paths             | Chemins acceptés sous le home de l'utilisateur, ou sous `/var/jeux`. |
 | OnAccessExcludeUname          | clamav                                    | L'utilisateur du scanner est exclu.                                        |
 | OnAccessExcludeRootUID        | yes                                       | Root est exclu de l'analyse à l'accès sur ce poste.                        |
 | OnAccessMaxFileSize           | 25M                                       | Les fichiers plus gros ne sont pas analysés à l'accès.                     |
@@ -65,7 +65,7 @@ Le fichier est écrit dans `config/`, à côté de `global.conf`, mode `600`, pr
 | hfu-idle-scan.timer           | OnUnitActiveSec=1h, Persistent=false      | Même Nice, mêmes entrées-sorties idle et même quota CPU que la passe de démarrage. Pas de délai fixe après le démarrage. |
 | hfu-reboot-notice.timer       | OnUnitActiveSec=6h, Persistent=false      | Même quota. Le script ne redémarre pas la machine. |
 | scan-skip.sh                  | /opt/high-fortress-user/bin/scan-skip.sh  | Relance `clamav-daemon` et `clamonacc` lorsque le bloc d'exclusion change. |
-| database_in                   | /var/lib/aide/aide.db                     | `__HF_BASE__` dans `service/aide/aide.conf` devient `CONFIG_BASE_DIR`.     |
+| database_in                   | /var/lib/aide/aide.db                     | `__HF_BASE__` dans `config/aide/aide.conf` devient `HF_CONFIG_BASE_DIRECTORY`.     |
 
 ## Docker
 
@@ -73,4 +73,4 @@ Ce poste n'a pas d'arbre `docker/`. Aucune image, étiquette, port ou volume n'e
 
 ## Non demandé, et généré
 
-Les valeurs demandées sont le jeton Ubuntu Pro, le choix des alertes, les champs SMTP lorsque les alertes sont activées, et `MODE_TEST`. Tout le reste des tableaux n'est pas demandé. Rien n'est généré avec `openssl`. `HF_MAIL_ALERTS` vaut `1` ou `0` selon la réponse. Les champs de courrier vides sont écrits lorsque les alertes sont coupées.
+Les valeurs demandées sont le jeton Ubuntu Pro, le choix des alertes, les champs SMTP lorsque les alertes sont activées, et `HF_MODE_TEST`. Tout le reste des tableaux n'est pas demandé. Rien n'est généré avec `openssl`. `HF_MAIL_ALERTS` vaut `1` ou `0` selon la réponse. Les champs de courrier vides sont écrits lorsque les alertes sont coupées.

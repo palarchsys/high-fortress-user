@@ -1,0 +1,16 @@
+# =============================================================================
+# File       : config/cron/hfu-idle-scan.service
+# Updated at : 2026-10-15
+# Creator    : palarchsys
+# =============================================================================
+
+[Unit]
+Description=Analyse différée des chemins exclus du scan bloquant
+After=local-fs.target multi-user.target
+
+[Service]
+Type=oneshot
+Nice=${HF_WATCHDOG_LIMIT_NICE}
+IOSchedulingClass=idle
+CPUQuota=${cpu_quota}%
+ExecStart=${HF_CONFIG_BASE_DIRECTORY}/cron/bin/idle-scan.sh

@@ -1,0 +1,24 @@
+# =============================================================================
+# File       : config/rkhunter/rkhunter.conf.local
+# Updated at : 2026-10-15
+# Creator    : palarchsys
+# =============================================================================
+
+UPDATE_MIRRORS=1
+MIRRORS_MODE=0
+WEB_CMD=""
+UPDATE_LANG="en"
+SCRIPTWHITELIST=/usr/bin/lwp-request
+ALLOWDEVFILE=/dev/shm/sem.haveged_sem
+ALLOWDEVFILE=/dev/shm/*
+ALLOWDEVFILE=/dev/shm/*/*
+ALLOWDEVFILE=/dev/shm/*/*/*
+ALLOWDEVFILE=/dev/log
+ALLOWHIDDENFILE=/etc/.resolv.conf.systemd-resolved.bak
+ALLOWHIDDENFILE=/etc/.updated
+ALLOWHIDDENDIR=/home/${HFU_ACCOUNT_USER}/.steam
+ALLOWHIDDENDIR=/home/${HFU_ACCOUNT_USER}/.local/share/Steam
+ALLOWHIDDENDIR=/home/${HFU_ACCOUNT_USER}/.config/discord
+ALLOWHIDDENDIR=/home/${HFU_ACCOUNT_USER}/.config/BraveSoftware
+ALLOWHIDDENDIR=/home/${HFU_ACCOUNT_USER}/.thunderbird
+ALLOWHIDDENDIR=/snap

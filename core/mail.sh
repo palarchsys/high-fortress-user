@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : core/mail.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
-hf_mail_template_name_ok() {
+hf_check_mail_template_name() {
     [[ "${1:-}" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*\.html$ ]]
 }
 
-hf_mail_die() {
-    if declare -F error >/dev/null 2>&1; then
-        error "$*"
+hf_log_mail_fatal() {
+    if declare -F hf_log_error >/dev/null 2>&1; then
+        hf_log_error "$*"
     fi
     printf '%s\n' "$*" >&2
     exit 1
@@ -19,13 +19,13 @@ hf_mail_die() {
 
 hf_install_mail_templates() {
     local dest="$1"
-    local src="${DIR_INSTALL_PATH:?}/template"
-    local chosen="${MAIL_TEMPLATE:-mail.html}"
+    local src="${HF_INSTALL_DIRECTORY:?}/template"
+    local chosen="${HF_MAIL_TEMPLATE:-mail.html}"
     local f base n=0
     local nullglob_was=0
-    [[ -d "${dest}" ]] || hf_mail_die "dossier d'installation des modèles absent (${dest})"
-    [[ -d "${src}" ]] || hf_mail_die "dossier template absent (${src})"
-    hf_mail_template_name_ok "${chosen}" || hf_mail_die "MAIL_TEMPLATE invalide (${chosen}). exemple : mail.html"
+    [[ -d "${dest}" ]] || hf_log_mail_fatal "dossier d'installation des modèles absent (${dest})"
+    [[ -d "${src}" ]] || hf_log_mail_fatal "dossier template absent (${src})"
+    hf_check_mail_template_name "${chosen}" || hf_log_mail_fatal "HF_MAIL_TEMPLATE invalide (${chosen}). exemple : mail.html"
 
     if shopt -q nullglob; then
         nullglob_was=1
@@ -33,7 +33,7 @@ hf_install_mail_templates() {
     shopt -s nullglob
     for f in "${src}/"*.html; do
         base="$(basename -- "${f}")"
-        hf_mail_template_name_ok "${base}" || hf_mail_die "nom de modèle refusé (${base}). exemple : mail.html"
+        hf_check_mail_template_name "${base}" || hf_log_mail_fatal "nom de modèle refusé (${base}). exemple : mail.html"
         cp -f -- "${f}" "${dest}/${base}"
         chmod 644 "${dest}/${base}"
         n=$((n + 1))
@@ -41,16 +41,16 @@ hf_install_mail_templates() {
     if [[ "${nullglob_was}" -eq 0 ]]; then
         shopt -u nullglob
     fi
-    [[ "${n}" -ge 1 ]] || hf_mail_die "aucun fichier .html dans ${src}"
-    [[ -f "${dest}/${chosen}" ]] || hf_mail_die "modèle ${chosen} absent de ${src}"
+    [[ "${n}" -ge 1 ]] || hf_log_mail_fatal "aucun fichier .html dans ${src}"
+    [[ -f "${dest}/${chosen}" ]] || hf_log_mail_fatal "modèle ${chosen} absent de ${src}"
 }
 
-hf_mail_resolve_name() {
+hf_get_mail_name() {
     local here="${1:-}"
     local conf line
     local -a confs=()
-    [[ -n "${DIR_INSTALL_PATH:-}" ]] && confs+=("${DIR_INSTALL_PATH}/config/global.conf")
-    [[ -n "${CONFIG_BASE_DIR:-}" ]] && confs+=("${CONFIG_BASE_DIR}/src/config/global.conf")
+    [[ -n "${HF_INSTALL_DIRECTORY:-}" ]] && confs+=("${HF_INSTALL_DIRECTORY}/config/global.conf")
+    [[ -n "${HF_CONFIG_BASE_DIRECTORY:-}" ]] && confs+=("${HF_CONFIG_BASE_DIRECTORY}/src/config/global.conf")
     if [[ -n "${here}" ]]; then
         confs+=(
             "${here}/../../src/config/global.conf"
@@ -60,27 +60,27 @@ hf_mail_resolve_name() {
     fi
     for conf in "${confs[@]}"; do
         [[ -f "${conf}" ]] || continue
-        line="$(awk -F= '/^MAIL_TEMPLATE=/{gsub(/"/,"",$2); gsub(/[[:space:]]/,"",$2); print $2; exit}' "${conf}")"
+        line="$(awk -F= '/^HF_MAIL_TEMPLATE=/{gsub(/"/,"",$2); gsub(/[[:space:]]/,"",$2); print $2; exit}' "${conf}")"
         if [[ -n "${line}" ]]; then
             printf '%s\n' "${line}"
             return 0
         fi
     done
-    if [[ -n "${MAIL_TEMPLATE:-}" ]]; then
-        printf '%s\n' "${MAIL_TEMPLATE}"
+    if [[ -n "${HF_MAIL_TEMPLATE:-}" ]]; then
+        printf '%s\n' "${HF_MAIL_TEMPLATE}"
         return 0
     fi
     printf '%s\n' "mail.html"
 }
 
-hf_mail_template_file() {
+hf_locate_mail_template() {
     local here="${1:-}"
     local name dir
     local -a dirs=()
-    name="$(hf_mail_resolve_name "${here}")"
-    hf_mail_template_name_ok "${name}" || return 1
-    [[ -n "${DIR_INSTALL_PATH:-}" ]] && dirs+=("${DIR_INSTALL_PATH}/template")
-    [[ -n "${CONFIG_BASE_DIR:-}" ]] && dirs+=("${CONFIG_BASE_DIR}/src/template")
+    name="$(hf_get_mail_name "${here}")"
+    hf_check_mail_template_name "${name}" || return 1
+    [[ -n "${HF_INSTALL_DIRECTORY:-}" ]] && dirs+=("${HF_INSTALL_DIRECTORY}/template")
+    [[ -n "${HF_CONFIG_BASE_DIRECTORY:-}" ]] && dirs+=("${HF_CONFIG_BASE_DIRECTORY}/src/template")
     if [[ -n "${here}" ]]; then
         dirs+=(
             "${here}/../../src/template"
@@ -139,7 +139,7 @@ try:
 except OSError as exc:
     print(f"modèle illisible : {exc}", file=sys.stderr)
     sys.exit(1)
-for key in ("TITLE", "PROJECT_NAME", "HOSTNAME", "DATE", "MODULE_NAME"):
+for key in ("TITLE", "HF_PROJECT_NAME", "HOSTNAME", "DATE", "MODULE_NAME"):
     tpl = tpl.replace("${" + key + "}", html.escape(os.environ.get(key, ""), quote=False))
 tpl = tpl.replace("${CONTENT}", html.escape(content, quote=False))
 if note and note_cmd:

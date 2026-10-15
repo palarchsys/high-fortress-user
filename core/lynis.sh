@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : core/lynis.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
@@ -14,7 +14,7 @@ if [[ -z "${root}" || ! -d "${root}" ]]; then
     exit 2
 fi
 if [[ -z "${auditor}" && -f "${root}/config/global.conf" ]]; then
-    auditor="$(awk -F= '/^PROJECT_SLUG=/{gsub(/["'\'']/, "", $2); gsub(/[[:space:]]/, "", $2); print $2; exit}' "${root}/config/global.conf")"
+    auditor="$(awk -F= '/^HFU_PROJECT_SLUG=/{gsub(/["'\'']/, "", $2); gsub(/[[:space:]]/, "", $2); print $2; exit}' "${root}/config/global.conf")"
 fi
 auditor="${auditor:-high-fortress}"
 if [[ "${EUID}" -ne 0 ]]; then
@@ -37,4 +37,4 @@ chmod 640 /var/log/lynis.log /var/log/lynis-report.dat 2>/dev/null || true
 } > "${out}/summary.txt"
 # shellcheck disable=SC1091
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/log.sh"
-printf 'Rapport : %s\n' "$(hf_disp_path "${out}")"
+printf 'Rapport : %s\n' "$(hf_show_path "${out}")"

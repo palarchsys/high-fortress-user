@@ -12,12 +12,12 @@ source "${HFU_BASE}/cron/bin/common.sh"
 LOG_FILE="${LOG_DIR}/rkhunter-${STAMP}.log"
 ALERT_FILE="${ALERT_DIR}/rkhunter-${STAMP}.txt"
 if ! command -v rkhunter >/dev/null; then
-    log_ok "rkhunter absent — skip"
+    hfu_log_pass "rkhunter absent — skip"
     exit 0
 fi
 if [[ -x "${HFU_BASE}/cron/bin/record-mirrors.sh" ]]; then
     if ! bash "${HFU_BASE}/cron/bin/record-mirrors.sh" check; then
-        log_alert "mirrors.dat modifié hors rkhunter --update"
+        hf_log_alert "mirrors.dat modifié hors rkhunter --update"
     fi
 fi
 rk_rc=0
@@ -37,12 +37,12 @@ rkhunter --check --skip-keypress --report-warnings-only --nocolors >> "${LOG_FIL
 rc=$?
 set -e
 if [[ "${rc}" -ge 128 ]]; then
-    log_alert "$(hfu_crash_sentence "rkhunter" "${rc}")"
+    hf_log_alert "$(hf_get_crash_sentence "rkhunter" "${rc}")"
 elif [[ "${rc}" -ge 2 ]]; then
-    log_alert "rkhunter erreur rc=${rc}"
+    hf_log_alert "rkhunter erreur rc=${rc}"
 elif [[ "${rc}" -eq 1 ]]; then
-    log_alert "rkhunter warnings (voir ${LOG_FILE})"
+    hf_log_alert "rkhunter warnings (voir ${LOG_FILE})"
 else
-    log_ok "rkhunter OK"
+    hfu_log_pass "rkhunter OK"
 fi
 exit 0

@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : core/log.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
-blue()    { printf "\e[34m%s\e[0m\n"               "$*" >&2; }
-violet()  { printf "\e[35m%s\e[0m\n"               "$*" >&2; }
-red()     { printf "\e[31m%s\e[0m\n"               "$*" >&2; }
+hf_set_color_blue()    { printf "\e[34m%s\e[0m\n"               "$*" >&2; }
+hf_set_color_violet()  { printf "\e[35m%s\e[0m\n"               "$*" >&2; }
+hf_set_color_red()     { printf "\e[31m%s\e[0m\n"               "$*" >&2; }
 
-hf_fit() {
+hf_get_fit_width() {
     local text="$1"
     local max="${2:-62}"
     local n="${#text}"
@@ -24,7 +24,7 @@ hf_fit() {
     printf '%s...' "${text:0:$((max - 3))}"
 }
 
-hf_disp_path() {
+hf_show_path() {
     local p="$1"
     case "$p" in
         */logs|*/logs/*)
@@ -59,7 +59,7 @@ hf_shorten_logs_paths() {
     printf '%s%s' "$out" "$rest"
 }
 
-_hf_emit() {
+hf_emit_log() {
     local tag="$1"
     local msg="$2"
     local max="$3"
@@ -67,7 +67,7 @@ _hf_emit() {
         msg="$(hf_shorten_logs_paths "$msg")"
     fi
     if (( max > 0 )); then
-        msg="$(hf_fit "$msg" "$max")"
+        msg="$(hf_get_fit_width "$msg" "$max")"
     fi
     case "$tag" in
         INFO)    printf "   \e[34m   [INFO]\e[0m  %s\n" "$msg" >&2 ;;
@@ -77,60 +77,60 @@ _hf_emit() {
     esac
 }
 
-info()    { _hf_emit INFO    "$*" "${HF_FIT_MAX:-62}"; }
-success() { _hf_emit SUCCESS "$*" "${HF_FIT_MAX:-62}"; }
-warn()    { _hf_emit WARNING "$*" "${HF_FIT_MAX:-62}"; }
-debug()   { _hf_emit DEBUG   "$*" 0; }
+hf_log_info()    { hf_emit_log INFO    "$*" "${HF_LOG_FIT_MAX:-62}"; }
+hf_log_success() { hf_emit_log SUCCESS "$*" "${HF_LOG_FIT_MAX:-62}"; }
+hf_log_warn()    { hf_emit_log WARNING "$*" "${HF_LOG_FIT_MAX:-62}"; }
+hf_log_debug()   { hf_emit_log DEBUG   "$*" 0; }
 
-require_root() {
-    [[ "$EUID" -eq 0 ]] || error "Ce script doit être exécuté avec sudo ou en root."
+hf_require_root() {
+    [[ "$EUID" -eq 0 ]] || hf_log_error "Ce script doit être exécuté avec sudo ou en root."
 }
 
-step_on() {
+hf_set_step_visible() {
 
     if [[ "${HF_STEP_BANNERS:-0}" -eq 1 ]]; then
         echo "" >&2
     fi
     HF_STEP_BANNERS=1
-    violet "═════════════════════════════════════════════════════════════════════════════════"
-    violet " # $*"
-    violet "═══ ↓ ↓ ═════════════════════════════════════════════════════════════════ ↓ ↓ ═══"
+    hf_set_color_violet "═════════════════════════════════════════════════════════════════════════════════"
+    hf_set_color_violet " # $*"
+    hf_set_color_violet "═══ ↓ ↓ ═════════════════════════════════════════════════════════════════ ↓ ↓ ═══"
 }
 
-step_off() {
+hf_set_step_hidden() {
     echo "" >&2
-    violet "═══ ↑ ↑ ═════════════════════════════════════════════════════════════════ ↑ ↑ ═══"
-    violet " # $*"
-    violet "═════════════════════════════════════════════════════════════════════════════════"
-    echo "" >&2
-}
-
-title() {
-    echo "" >&2
-    blue "  -----------------------------------------------------------------------------"
-    blue "   $*"
-    blue "  -----------------------------------------------------------------------------"
+    hf_set_color_violet "═══ ↑ ↑ ═════════════════════════════════════════════════════════════════ ↑ ↑ ═══"
+    hf_set_color_violet " # $*"
+    hf_set_color_violet "═════════════════════════════════════════════════════════════════════════════════"
     echo "" >&2
 }
 
-error (){
+hf_log_title() {
+    echo "" >&2
+    hf_set_color_blue "  -----------------------------------------------------------------------------"
+    hf_set_color_blue "   $*"
+    hf_set_color_blue "  -----------------------------------------------------------------------------"
+    echo "" >&2
+}
+
+hf_log_error (){
     echo ""
-    red "  -----------------------------------------------------------------------------"
-    red "   $*"
-    red "  -----------------------------------------------------------------------------"
+    hf_set_color_red "  -----------------------------------------------------------------------------"
+    hf_set_color_red "   $*"
+    hf_set_color_red "  -----------------------------------------------------------------------------"
     echo ""
     if [[ -n "${HF_LOG_DIR:-}" ]]; then
         printf '%s\n' "$*" >> "${HF_LOG_DIR}/errors.log" 2>/dev/null || true
-        info "Journaux : ${HF_LOG_DIR}"
+        hf_log_info "Journaux : ${HF_LOG_DIR}"
     fi
     exit 1
 }
 
-hf_debug_logs_enabled() {
-    [[ "${HF_DEBUG_INSTALL_LOGS:-0}" == "1" || "${DEBUG_INSTALL_LOGS:-0}" == "1" ]]
+hf_check_debug_log() {
+    [[ "${HF_DEBUG_INSTALL_LOGS:-0}" == "1" || "${HF_DEBUG_INSTALL_LOG:-0}" == "1" ]]
 }
 
-hf_log_path_is_private() {
+hf_check_log_path_private() {
     local path="$1"
     local base
     base="$(basename "${path}")"
@@ -149,7 +149,7 @@ hf_log_path_is_private() {
 
 hf_publish_repo_logs() {
     local path="${1:-}"
-    local root="${DIR_INSTALL_PATH:-}"
+    local root="${HF_INSTALL_DIRECTORY:-}"
     [[ -n "$path" && -e "$path" && -n "$root" ]] || return 0
     local abs_root abs_path
     abs_root="$(cd "$root" 2>/dev/null && pwd)" || return 0
@@ -164,7 +164,7 @@ hf_publish_repo_logs() {
     og="$(stat -c '%u:%g' "$abs_root" 2>/dev/null || true)"
 
     if [[ -f "$path" ]]; then
-        if hf_log_path_is_private "$path"; then
+        if hf_check_log_path_private "$path"; then
             rm -f "$path"
             return 0
         fi
@@ -176,7 +176,7 @@ hf_publish_repo_logs() {
     fi
 
     while IFS= read -r file; do
-        if hf_log_path_is_private "$file"; then
+        if hf_check_log_path_private "$file"; then
             rm -f "$file"
         fi
     done < <(find "$path" -type f -print 2>/dev/null)
@@ -210,13 +210,13 @@ hf_log_index_append() {
     fi
 }
 
-init_install_log() {
-    local root="${DIR_INSTALL_PATH:-.}"
+hf_init_install_log() {
+    local root="${HF_INSTALL_DIRECTORY:-.}"
     local stamp name kind old_umask
     stamp="$(date '+%Y%m%d-%H%M%S')"
-    kind="${SERVER_TYPE:-}"
+    kind="${HFS_SERVER_TYPE:-}"
     if [[ -z "${kind}" ]]; then
-        if declare -F hf_is_workstation >/dev/null 2>&1 && hf_is_workstation; then
+        if declare -F hf_check_workstation >/dev/null 2>&1 && hf_check_workstation; then
             kind="user"
         else
             kind="unknown"
@@ -235,13 +235,13 @@ init_install_log() {
     export HF_LOG_DIR HF_LOG_FILE HF_LOG_SYS
 
     {
-        echo "${PROJECT_NAME:-High-Fortress} install log"
+        echo "${HF_PROJECT_NAME:-High-Fortress} install log"
         echo "date        : $(date -Iseconds)"
         echo "hostname    : $(hostname 2>/dev/null || echo '?')"
         echo "user        : ${CURRENT_USER:-}"
-        echo "SERVER_TYPE : ${SERVER_TYPE:-}"
-        echo "MODE_TEST   : ${MODE_TEST:-}"
-        echo "MODE_DEV    : ${MODE_DEV:-}"
+        echo "HFS_SERVER_TYPE : ${HFS_SERVER_TYPE:-}"
+        echo "HF_MODE_TEST   : ${HF_MODE_TEST:-}"
+        echo "HFS_MODE_DEV    : ${HFS_MODE_DEV:-}"
         echo "DIR         : ${root}"
         echo "log dir     : ${HF_LOG_DIR}"
         echo "uname       : $(uname -a 2>/dev/null || true)"
@@ -265,7 +265,7 @@ hf_collect_common_snapshot() {
         uname -a
         echo "---"
         echo "CURRENT_USER=${CURRENT_USER:-}"
-        echo "SERVER_TYPE=${SERVER_TYPE:-}"
+        echo "HFS_SERVER_TYPE=${HFS_SERVER_TYPE:-}"
     } > "${snap}/host.txt" 2>&1 || true
 
     {
@@ -293,7 +293,7 @@ hf_collect_common_snapshot() {
     aa-status > "${snap}/apparmor-status.txt" 2>&1 || true
 }
 
-collect_install_logs() {
+hf_collect_install_log() {
     [[ -n "${HF_LOG_DIR:-}" && -d "${HF_LOG_DIR}" ]] || return 0
     [[ "${HF_LOGS_COLLECTED:-0}" == "1" ]] && return 0
     HF_LOGS_COLLECTED=1
@@ -301,7 +301,7 @@ collect_install_logs() {
 
     local snap="${HF_LOG_DIR}/snapshot"
     mkdir -p "$snap"
-    info "Copie : ${snap}"
+    hf_log_info "Copie : ${snap}"
     hf_collect_common_snapshot "${snap}"
 
     if declare -F hf_collect_product_logs >/dev/null 2>&1; then
@@ -312,20 +312,20 @@ collect_install_logs() {
     fi
 
     {
-        echo "collect_install_logs: $(date -Iseconds)"
+        echo "hf_collect_install_log: $(date -Iseconds)"
         echo "dossier : ${HF_LOG_DIR}"
         echo "voir install.log, errors.log et steps/INDEX.tsv"
         echo "logiciels : snapshot/software/ et snapshot/journal/"
     } > "${snap}/COLLECTED.txt"
 
-    info "Journaux logiciels copiés"
+    hf_log_info "Journaux logiciels copiés"
     hf_publish_repo_logs "${HF_LOG_DIR}"
 }
 
 hf_install_exit() {
     local code=$?
     if [[ "${code}" -ne 0 ]]; then
-        collect_install_logs || true
+        hf_collect_install_log || true
     fi
     hf_publish_repo_logs "${HF_LOG_DIR:-}" || true
 }
@@ -340,11 +340,11 @@ hf_ask() {
     fi
     echo "" >&2
     printf '         \e[34m%*s\e[0m : ' "${width}" "${label}" >&2
-    IFS= read -r value < /dev/tty || error "Entrée interrompue."
+    IFS= read -r value < /dev/tty || hf_log_error "Entrée interrompue."
     printf -v "${__var}" '%s' "${value}"
 }
 
-hf_installer_dir_ok() {
+hf_check_installer_directory() {
     local root="$1"
     local base="$2"
     [[ -n "${root}" && "${root}" == /* && -d "${root}" ]] || return 1
@@ -367,9 +367,9 @@ hf_installer_dir_ok() {
 
 hf_remove_installer_tree() {
     local root="" base="" mail="" conf="" tmp="" back="" rm_rc=0
-    root="$(cd -- "${DIR_INSTALL_PATH:?}" && pwd -P)" || return 1
-    base="$(cd -- "${CONFIG_BASE_DIR:?}" && pwd -P)" || return 1
-    hf_installer_dir_ok "${root}" "${base}" || return 1
+    root="$(cd -- "${HF_INSTALL_DIRECTORY:?}" && pwd -P)" || return 1
+    base="$(cd -- "${HF_CONFIG_BASE_DIRECTORY:?}" && pwd -P)" || return 1
+    hf_check_installer_directory "${root}" "${base}" || return 1
     if [[ -f "${root}/core/mail.sh" ]]; then
         mail="${root}/core/mail.sh"
     elif [[ -f "${root}/../core/mail.sh" ]]; then
@@ -410,60 +410,60 @@ hf_remove_installer_tree() {
 }
 
 hf_refresh_aide_after_remove() {
-    local base="${CONFIG_BASE_DIR:-}"
+    local base="${HF_CONFIG_BASE_DIRECTORY:-}"
     local log="/var/lib/aide/hf-remove-refresh.log"
     local aide_rc=0
     [[ -n "${base}" && -f /etc/aide/aide.conf ]] || return 0
     command -v aide >/dev/null 2>&1 || return 0
     grep -qF -- "${base}" /etc/aide/aide.conf || return 0
-    info "Recalcul de la base AIDE (plusieurs minutes)"
+    hf_log_info "Recalcul de la base AIDE (plusieurs minutes)"
     mkdir -p /var/lib/aide || {
-        warn "Base AIDE non recalculée."
+        hf_log_warn "Base AIDE non recalculée."
         return 0
     }
     rm -f /var/lib/aide/aide.db.new /var/lib/aide/aide.db.new.gz
     aide --config=/etc/aide/aide.conf --init >"${log}" 2>&1 || aide_rc=$?
     if [[ -f /var/lib/aide/aide.db.new.gz ]]; then
         if ! mv -f /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz; then
-            warn "Base AIDE non recalculée."
+            hf_log_warn "Base AIDE non recalculée."
             return 0
         fi
         ln -sfn /var/lib/aide/aide.db.gz /var/lib/aide/aide.db || true
     elif [[ -f /var/lib/aide/aide.db.new ]]; then
         if ! mv -f /var/lib/aide/aide.db.new /var/lib/aide/aide.db; then
-            warn "Base AIDE non recalculée."
+            hf_log_warn "Base AIDE non recalculée."
             return 0
         fi
     else
-        warn "Base AIDE non recalculée."
-        HF_FIT_MAX=0 warn "Détail : ${log}"
+        hf_log_warn "Base AIDE non recalculée."
+        HF_LOG_FIT_MAX=0 hf_log_warn "Détail : ${log}"
         return 0
     fi
     if [[ "${aide_rc}" -ne 0 ]]; then
-        warn "Code aide ${aide_rc}. La base produite est en service."
+        hf_log_warn "Code aide ${aide_rc}. La base produite est en service."
     fi
-    success "Base AIDE recalculée"
+    hf_log_success "Base AIDE recalculée"
     return 0
 }
 
 hf_offer_remove_installer() {
     local root="" base="" answer="" rc=0
-    if [[ "${MODE_TEST:-0}" == "1" || "${MODE_DEV:-0}" == "1" ]]; then
+    if [[ "${HF_MODE_TEST:-0}" == "1" || "${HFS_MODE_DEV:-0}" == "1" ]]; then
         return 0
     fi
     if [[ ! -r /dev/tty ]]; then
-        warn "Pas de terminal : l'installeur est conservé."
+        hf_log_warn "Pas de terminal : l'installeur est conservé."
         return 0
     fi
-    root="$(cd -- "${DIR_INSTALL_PATH:?}" && pwd -P)" || {
-        warn "Suppression annulée : répertoire refusé."
+    root="$(cd -- "${HF_INSTALL_DIRECTORY:?}" && pwd -P)" || {
+        hf_log_warn "Suppression annulée : répertoire refusé."
         return 0
     }
-    base="${CONFIG_BASE_DIR:-}"
+    base="${HF_CONFIG_BASE_DIRECTORY:-}"
 
-    title "Suppression de l'installeur"
-    info "Supprimer l'installeur et ses journaux ? (Y/N)"
-    HF_FIT_MAX=0 info "Répertoire : ${root}"
+    hf_log_title "Suppression de l'installeur"
+    hf_log_info "Supprimer l'installeur et ses journaux ? (Y/N)"
+    HF_LOG_FIT_MAX=0 hf_log_info "Répertoire : ${root}"
     while true; do
         hf_ask "Supprimer" answer
         answer="${answer#"${answer%%[![:space:]]*}"}"
@@ -471,33 +471,33 @@ hf_offer_remove_installer() {
         case "${answer,,}" in
             y) break ;;
             n) return 0 ;;
-            *) warn "Répondez Y ou N." ;;
+            *) hf_log_warn "Répondez Y ou N." ;;
         esac
     done
-    info "Retrait de l'installeur"
+    hf_log_info "Retrait de l'installeur"
     hf_remove_installer_tree || rc=$?
     echo "" >&2
     case "${rc}" in
         0)
-            success "Installeur retiré."
-            info "Services, secrets et cron conservés."
+            hf_log_success "Installeur retiré."
+            hf_log_info "Services, secrets et cron conservés."
             if [[ ! -e "${root}/hf" && ! -e "${base}/src/hf" ]]; then
-                info "La commande hf n'est plus disponible."
+                hf_log_info "La commande hf n'est plus disponible."
             fi
             hf_refresh_aide_after_remove || true
             ;;
         1)
-            warn "Suppression annulée : répertoire refusé."
+            hf_log_warn "Suppression annulée : répertoire refusé."
             ;;
         2)
-            warn "Suppression annulée : fichier utile absent."
+            hf_log_warn "Suppression annulée : fichier utile absent."
             ;;
         3)
-            warn "Suppression incomplète."
+            hf_log_warn "Suppression incomplète."
             hf_refresh_aide_after_remove || true
             ;;
         *)
-            warn "Installeur retiré, fichiers utiles non reposés."
+            hf_log_warn "Installeur retiré, fichiers utiles non reposés."
             hf_refresh_aide_after_remove || true
             ;;
     esac
@@ -505,24 +505,24 @@ hf_offer_remove_installer() {
 }
 
 hf_collect_manual() {
-    local root="${DIR_INSTALL_PATH:-.}"
+    local root="${HF_INSTALL_DIRECTORY:-.}"
     local stamp name old_umask
     stamp="$(date '+%Y%m%d-%H%M%S')"
     name="snapshot-${stamp}-$(hostname -s 2>/dev/null || hostname)"
-    SERVER_TYPE="${SERVER_TYPE:-manual}"
+    HFS_SERVER_TYPE="${HFS_SERVER_TYPE:-manual}"
     HF_LOG_DIR="${root}/logs/${name}"
     HF_LOG_SYS=""
     old_umask="$(umask)"
     umask 022
     mkdir -p "${HF_LOG_DIR}/snapshot"
     umask "${old_umask}"
-    export HF_LOG_DIR HF_LOG_SYS SERVER_TYPE
+    export HF_LOG_DIR HF_LOG_SYS HFS_SERVER_TYPE
     unset HF_LOGS_COLLECTED
-    collect_install_logs
-    info "Snapshot : ${HF_LOG_DIR}"
+    hf_collect_install_log
+    hf_log_info "Snapshot : ${HF_LOG_DIR}"
 }
 
-hf_log_copy_max_bytes() {
+hf_get_log_copy_limit() {
     printf '%s\n' 8388608
 }
 
@@ -538,14 +538,14 @@ hf_copy_log_file() {
     local dest="$2"
     local max size
     [[ -f "${src}" ]] || return 0
-    if hf_log_path_is_private "${src}"; then
+    if hf_check_log_path_private "${src}"; then
         return 0
     fi
     [[ -r "${src}" ]] || {
         hf_log_note "illisible ${src}"
         return 0
     }
-    max="$(hf_log_copy_max_bytes)"
+    max="$(hf_get_log_copy_limit)"
     size="$(stat -c '%s' "${src}" 2>/dev/null || echo 0)"
     mkdir -p "$(dirname "${dest}")"
     case "${src}" in
@@ -614,10 +614,10 @@ hf_copy_installed_logs() {
     for src in "${paths[@]}"; do
         hf_copy_log_tree "${src}" "${dest}"
     done
-    if [[ -n "${CONFIG_BASE_DIR:-}" ]]; then
-        hf_copy_log_tree "${CONFIG_BASE_DIR}/cron/cron_logs" "${dest}"
-        hf_copy_log_tree "${CONFIG_BASE_DIR}/cron/security_logs" "${dest}"
-        hf_copy_log_tree "${CONFIG_BASE_DIR}/cron/alerts" "${dest}"
+    if [[ -n "${HF_CONFIG_BASE_DIRECTORY:-}" ]]; then
+        hf_copy_log_tree "${HF_CONFIG_BASE_DIRECTORY}/cron/cron_logs" "${dest}"
+        hf_copy_log_tree "${HF_CONFIG_BASE_DIRECTORY}/cron/security_logs" "${dest}"
+        hf_copy_log_tree "${HF_CONFIG_BASE_DIRECTORY}/cron/alerts" "${dest}"
     fi
     return 0
 }

@@ -12,7 +12,7 @@ source "${HFU_BASE}/cron/bin/common.sh"
 LOG_FILE="${LOG_DIR}/aide-${STAMP}.log"
 ALERT_FILE="${ALERT_DIR}/aide-${STAMP}.txt"
 if ! command -v aide >/dev/null; then
-    log_ok "aide absent — skip"
+    hfu_log_pass "aide absent — skip"
     exit 0
 fi
 set +e
@@ -21,14 +21,14 @@ rc=$?
 set -e
 
 if [[ "${rc}" -eq 0 ]]; then
-    log_ok "AIDE: aucun changement"
+    hfu_log_pass "AIDE: aucun changement"
 elif [[ "${rc}" -ge 128 ]]; then
-    log_alert "$(hfu_crash_sentence "AIDE" "${rc}")"
+    hf_log_alert "$(hf_get_crash_sentence "AIDE" "${rc}")"
 elif [[ "${rc}" -ge 1 && "${rc}" -le 7 ]]; then
     HFU_AIDE_REFRESH=1 \
-        log_alert "AIDE: changements détectés (code ${rc}, détail ${LOG_FILE})"
+        hf_log_alert "AIDE: changements détectés (code ${rc}, détail ${LOG_FILE})"
 else
-    log_alert "AIDE: erreur rc=${rc} (détail ${LOG_FILE})"
+    hf_log_alert "AIDE: erreur rc=${rc} (détail ${LOG_FILE})"
 fi
 find "${LOG_DIR}" -name 'aide-*.log' -mtime +30 -delete 2>/dev/null || true
 exit 0

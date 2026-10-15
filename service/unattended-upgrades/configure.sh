@@ -1,42 +1,24 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/unattended-upgrades/configure.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
-DIR_INSTALL_PATH="${1}"
-export DIR_INSTALL_PATH
+HF_INSTALL_DIRECTORY="${1}"
+export HF_INSTALL_DIRECTORY
 
-source "${DIR_INSTALL_PATH}/core/lib.sh"
-source "${DIR_INSTALL_PATH}/config/global.conf"
-require_root
+source "${HF_INSTALL_DIRECTORY}/core/lib.sh"
+source "${HF_INSTALL_DIRECTORY}/config/global.conf"
+hf_require_root
 
-title "Configuration unattended-upgrades (security only)"
-info "Configuration d'unattended-upgrades (security only)"
-ensure_dir /etc/apt/apt.conf.d 755
+hf_log_title "Configuration unattended-upgrades (security only)"
+hf_log_info "Configuration d'unattended-upgrades (security only)"
+hf_ensure_directory /etc/apt/apt.conf.d 755
 
-tee /etc/apt/apt.conf.d/20auto-upgrades > /dev/null << 'EOF'
-APT::Periodic::Update-Package-Lists "1";
-APT::Periodic::Unattended-Upgrade "1";
-APT::Periodic::Download-Upgradeable-Packages "1";
-APT::Periodic::AutocleanInterval "7";
-EOF
+grep -v '^#' "$(hf_locate_config_file unattended-upgrades/20auto-upgrades)" > /etc/apt/apt.conf.d/20auto-upgrades
+grep -v '^#' "$(hf_locate_config_file unattended-upgrades/51high-fortress-user)" > /etc/apt/apt.conf.d/51high-fortress-user
+chmod 644 /etc/apt/apt.conf.d/20auto-upgrades /etc/apt/apt.conf.d/51high-fortress-user
 
-tee /etc/apt/apt.conf.d/51high-fortress-user > /dev/null << 'EOF'
-Unattended-Upgrade::Allowed-Origins {
-        "${distro_id}:${distro_codename}";
-        "${distro_id}:${distro_codename}-security";
-        "${distro_id}ESMApps:${distro_codename}-apps-security";
-        "${distro_id}ESM:${distro_codename}-infra-security";
-        "thunderbird-deb:thunderbird-deb";
-};
-Unattended-Upgrade::Package-Blacklist {
-};
-Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
-Unattended-Upgrade::Remove-Unused-Dependencies "false";
-Unattended-Upgrade::Automatic-Reboot "false";
-EOF
-
-run_silent systemctl enable --now unattended-upgrades
-success "unattended-upgrades configuré (security only, reboot auto OFF)"
+hf_run_silent systemctl enable --now unattended-upgrades
+hf_log_success "unattended-upgrades configuré (security only, reboot auto OFF)"

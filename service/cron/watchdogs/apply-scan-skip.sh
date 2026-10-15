@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/apply-scan-skip.sh
-# Updated at : 2026-10-14
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
@@ -10,7 +10,7 @@ HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
 source "${HERE}/scan-skip-lib.sh"
 
-hfu_scan_skip_restart_services() {
+hfu_restart_scan_skip_service() {
     local unit
     if systemctl cat clamav-daemon.service >/dev/null 2>&1; then
         systemctl restart clamav-daemon
@@ -23,7 +23,7 @@ hfu_scan_skip_restart_services() {
     done
 }
 
-hfu_scan_skip_collect
+hfu_collect_scan_skip_path
 if [[ ${#HFU_SCAN_SKIP_BAD[@]} -gt 0 ]]; then
     install -d -m 750 "${HFU_BASE}/cron/security_logs"
     for line in "${HFU_SCAN_SKIP_BAD[@]}"; do
@@ -35,7 +35,7 @@ conf="/etc/clamav/clamd.conf"
 if [[ -f "${conf}" ]]; then
     tmp="$(mktemp)"
     trap 'rm -f "${tmp}"' EXIT
-    changed="$(python3 - "${conf}" "${tmp}" "${HFU_SCAN_SKIP_OK[@]}" << 'PY'
+    changed="$(python3 - "${conf}" "${tmp}" "${HFU_SCAN_SKIP_VALID[@]}" << 'PY'
 import sys
 from pathlib import Path
 
@@ -75,15 +75,15 @@ PY
 )"
     if [[ "${changed}" == "changed" ]]; then
         cat "${tmp}" > "${conf}"
-        hfu_scan_skip_restart_services
+        hfu_restart_scan_skip_service
     fi
     rm -f "${tmp}"
     trap - EXIT
 fi
 
 rk="/etc/rkhunter.conf.local"
-if [[ -f "${rk}" && ${#HFU_SCAN_SKIP_OK[@]} -gt 0 ]]; then
-    for path in "${HFU_SCAN_SKIP_OK[@]}"; do
+if [[ -f "${rk}" && ${#HFU_SCAN_SKIP_VALID[@]} -gt 0 ]]; then
+    for path in "${HFU_SCAN_SKIP_VALID[@]}"; do
         case "${path}" in
             */.*)
                 grep -qxF "ALLOWHIDDENDIR=${path}" "${rk}" \

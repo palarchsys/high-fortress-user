@@ -26,7 +26,7 @@ hfu_run_check() {
     status=$?
     set -e
     if [[ "${status}" -ne 0 ]]; then
-        log_alert "$(hfu_crash_sentence "${label}" "${status}")"
+        hf_log_alert "$(hf_get_crash_sentence "${label}" "${status}")"
     fi
 }
 

@@ -1,6 +1,6 @@
 # =============================================================================
-# File       : service/unbound/root-hints.path
-# Updated at : 2026-10-05
+# File       : config/unbound/root-hints.path
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 

@@ -1,8 +1,10 @@
 # =============================================================================
-# File       : service/cron/hfu.cron
-# Updated at : 2026-10-05
+# File       : config/auditd/prelude.rules
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
-SHELL=/bin/bash
-PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+-D
+-b 8192
+-f 1
+-i

@@ -1,0 +1,9 @@
+# =============================================================================
+# File       : config/postfix/debconf
+# Updated at : 2026-10-15
+# Creator    : palarchsys
+# =============================================================================
+
+postfix postfix/main_mailer_type select Internet Site
+postfix postfix/mailname string __HOSTNAME__
+postfix postfix/destinations string __HOSTNAME__, localhost.localdomain, localhost

@@ -1,29 +1,29 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/aide/init-db.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
-DIR_INSTALL_PATH="${1}"
-export DIR_INSTALL_PATH
+HF_INSTALL_DIRECTORY="${1}"
+export HF_INSTALL_DIRECTORY
 
-source "${DIR_INSTALL_PATH}/core/lib.sh"
-source "${DIR_INSTALL_PATH}/config/global.conf"
-require_root
+source "${HF_INSTALL_DIRECTORY}/core/lib.sh"
+source "${HF_INSTALL_DIRECTORY}/config/global.conf"
+hf_require_root
 
-title "Base de référence AIDE"
-info "Le calcul des empreintes peut prendre plusieurs minutes."
-info "Le détail reste dans le journal, pas dans le terminal."
+hf_log_title "Base de référence AIDE"
+hf_log_info "Le calcul des empreintes peut prendre plusieurs minutes."
+hf_log_info "Le détail reste dans le journal, pas dans le terminal."
 
-info "Enregistrement de la base de référence AIDE"
+hf_log_info "Enregistrement de la base de référence AIDE"
 aide_log="${HF_LOG_DIR:-/var/log/high-fortress-user}/aide-init.log"
 mkdir -p "$(dirname "${aide_log}")"
 
 rm -f /var/lib/aide/aide.db.new /var/lib/aide/aide.db.new.gz
 
 if ! aide --config="/etc/aide/aide.conf" --init >"${aide_log}" 2>&1; then
-    warn "aide --init a retourné une erreur. Détail : ${aide_log}"
+    hf_log_warn "aide --init a retourné une erreur. Détail : ${aide_log}"
 fi
 if [[ -f /var/lib/aide/aide.db.new.gz ]]; then
     mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz
@@ -32,6 +32,6 @@ if [[ -f /var/lib/aide/aide.db.new.gz ]]; then
 elif [[ -f /var/lib/aide/aide.db.new ]]; then
     mv /var/lib/aide/aide.db.new /var/lib/aide/aide.db
 else
-    error "Base AIDE non générée (aide.db.new introuvable). Détail : ${aide_log}"
+    hf_log_error "Base AIDE non générée (aide.db.new introuvable). Détail : ${aide_log}"
 fi
-success "Base de référence AIDE enregistrée"
+hf_log_success "Base de référence AIDE enregistrée"

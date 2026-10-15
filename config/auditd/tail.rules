@@ -1,0 +1,7 @@
+# =============================================================================
+# File       : config/auditd/tail.rules
+# Updated at : 2026-10-15
+# Creator    : palarchsys
+# =============================================================================
+
+-a always,exit -F arch=b64 -S adjtimex -S settimeofday -F key=time-change

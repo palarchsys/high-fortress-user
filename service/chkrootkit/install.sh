@@ -1,23 +1,23 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/chkrootkit/install.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
-DIR_INSTALL_PATH="${1}"
-export DIR_INSTALL_PATH
+HF_INSTALL_DIRECTORY="${1}"
+export HF_INSTALL_DIRECTORY
 
 # shellcheck disable=SC2155
 readonly DIR_SCRIPT_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 
-source "${DIR_INSTALL_PATH}/core/lib.sh"
-source "${DIR_INSTALL_PATH}/config/global.conf"
-require_root
+source "${HF_INSTALL_DIRECTORY}/core/lib.sh"
+source "${HF_INSTALL_DIRECTORY}/config/global.conf"
+hf_require_root
 
-title "Installation chkrootkit"
-info "Installation de chkrootkit"
-run_silent_apt install -y chkrootkit
-install -d -m 755 "${CONFIG_BASE_DIR}/bin"
-install -m 755 "${DIR_SCRIPT_PATH}/ignore-log.sh" "${CONFIG_BASE_DIR}/bin/chkrootkit-ignore-log.sh"
-success "chkrootkit installé"
+hf_log_title "Installation chkrootkit"
+hf_log_info "Installation de chkrootkit"
+hf_run_silent_apt install -y chkrootkit
+install -d -m 755 "${HF_CONFIG_BASE_DIRECTORY}/bin"
+install -m 755 "${DIR_SCRIPT_PATH}/ignore-log.sh" "${HF_CONFIG_BASE_DIRECTORY}/bin/chkrootkit-ignore-log.sh"
+hf_log_success "chkrootkit installé"

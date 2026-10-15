@@ -15,7 +15,7 @@ source "${HERE}/scan-skip-lib.sh"
 LOG_FILE="${LOG_DIR}/idle-scan-${STAMP}.log"
 ALERT_FILE="${ALERT_DIR}/idle-scan-${STAMP}.txt"
 : > "${LOG_FILE}"
-hfu_arm_crash_mail "analyse différée"
+hf_arm_crash_mail "analyse différée"
 
 busy=""
 for name in steam steamwebhelper lutris heroic wineserver gamescope; do
@@ -25,21 +25,21 @@ for name in steam steamwebhelper lutris heroic wineserver gamescope; do
     fi
 done
 if [[ -n "${busy}" ]]; then
-    log_ok "passe différée reportée : ${busy} tourne"
+    hfu_log_pass "passe différée reportée : ${busy} tourne"
     exit 0
 fi
 
 if ! command -v clamscan >/dev/null; then
-    log_ok "clamscan absent — skip"
+    hfu_log_pass "clamscan absent — skip"
     exit 0
 fi
 
-hfu_scan_skip_collect
+hfu_collect_scan_skip_path
 file_list="$(mktemp)"
-trap 'st=$?; rm -f "${file_list}"; hfu_crash_mail_now "${st}"' EXIT
+trap 'st=$?; rm -f "${file_list}"; hf_send_crash_mail "${st}"' EXIT
 stamp="${HFU_BASE}/cron/scan-skip.stamp"
-if [[ ${#HFU_SCAN_SKIP_OK[@]} -gt 0 ]]; then
-    for path in "${HFU_SCAN_SKIP_OK[@]}"; do
+if [[ ${#HFU_SCAN_SKIP_VALID[@]} -gt 0 ]]; then
+    for path in "${HFU_SCAN_SKIP_VALID[@]}"; do
         base="$(basename "${path}")"
         [[ "${base}" == ".cache" || "${base}" == "snap" ]] && continue
         [[ -e "${path}" ]] || continue
@@ -67,7 +67,7 @@ fi
 set +e
 trap '' PIPE
 if [[ -s "${file_list}" ]]; then
-    hfu_clamscan_list "${file_list}" >> "${LOG_FILE}" 2>&1
+    hf_list_clamav_scan "${file_list}" >> "${LOG_FILE}" 2>&1
     rc=$?
 else
     rc=0
@@ -77,18 +77,18 @@ set -e
 kind="ok"
 crashed=0
 if [[ -s "${file_list}" ]]; then
-    kind="$(hfu_clam_kind "${LOG_FILE}")"
+    kind="$(hf_get_clamav_kind "${LOG_FILE}")"
     if [[ "${kind}" == "ok" && "${rc}" -ne 0 ]]; then
         kind="error"
     fi
-    if hfu_clam_report; then
+    if hf_report_clamav; then
         crashed=1
     fi
 fi
 
 seen="${HFU_BASE}/cron/scan-skip.seen"
 if [[ "${kind}" == "error" ]]; then
-    log_alert "clamscan erreur rc=${rc}"
+    hf_log_alert "clamscan erreur rc=${rc}"
     exit 0
 fi
 if [[ "${kind}" == "infected" ]]; then
@@ -122,9 +122,9 @@ PY
 )"
     chmod 600 "${seen}" 2>/dev/null || true
     if [[ "${new_count}" -gt 0 ]]; then
-        log_alert "clamscan : infection(s) (voir ${LOG_FILE})"
+        hf_log_alert "clamscan : infection(s) (voir ${LOG_FILE})"
     else
-        log_ok "infections déjà signalées"
+        hfu_log_pass "infections déjà signalées"
     fi
     exit 0
 fi
@@ -134,5 +134,5 @@ fi
 
 touch "${stamp}"
 chmod 644 "${stamp}"
-log_ok "clamscan OK"
+hfu_log_pass "clamscan OK"
 exit 0

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : test/suites/07_router.sh
-# Updated at : 2026-10-14
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
-hf_section "routeur"
+hft_section "routeur"
 root=""
-here="${HF_ROOT}"
+here="${HFT_ROOT}"
 while [[ "${here}" != "/" ]]; do
     if [[ -f "${here}/agents/route.sh" ]]; then
         root="${here}"
@@ -17,9 +17,9 @@ while [[ "${here}" != "/" ]]; do
 done
 
 if [[ -z "${root}" ]]; then
-    hf_fail "route.check" "agents/route.sh introuvable au-dessus de ${HF_ROOT}"
+    hft_fail "route.check" "agents/route.sh introuvable au-dessus de ${HFT_ROOT}"
 elif bash "${root}/agents/route.sh" --check > "${HF_ARTIFACTS}/route.txt"; then
-    hf_pass "route.check" "fichiers cités présents"
+    hft_pass "route.check" "fichiers cités présents"
 else
-    hf_fail "route.check" "$(tr '\n' ' ' < "${HF_ARTIFACTS}/route.txt")"
+    hft_fail "route.check" "$(tr '\n' ' ' < "${HF_ARTIFACTS}/route.txt")"
 fi

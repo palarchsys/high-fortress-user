@@ -1,0 +1,23 @@
+# =============================================================================
+# File       : config/fail2ban/jail.local
+# Updated at : 2026-10-15
+# Creator    : palarchsys
+# =============================================================================
+
+[DEFAULT]
+allowipv6 = auto
+banaction = ufw
+banaction_allports = ufw
+bantime = 1h
+findtime = 10m
+maxretry = 5
+backend = systemd
+
+[sshd]
+enabled = true
+port = ${SSH_PORT}
+filter = sshd
+logpath = /var/log/auth.log
+backend = systemd
+maxretry = 5
+bantime = 1h

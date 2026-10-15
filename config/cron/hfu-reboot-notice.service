@@ -1,0 +1,16 @@
+# =============================================================================
+# File       : config/cron/hfu-reboot-notice.service
+# Updated at : 2026-10-15
+# Creator    : palarchsys
+# =============================================================================
+
+[Unit]
+Description=Avis lorsqu'un redémarrage est utile
+After=local-fs.target multi-user.target
+
+[Service]
+Type=oneshot
+Nice=${HF_WATCHDOG_LIMIT_NICE}
+IOSchedulingClass=idle
+CPUQuota=${cpu_quota}%
+ExecStart=${HF_CONFIG_BASE_DIRECTORY}/cron/bin/reboot-notice.sh

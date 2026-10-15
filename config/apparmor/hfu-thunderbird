@@ -1,0 +1,20 @@
+# =============================================================================
+# File       : config/apparmor/hfu-thunderbird
+# Updated at : 2026-10-15
+# Creator    : palarchsys
+# =============================================================================
+
+abi <abi/4.0>,
+include <tunables/global>
+
+profile hfu-thunderbird /usr/lib/thunderbird/thunderbird{,-bin} flags=(unconfined) {
+  userns,
+
+  include if exists <local/hfu-thunderbird>
+}
+
+profile hfu-thunderbird-opt /opt/thunderbird/thunderbird{,-bin} flags=(unconfined) {
+  userns,
+
+  include if exists <local/hfu-thunderbird-opt>
+}

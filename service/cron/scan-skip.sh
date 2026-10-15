@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/scan-skip.sh
-# Updated at : 2026-10-14
+# Updated at : 2026-10-15
 # Creator    : palarchsys
 # =============================================================================
 
@@ -10,7 +10,7 @@ HFU_BASE="${HFU_BASE:-/opt/high-fortress-user}"
 # shellcheck disable=SC1091
 source "${HFU_BASE}/cron/bin/scan-skip-lib.sh"
 
-usage() {
+hfu_show_usage() {
     printf 'Usage : sudo bash %s/bin/scan-skip.sh list\n' "${HFU_BASE}" >&2
     printf '       sudo bash %s/bin/scan-skip.sh add /chemin\n' "${HFU_BASE}" >&2
     printf '       sudo bash %s/bin/scan-skip.sh del /chemin\n' "${HFU_BASE}" >&2
@@ -25,7 +25,7 @@ action="${1:-}"
 case "${action}" in
     list|add|del) ;;
     *)
-        usage
+        hfu_show_usage
         exit 1
         ;;
 esac
@@ -36,9 +36,9 @@ if [[ ! -f "${HFU_SCAN_SKIP_FILE}" ]]; then
 fi
 
 if [[ "${action}" == "list" ]]; then
-    hfu_scan_skip_collect
-    if [[ ${#HFU_SCAN_SKIP_OK[@]} -gt 0 ]]; then
-        printf '%s\n' "${HFU_SCAN_SKIP_OK[@]}"
+    hfu_collect_scan_skip_path
+    if [[ ${#HFU_SCAN_SKIP_VALID[@]} -gt 0 ]]; then
+        printf '%s\n' "${HFU_SCAN_SKIP_VALID[@]}"
     fi
     if [[ ${#HFU_SCAN_SKIP_BAD[@]} -gt 0 ]]; then
         for line in "${HFU_SCAN_SKIP_BAD[@]}"; do
@@ -49,19 +49,19 @@ if [[ "${action}" == "list" ]]; then
 fi
 
 if [[ $# -ne 2 ]]; then
-    usage
+    hfu_show_usage
     exit 1
 fi
 
-if ! norm="$(hfu_scan_skip_accept "$2")"; then
+if ! norm="$(hfu_check_scan_skip_path "$2")"; then
     printf 'Chemin refusé : %s\n' "$2" >&2
     exit 1
 fi
 
-hfu_scan_skip_collect
+hfu_collect_scan_skip_path
 found=0
-if [[ ${#HFU_SCAN_SKIP_OK[@]} -gt 0 ]]; then
-    for path in "${HFU_SCAN_SKIP_OK[@]}"; do
+if [[ ${#HFU_SCAN_SKIP_VALID[@]} -gt 0 ]]; then
+    for path in "${HFU_SCAN_SKIP_VALID[@]}"; do
         [[ "${path}" == "${norm}" ]] && found=1
     done
 fi

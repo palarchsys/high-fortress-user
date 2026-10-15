@@ -5,50 +5,50 @@
 # Creator    : palarchsys
 # =============================================================================
 
-hf_section "étapes de run.sh"
+hft_section "étapes de run.sh"
 while IFS= read -r step; do
     [[ -z "${step}" ]] && continue
-    if [[ -f "${HF_ROOT}/${step}" ]]; then
-        hf_pass "graph:${step}" "présent"
+    if [[ -f "${HFT_ROOT}/${step}" ]]; then
+        hft_pass "graph:${step}" "présent"
     else
-        hf_fail "graph:${step}" "introuvable"
+        hft_fail "graph:${step}" "introuvable"
     fi
-done < <(grep -oE '"(system|service|verify)/[^"]+\.sh"' "${HF_ROOT}/scripts/run.sh" | tr -d '"' | sort -u)
+done < <(grep -oE '"(system|service|verify)/[^"]+\.sh"' "${HFT_ROOT}/scripts/run.sh" | tr -d '"' | sort -u)
 
-hf_section "désinstallations avant system/install"
-snap_line=$(grep -n 'system/snap-remove.sh' "${HF_ROOT}/scripts/run.sh" | head -1 | cut -d: -f1)
-purge_line=$(grep -n 'STEP_SYSTEM_PURGE\[@\]' "${HF_ROOT}/scripts/run.sh" | head -1 | cut -d: -f1)
-inst_line=$(grep -n 'STEP_SYSTEM_INSTALL\[@\]' "${HF_ROOT}/scripts/run.sh" | head -1 | cut -d: -f1)
+hft_section "désinstallations avant system/install"
+snap_line=$(grep -n 'system/snap-remove.sh' "${HFT_ROOT}/scripts/run.sh" | head -1 | cut -d: -f1)
+purge_line=$(grep -n 'STEP_SYSTEM_PURGE\[@\]' "${HFT_ROOT}/scripts/run.sh" | head -1 | cut -d: -f1)
+inst_line=$(grep -n 'STEP_SYSTEM_INSTALL\[@\]' "${HFT_ROOT}/scripts/run.sh" | head -1 | cut -d: -f1)
 if [[ -n "${snap_line}" && -n "${purge_line}" && -n "${inst_line}" \
       && "${snap_line}" -lt "${purge_line}" && "${purge_line}" -lt "${inst_line}" ]] \
-   && grep -q 'systemctl mask systemd-coredump.socket' "${HF_ROOT}/system/purge.sh" \
-   && ! grep -q 'systemctl mask systemd-coredump.socket' "${HF_ROOT}/system/configure.sh" \
-   && ! grep -qE 'purge -y cups|disable --now cups|mask apport' "${HF_ROOT}/system/purge.sh" \
+   && grep -q 'systemctl mask systemd-coredump.socket' "${HFT_ROOT}/system/purge.sh" \
+   && ! grep -q 'systemctl mask systemd-coredump.socket' "${HFT_ROOT}/system/configure.sh" \
+   && ! grep -qE 'purge -y cups|disable --now cups|mask apport' "${HFT_ROOT}/system/purge.sh" \
    && awk '
         /upgrade -y --with-new-pkgs/ { up = NR }
         /HF_REAPPLY_LOCKS=1/ { if (up && !re) re = NR }
         END { exit !(up && re && re > up) }
-      ' "${HF_ROOT}/scripts/run.sh"; then
-    hf_pass "graph.order.purge-first" "snap (L${snap_line}), purge (L${purge_line}), install (L${inst_line})"
+      ' "${HFT_ROOT}/scripts/run.sh"; then
+    hft_pass "graph.order.purge-first" "snap (L${snap_line}), purge (L${purge_line}), install (L${inst_line})"
 else
-    hf_fail "graph.order.purge-first" "snap puis purge rc/coredump avant system/install ; CUPS reste"
+    hft_fail "graph.order.purge-first" "snap puis purge rc/coredump avant system/install ; CUPS reste"
 fi
 
-hf_section "purge rc avant les bases rkhunter et AIDE"
-rc_line=$(grep -n 'HF_PURGE_RC_ONLY=1' "${HF_ROOT}/scripts/run.sh" | head -1 | cut -d: -f1)
-rk_line=$(grep -n 'service/rkhunter/init-db.sh' "${HF_ROOT}/scripts/run.sh" | head -1 | cut -d: -f1)
-aide_line=$(grep -n 'service/aide/init-db.sh' "${HF_ROOT}/scripts/run.sh" | head -1 | cut -d: -f1)
+hft_section "purge rc avant les bases rkhunter et AIDE"
+rc_line=$(grep -n 'HF_PURGE_REMOVED_CONFIG_ONLY=1' "${HFT_ROOT}/scripts/run.sh" | head -1 | cut -d: -f1)
+rk_line=$(grep -n 'service/rkhunter/init-db.sh' "${HFT_ROOT}/scripts/run.sh" | head -1 | cut -d: -f1)
+aide_line=$(grep -n 'service/aide/init-db.sh' "${HFT_ROOT}/scripts/run.sh" | head -1 | cut -d: -f1)
 if [[ -n "${rc_line}" && -n "${rk_line}" && -n "${aide_line}" \
       && "${rc_line}" -lt "${rk_line}" && "${rk_line}" -lt "${aide_line}" ]] \
-   && ! grep -q 'dpkg --purge' "${HF_ROOT}/system/install.sh" \
-   && ! grep -qF 'run_silent rkhunter --propupd' "${HF_ROOT}/service/rkhunter/configure.sh" \
-   && grep -qF 'run_silent rkhunter --propupd' "${HF_ROOT}/service/rkhunter/init-db.sh"; then
-    hf_pass "graph.order.purge-before-db" "purge rc (L${rc_line}) avant rkhunter (L${rk_line}) et AIDE (L${aide_line})"
+   && ! grep -q 'dpkg --purge' "${HFT_ROOT}/system/install.sh" \
+   && ! grep -qF 'hf_run_silent rkhunter --propupd' "${HFT_ROOT}/service/rkhunter/configure.sh" \
+   && grep -qF 'hf_run_silent rkhunter --propupd' "${HFT_ROOT}/service/rkhunter/init-db.sh"; then
+    hft_pass "graph.order.purge-before-db" "purge rc (L${rc_line}) avant rkhunter (L${rk_line}) et AIDE (L${aide_line})"
 else
-    hf_fail "graph.order.purge-before-db" "la purge rc doit précéder --propupd et aide --init"
+    hft_fail "graph.order.purge-before-db" "la purge rc doit précéder --propupd et aide --init"
 fi
 
-hf_section "ordre des contrôles quotidiens"
+hft_section "ordre des contrôles quotidiens"
 if awk '
     function remember(name, s) { arr[name] = arr[name] s "\n" }
     function add(s) { step[++n] = s }
@@ -87,7 +87,7 @@ if awk '
         }
         next
     }
-    /run_steps/ { take_scripts($0); next }
+    /hf_run_step/ { take_scripts($0); next }
     END {
         ssh = pos("service/ssh/configure.sh")
         ufw = pos("service/ufw/configure.sh")
@@ -109,160 +109,185 @@ if awk '
             && dinst < userns && userns < up && up < dconf && dconf < uconf \
             && uconf < rk && rk < aide && aide < ver)
     }
-' "${HF_ROOT}/scripts/run.sh"; then
-    hf_pass "graph.order.daily" "SSH avant UFW, bureau après correctifs, verify après AIDE"
+' "${HFT_ROOT}/scripts/run.sh"; then
+    hft_pass "graph.order.daily" "SSH avant UFW, bureau après correctifs, verify après AIDE"
 else
-    hf_fail "graph.order.daily" "USBGuard et les politiques suivent les paquets ; verify suit AIDE"
+    hft_fail "graph.order.daily" "USBGuard et les politiques suivent les paquets ; verify suit AIDE"
 fi
 
-hf_section "modèle de mail dans template/"
-if [[ -f "${HF_ROOT}/template/mail.html" ]]; then
-    hf_pass "graph.template:mail.html" "présent : template/mail.html"
+hft_section "modèle de mail dans template/"
+if [[ -f "${HFT_ROOT}/template/mail.html" ]]; then
+    hft_pass "graph.template:mail.html" "présent : template/mail.html"
 else
-    hf_fail "graph.template:mail.html" "fichier introuvable : template/mail.html"
+    hft_fail "graph.template:mail.html" "fichier introuvable : template/mail.html"
 fi
-if [[ -e "${HF_ROOT}/service/cron/watchdogs/mail.html" ]]; then
-    hf_fail "graph.template:not-in-watchdogs" "mail.html est encore dans service/cron/watchdogs"
+if [[ -e "${HFT_ROOT}/service/cron/watchdogs/mail.html" ]]; then
+    hft_fail "graph.template:not-in-watchdogs" "mail.html est encore dans service/cron/watchdogs"
 else
-    hf_pass "graph.template:not-in-watchdogs" "le modèle n'est pas enfoui dans les watchdogs"
+    hft_pass "graph.template:not-in-watchdogs" "le modèle n'est pas enfoui dans les watchdogs"
 fi
 
-hf_section "debsums et mirrors.dat"
-rk="${HF_ROOT}/service/cron/watchdogs/rkhunter.sh"
+hft_section "debsums et mirrors.dat"
+rk="${HFT_ROOT}/service/cron/watchdogs/rkhunter.sh"
 check_line="$(grep -n 'record-mirrors.sh" check' "${rk}" | head -1 | cut -d: -f1)"
 update_line="$(grep -n 'rkhunter --update' "${rk}" | head -1 | cut -d: -f1)"
 save_line="$(grep -n 'record-mirrors.sh" save' "${rk}" | head -1 | cut -d: -f1)"
-if [[ -x "${HF_ROOT}/service/cron/watchdogs/record-mirrors.sh" ]] \
+if [[ -x "${HFT_ROOT}/service/cron/watchdogs/record-mirrors.sh" ]] \
    && [[ -n "${check_line}" && -n "${update_line}" && -n "${save_line}" ]] \
    && [[ "${check_line}" -lt "${update_line}" && "${update_line}" -lt "${save_line}" ]] \
-   && grep -q 'rkhunter-mirrors.sha256' "${HF_ROOT}/service/cron/watchdogs/debsums.sh" \
-   && grep -q 'perl-base/unicore' "${HF_ROOT}/service/cron/watchdogs/debsums.sh" \
-   && grep -q 'record-mirrors.sh" save' "${HF_ROOT}/service/rkhunter/init-db.sh" \
-   && [[ ! -e "${HF_ROOT}/service/cron/watchdogs/debsums.ignore" ]]; then
-    hf_pass "graph.debsums.mirrors" "empreinte après --update, le fichier n'est pas ignoré"
+   && grep -q 'rkhunter-mirrors.sha256' "${HFT_ROOT}/service/cron/watchdogs/debsums.sh" \
+   && grep -q 'perl-base/unicore' "${HFT_ROOT}/service/cron/watchdogs/debsums.sh" \
+   && grep -q 'record-mirrors.sh" save' "${HFT_ROOT}/service/rkhunter/init-db.sh" \
+   && [[ ! -e "${HFT_ROOT}/service/cron/watchdogs/debsums.ignore" ]]; then
+    hft_pass "graph.debsums.mirrors" "empreinte après --update, le fichier n'est pas ignoré"
 else
-    hf_fail "graph.debsums.mirrors" "mirrors.dat doit rester contrôlé hors de rkhunter --update"
+    hft_fail "graph.debsums.mirrors" "mirrors.dat doit rester contrôlé hors de rkhunter --update"
 fi
 
-hf_section "clamav verrous de quarantaine"
-evt="${HF_ROOT}/service/cron/watchdogs/clamav-event.sh"
+hft_section "clamav verrous de quarantaine"
+evt="${HFT_ROOT}/service/cron/watchdogs/clamav-event.sh"
 if grep -q 'clamav-quarantine-lock' "${evt}" \
    && awk '
         /clamav-quarantine-lock/ { lock = NR }
-        /log_alert/ { if (lock && !alert) alert = NR }
+        /hf_log_alert/ { if (lock && !alert) alert = NR }
         END { exit !(lock && alert && alert > lock) }
       ' "${evt}"; then
-    hf_pass "graph.clamav.locks" "un verrou de quarantaine sort avant le courrier"
+    hft_pass "graph.clamav.locks" "un verrou de quarantaine sort avant le courrier"
 else
-    hf_fail "graph.clamav.locks" "les verrous .clamav-quarantine-lock.* ne doivent pas envoyer de courrier"
+    hft_fail "graph.clamav.locks" "les verrous .clamav-quarantine-lock.* ne doivent pas envoyer de courrier"
 fi
 
-hf_section "chemins exclus du scan"
-skip_lib="${HF_ROOT}/service/cron/watchdogs/scan-skip-lib.sh"
-skip_apply="${HF_ROOT}/service/cron/watchdogs/apply-scan-skip.sh"
-skip_cmd="${HF_ROOT}/service/cron/scan-skip.sh"
-skip_idle="${HF_ROOT}/service/cron/watchdogs/idle-scan.sh"
-skip_boot="${HF_ROOT}/service/cron/watchdogs/boot-scan.sh"
-skip_clam="${HF_ROOT}/service/cron/watchdogs/clamav.sh"
-if [[ -f "${skip_lib}" && -f "${skip_apply}" && -f "${skip_cmd}" && -f "${skip_idle}" ]] \
-   && grep -q '/var/jeux' "${skip_lib}" \
-   && grep -q '/.steam' "${skip_lib}" \
-   && grep -q '/.local/share/Steam' "${skip_lib}" \
+hft_section "chemins exclus du scan"
+skip_lib="${HFT_ROOT}/service/cron/watchdogs/scan-skip-lib.sh"
+skip_tpl="${HFT_ROOT}/config/clamav/scan-skip.paths"
+skip_apply="${HFT_ROOT}/service/cron/watchdogs/apply-scan-skip.sh"
+skip_cmd="${HFT_ROOT}/service/cron/scan-skip.sh"
+skip_idle="${HFT_ROOT}/service/cron/watchdogs/idle-scan.sh"
+skip_boot="${HFT_ROOT}/service/cron/watchdogs/boot-scan.sh"
+skip_clam="${HFT_ROOT}/service/cron/watchdogs/clamav.sh"
+if [[ -f "${skip_lib}" && -f "${skip_tpl}" && -f "${skip_apply}" && -f "${skip_cmd}" && -f "${skip_idle}" ]] \
+   && grep -q '/var/jeux' "${skip_tpl}" \
+   && grep -q '/.steam' "${skip_tpl}" \
+   && grep -q '/.local/share/Steam' "${skip_tpl}" \
+   && grep -q '__HOME__' "${skip_tpl}" \
+   && ! grep -q 'BraveSoftware' "${skip_tpl}" \
+   && ! grep -q '.config/discord' "${skip_tpl}" \
+   && ! grep -q '.thunderbird' "${skip_tpl}" \
    && ! grep -q 'BraveSoftware' "${skip_lib}" \
    && ! grep -q '.config/discord' "${skip_lib}" \
    && ! grep -q '.thunderbird' "${skip_lib}" \
    && grep -qF "printf '%s\\n' / /home /opt /tmp /etc /usr /var /boot /root" "${skip_lib}" \
-   && grep -q '# home=' "${skip_lib}" \
+   && grep -q '# home=' "${skip_tpl}" \
    && grep -qF '/var/jeux/*' "${skip_lib}" \
    && grep -q 'BEGIN High-Fortress User scan-skip' "${skip_apply}" \
    && grep -q 'OnAccessExcludePath' "${skip_apply}" \
    && grep -q 'systemctl restart clamav-daemon' "${skip_apply}" \
    && grep -q 'clamav-clamonacc.service' "${skip_apply}" \
    && ! grep -q 'systemctl reload' "${skip_apply}" \
-   && grep -q 'HFU_SCAN_SKIP_HOME' "${HF_ROOT}/service/clamav/configure.sh" \
-   && grep -q 'HFU_SCAN_SKIP_HOME' "${HF_ROOT}/service/cron/configure.sh" \
+   && grep -q 'HFU_SCAN_SKIP_HOME' "${HFT_ROOT}/service/clamav/configure.sh" \
+   && grep -q 'HFU_SCAN_SKIP_HOME' "${HFT_ROOT}/service/cron/configure.sh" \
    && awk '
         /apply-scan-skip\.sh/ { apply = NR }
         /aide\.sh/ { if (apply && !aide) aide = NR }
         END { exit !(apply && aide && aide > apply) }
       ' "${skip_boot}" \
    && ! grep -q 'clamdscan' "${skip_clam}" \
-   && grep -q 'hfu_clamscan_list' "${skip_clam}" \
-   && grep -q 'hfu_clam_report' "${skip_clam}" \
-   && grep -q 'clamscan --infected --no-summary' "${HF_ROOT}/../core/watchdog.sh" \
-   && grep -q 'planté signal' "${HF_ROOT}/../core/watchdog.sh" \
-   && grep -q 'tool="clamscan"' "${HF_ROOT}/../core/watchdog.sh" \
+   && grep -q 'hf_list_clamav_scan' "${skip_clam}" \
+   && grep -q 'hf_report_clamav' "${skip_clam}" \
+   && grep -q 'clamscan --infected --no-summary' "${HFT_ROOT}/../core/watchdog.sh" \
+   && grep -q 'planté signal' "${HFT_ROOT}/../core/watchdog.sh" \
+   && grep -q 'tool="clamscan"' "${HFT_ROOT}/../core/watchdog.sh" \
    && grep -q 'scan-skip.sh list' "${skip_cmd}" \
    && grep -q 'scan-skip.sh add' "${skip_cmd}" \
    && grep -q 'scan-skip.sh del' "${skip_cmd}" \
    && grep -q 'pgrep -x' "${skip_idle}" \
-   && grep -q 'hfu_clamscan_list' "${skip_idle}" \
-   && grep -q 'hfu_clam_report' "${skip_idle}" \
+   && grep -q 'hf_list_clamav_scan' "${skip_idle}" \
+   && grep -q 'hf_report_clamav' "${skip_idle}" \
    && ! grep -q 'interrompu, aucun virus' "${skip_clam}" \
    && ! grep -q 'interrompu, aucun virus' "${skip_idle}" \
-   && grep -q 'hfu_crash_sentence' "${skip_boot}" \
-   && grep -q 'hfu_crash_sentence' "${HF_ROOT}/service/cron/watchdogs/aide.sh" \
-   && grep -q 'hfu_crash_sentence' "${HF_ROOT}/service/cron/watchdogs/rkhunter.sh" \
-   && grep -q 'hfu_crash_sentence' "${HF_ROOT}/service/cron/watchdogs/chkrootkit.sh" \
-   && grep -q 'hfu_crash_sentence' "${HF_ROOT}/service/cron/watchdogs/debsums.sh" \
-   && grep -q 'log_alert "clamscan : infection(s)' "${skip_clam}" \
-   && grep -q 'log_alert "AIDE: changements détectés' "${HF_ROOT}/service/cron/watchdogs/aide.sh" \
-   && grep -q 'log_alert "rkhunter warnings' "${HF_ROOT}/service/cron/watchdogs/rkhunter.sh" \
-   && grep -q 'log_alert "chkrootkit a produit une sortie' "${HF_ROOT}/service/cron/watchdogs/chkrootkit.sh" \
-   && grep -q 'log_alert "debsums : fichiers modifiés' "${HF_ROOT}/service/cron/watchdogs/debsums.sh" \
-   && grep -q 'log_alert "ClamAV :' "${HF_ROOT}/service/cron/watchdogs/clamav-event.sh" \
-   && grep -q 'hfu_clam_kind' "${skip_clam}" \
-   && grep -q 'hfu_clam_kind' "${skip_idle}" \
-   && grep -q 'ALLOWDEVFILE=/dev/log' "${HF_ROOT}/service/rkhunter/configure.sh" \
-   && grep -qF "'/dev/log'" "${HF_ROOT}/service/cron/watchdogs/rkhunter.sh" \
-   && grep -q 'hfu-idle-scan.timer' "${HF_ROOT}/service/cron/configure.sh" \
-   && grep -q 'High-Fortress User onaccess' "${HF_ROOT}/service/clamav/configure.sh" \
-   && ! grep -q 'OnAccessExcludePath' "${HF_ROOT}/service/clamav/configure.sh"; then
-    hf_pass "graph.scan-skip" "fichier de chemins, commande, passe différée, sans Brave ni Discord ni Thunderbird"
+   && grep -q 'hf_get_crash_sentence' "${skip_boot}" \
+   && grep -q 'hf_get_crash_sentence' "${HFT_ROOT}/service/cron/watchdogs/aide.sh" \
+   && grep -q 'hf_get_crash_sentence' "${HFT_ROOT}/service/cron/watchdogs/rkhunter.sh" \
+   && grep -q 'hf_get_crash_sentence' "${HFT_ROOT}/service/cron/watchdogs/chkrootkit.sh" \
+   && grep -q 'hf_get_crash_sentence' "${HFT_ROOT}/service/cron/watchdogs/debsums.sh" \
+   && grep -q 'hf_log_alert "clamscan : infection(s)' "${skip_clam}" \
+   && grep -q 'hf_log_alert "AIDE: changements détectés' "${HFT_ROOT}/service/cron/watchdogs/aide.sh" \
+   && grep -q 'hf_log_alert "rkhunter warnings' "${HFT_ROOT}/service/cron/watchdogs/rkhunter.sh" \
+   && grep -q 'hf_log_alert "chkrootkit a produit une sortie' "${HFT_ROOT}/service/cron/watchdogs/chkrootkit.sh" \
+   && grep -q 'hf_log_alert "debsums : fichiers modifiés' "${HFT_ROOT}/service/cron/watchdogs/debsums.sh" \
+   && grep -q 'hf_log_alert "ClamAV :' "${HFT_ROOT}/service/cron/watchdogs/clamav-event.sh" \
+   && grep -q 'hf_get_clamav_kind' "${skip_clam}" \
+   && grep -q 'hf_get_clamav_kind' "${skip_idle}" \
+   && grep -q 'ALLOWDEVFILE=/dev/log' "${HFT_ROOT}/config/rkhunter/rkhunter.conf.local" \
+   && grep -qF "'/dev/log'" "${HFT_ROOT}/service/cron/watchdogs/rkhunter.sh" \
+   && grep -q 'hfu-idle-scan.timer' "${HFT_ROOT}/service/cron/configure.sh" \
+   && grep -q 'High-Fortress User onaccess' "${HFT_ROOT}/config/clamav/onaccess.conf" \
+   && ! grep -q 'OnAccessExcludePath' "${HFT_ROOT}/service/clamav/configure.sh"; then
+    hft_pass "graph.scan-skip" "fichier de chemins, commande, passe différée, sans Brave ni Discord ni Thunderbird"
 else
-    hf_fail "graph.scan-skip" "les exclusions passent par scan-skip.paths et ne retirent pas Brave, Discord ni Thunderbird"
+    hft_fail "graph.scan-skip" "les exclusions passent par scan-skip.paths et ne retirent pas Brave, Discord ni Thunderbird"
 fi
 
-hf_section "plafond CPU"
+hft_section "plafond CPU"
 cpu_rc=0
-bash -s -- "${HF_ROOT}" << 'CPU' || cpu_rc=$?
+bash -s -- "${HFT_ROOT}" << 'CPU' || cpu_rc=$?
 set -euo pipefail
 root="$1"
 work="$(mktemp -d)"
 trap 'rm -rf "${work}"' EXIT
 printf '%s\n' '#!/bin/sh' 'echo 4' > "${work}/nproc"
 chmod 755 "${work}/nproc"
-got="$(PATH="${work}:${PATH}" WATCHDOG_CPU_LIMIT=20 bash -c 'source "$1" && hf_cpu_quota_percent' _ "${root}/../core/watchdog.sh")"
+got="$(PATH="${work}:${PATH}" HF_WATCHDOG_CPU_LIMIT=20 bash -c 'source "$1" && hf_get_cpu_quota_percent' _ "${root}/../core/watchdog.sh")"
 [[ "${got}" == "80" ]]
-grep -qF 'hf_cpu_quota_percent' "${root}/service/cron/configure.sh"
-grep -qF 'CPUQuota=${cpu_quota}%' "${root}/service/cron/configure.sh"
-! grep -qF 'CPUQuota=${WATCHDOG_CPU_LIMIT}%' "${root}/service/cron/configure.sh"
+grep -qF 'hf_get_cpu_quota_percent' "${root}/service/cron/configure.sh"
+grep -qF 'CPUQuota=${cpu_quota}%' "${root}/config/cron/hfu-boot-scan.service"
+grep -qF 'CPUQuota=${cpu_quota}%' "${root}/config/cron/hfu-idle-scan.service"
+grep -qF 'CPUQuota=${cpu_quota}%' "${root}/config/cron/hfu-reboot-notice.service"
+! grep -qF 'CPUQuota=${HF_WATCHDOG_CPU_LIMIT}%' \
+    "${root}/service/cron/configure.sh" \
+    "${root}/config/cron/hfu-boot-scan.service" \
+    "${root}/config/cron/hfu-idle-scan.service" \
+    "${root}/config/cron/hfu-reboot-notice.service" \
+    "${root}/config/cron/hfu-boot-chain.service"
 CPU
 if [[ "${cpu_rc}" -eq 0 ]]; then
-    hf_pass "graph.cpu.quota" "20 % de la machine, CPUQuota multiplié par le nombre de CPU"
+    hft_pass "graph.cpu.quota" "20 % de la machine, CPUQuota multiplié par le nombre de CPU"
 else
-    hf_fail "graph.cpu.quota" "CPUQuota doit valoir WATCHDOG_CPU_LIMIT fois le nombre de CPU"
+    hft_fail "graph.cpu.quota" "CPUQuota doit valoir HF_WATCHDOG_CPU_LIMIT fois le nombre de CPU"
 fi
 
-hf_section "chaîne de démarrage"
+hft_section "chaîne de démarrage"
 chain_rc=0
-bash -s -- "${HF_ROOT}" << 'CHAIN' || chain_rc=$?
+bash -s -- "${HFT_ROOT}" << 'CHAIN' || chain_rc=$?
 set -euo pipefail
 root="$1"
 conf="${root}/service/cron/configure.sh"
-grep -qF 'ExecStart=-${systemctl_bin} start --wait hfu-boot-scan.service' "${conf}"
-grep -qF 'ExecStart=-${systemctl_bin} start --wait hfu-idle-scan.service' "${conf}"
-grep -qF 'ExecStart=-${systemctl_bin} start --wait hfu-reboot-notice.service' "${conf}"
-grep -q 'OnBootSec=0' "${conf}"
-grep -q 'OnUnitActiveSec=1h' "${conf}"
-grep -q 'OnUnitActiveSec=6h' "${conf}"
+chain="${root}/config/cron/hfu-boot-chain.service"
+boot_timer="${root}/config/cron/hfu-boot-chain.timer"
+idle_timer="${root}/config/cron/hfu-idle-scan.timer"
+reboot_timer="${root}/config/cron/hfu-reboot-notice.timer"
+units="${root}/config/cron"
+grep -qF 'ExecStart=-${systemctl_bin} start --wait hfu-boot-scan.service' "${chain}"
+grep -qF 'ExecStart=-${systemctl_bin} start --wait hfu-idle-scan.service' "${chain}"
+grep -qF 'ExecStart=-${systemctl_bin} start --wait hfu-reboot-notice.service' "${chain}"
+timers="${root}/config/cron/timers.conf"
+grep -q 'OnBootSec=${HFU_BOOT_ON_BOOT_SEC}' "${boot_timer}"
+grep -q 'HFU_BOOT_ON_BOOT_SEC=0' "${timers}"
+grep -q 'OnUnitActiveSec=${HFU_IDLE_EVERY}' "${idle_timer}"
+grep -q 'HFU_IDLE_EVERY=1h' "${timers}"
+grep -q 'OnUnitActiveSec=${HFU_REBOOT_EVERY}' "${reboot_timer}"
+grep -q 'HFU_REBOOT_EVERY=6h' "${timers}"
+grep -q 'Persistent=${HFU_TIMER_PERSISTENT}' "${boot_timer}"
+grep -q 'Persistent=${HFU_TIMER_PERSISTENT}' "${idle_timer}"
+grep -q 'Persistent=${HFU_TIMER_PERSISTENT}' "${reboot_timer}"
+grep -q 'HFU_TIMER_PERSISTENT=false' "${timers}"
 grep -q 'hfu-boot-chain.timer' "${conf}"
 grep -q 'boot-check.sh' "${conf}"
 grep -q 'systemctl disable --now hfu-boot-scan.timer' "${conf}"
-! grep -q 'OnBootSec=2min' "${conf}"
-! grep -q 'OnBootSec=15min' "${conf}"
-! grep -q 'OnBootSec=20min' "${conf}"
-! grep -q 'Persistent=true' "${conf}"
+! grep -q 'OnBootSec=2min' "${conf}" "${timers}" "${units}"/*.service "${units}"/*.timer
+! grep -q 'OnBootSec=15min' "${conf}" "${timers}" "${units}"/*.service "${units}"/*.timer
+! grep -q 'OnBootSec=20min' "${conf}" "${timers}" "${units}"/*.service "${units}"/*.timer
+! grep -q 'Persistent=true' "${conf}" "${timers}" "${units}"/*.service "${units}"/*.timer
 grep -q 'hfu-boot-chain.timer' "${root}/verify/alerts.sh"
 grep -q 'hfu-boot-chain.timer' "${root}/verify/workstation.sh"
 grep -q 'boot-check.sh' "${root}/verify/boot.sh"
@@ -270,16 +295,17 @@ test -f "${root}/service/cron/boot-check.sh"
 grep -q '39f53479d3a045ac8e11786248231fbf' "${root}/service/cron/boot-check.sh"
 grep -q 'be02cf6855d2428ba40df7e9d022f03d' "${root}/service/cron/boot-check.sh"
 grep -q 'd9b373ed55a64feb8242e02dbe79a49c' "${root}/service/cron/boot-check.sh"
+grep -q 'src/config/global.conf' "${root}/service/cron/boot-check.sh"
 CHAIN
 if [[ "${chain_rc}" -eq 0 ]]; then
-    hf_pass "graph.boot.chain" "chaîne sans délai fixe, contrôle manuel installé"
+    hft_pass "graph.boot.chain" "chaîne sans délai fixe, contrôle manuel installé"
 else
-    hf_fail "graph.boot.chain" "la chaîne doit enchaîner les trois passes, et le contrôle doit lire le journal si l'heure de début a disparu"
+    hft_fail "graph.boot.chain" "la chaîne doit enchaîner les trois passes, et le contrôle doit lire le journal si l'heure de début a disparu"
 fi
 
-hf_section "alerte de plantage et incident"
+hft_section "alerte de plantage et incident"
 crash_rc=0
-bash -s -- "${HF_ROOT}" << 'CRASH' || crash_rc=$?
+bash -s -- "${HFT_ROOT}" << 'CRASH' || crash_rc=$?
 set -euo pipefail
 root="$1"
 work="$(mktemp -d)"
@@ -287,8 +313,8 @@ trap 'rm -rf "${work}"' EXIT
 mkdir -p "${work}/cron/bin" "${work}/bin"
 cat > "${work}/cron/mail.conf" << EOF
 HF_MAIL_ALERTS="1"
-WATCHDOG_MAIL="alerts@example.com"
-PROJECT_NAME="High-Fortress User"
+HF_WATCHDOG_MAIL="alerts@example.com"
+HF_PROJECT_NAME="High-Fortress User"
 EOF
 cat > "${work}/cron/bin/send.sh" << 'EOF'
 #!/usr/bin/env bash
@@ -311,7 +337,7 @@ chmod 755 "${work}/bin/clamscan"
 export HFU_BASE="${work}" HFU_SENT="${work}/sent.txt" HFU_SEEN="${work}/seen.txt" PATH="${work}/bin:${PATH}"
 # shellcheck disable=SC1091
 source "${root}/service/cron/watchdogs/common.sh"
-sentence="$(hfu_crash_sentence "AIDE" 139)"
+sentence="$(hf_get_crash_sentence "AIDE" 139)"
 printf '%s' "${sentence}" | grep -q 'signal 11'
 printf '%s' "${sentence}" | grep -q 'erreur interne du programme'
 LOG_FILE="${work}/clam.log"
@@ -319,13 +345,13 @@ ALERT_FILE="${work}/clam.txt"
 : > "${LOG_FILE}"
 list="${work}/list"
 printf '/ok\0/bad\0/virus\0/after\0' > "${list}"
-hfu_clamscan_list "${list}" >> "${LOG_FILE}" 2>&1
+hf_list_clamav_scan "${list}" >> "${LOG_FILE}" 2>&1
 grep -q 'clamscan planté signal 11 sur /bad' "${LOG_FILE}"
 grep -q 'scan /after' "${HFU_SEEN}"
-hfu_clam_report
-kind="$(hfu_clam_kind "${LOG_FILE}")"
+hf_report_clamav
+kind="$(hf_get_clamav_kind "${LOG_FILE}")"
 [[ "${kind}" == "infected" ]]
-log_alert "clamscan : infection(s) (voir ${LOG_FILE})"
+hf_log_alert "clamscan : infection(s) (voir ${LOG_FILE})"
 grep -q 'Ce fichier n'"'"'a pas été analysé' "${HFU_SENT}"
 grep -q 'clamscan planté signal 11 sur /bad' "${HFU_SENT}"
 grep -q 'clamscan : infection(s)' "${HFU_SENT}"
@@ -334,10 +360,10 @@ grep -q 'Eicar-Test-Signature FOUND' "${HFU_SENT}"
 : > "${LOG_FILE}"
 : > "${HFU_SENT}"
 printf '/bad1\0/bad2\0/later\0' > "${list}"
-hfu_clamscan_list "${list}" >> "${LOG_FILE}" 2>&1
+hf_list_clamav_scan "${list}" >> "${LOG_FILE}" 2>&1
 grep -q 'contrôle arrêté' "${LOG_FILE}"
 ! grep -q 'scan /later' "${HFU_SEEN}"
-hfu_clam_report
+hf_report_clamav
 grep -q 'deux fois de suite' "${HFU_SENT}"
 grep -q 'fichiers restants n'"'"'ont pas été analysés' "${HFU_SENT}"
 : > "${list}"
@@ -345,7 +371,7 @@ grep -q 'fichiers restants n'"'"'ont pas été analysés' "${HFU_SENT}"
 : > "${HFU_SENT}"
 empty_rc=0
 set +e
-hfu_clamscan_list "${list}" >> "${LOG_FILE}" 2>&1
+hf_list_clamav_scan "${list}" >> "${LOG_FILE}" 2>&1
 empty_rc=$?
 set -e
 [[ "${empty_rc}" -eq 0 ]]
@@ -358,29 +384,31 @@ source "'"${root}"'/service/cron/watchdogs/common.sh"
 LOG_FILE="'"${work}"'/dead.log"
 ALERT_FILE="'"${work}"'/dead.txt"
 : > "${LOG_FILE}"
-hfu_arm_crash_mail "essai"
+hf_arm_crash_mail "essai"
 exit 3
 ' || true
 grep -q "s'est arrêté (code 3)" "${HFU_SENT}"
 CRASH
 if [[ "${crash_rc}" -eq 0 ]]; then
-    hf_pass "graph.crash-mail" "plantage nommé, suite du lot, infection encore signalée"
+    hft_pass "graph.crash-mail" "plantage nommé, suite du lot, infection encore signalée"
 else
-    hf_fail "graph.crash-mail" "le courrier de plantage ou d'infection n'a pas le texte attendu"
+    hft_fail "graph.crash-mail" "le courrier de plantage ou d'infection n'a pas le texte attendu"
 fi
 
-hf_section "durcissement quotidien"
-ssh_drop="${HF_ROOT}/service/ssh/00-high-fortress-user.conf"
-desk="${HF_ROOT}/service/desktop/configure.sh"
-usb="${HF_ROOT}/service/usbguard/configure.sh"
-reboot="${HF_ROOT}/service/cron/watchdogs/reboot-notice.sh"
+hft_section "durcissement quotidien"
+ssh_drop="${HFT_ROOT}/config/ssh/00-high-fortress-user.conf"
+desk="${HFT_ROOT}/service/desktop/configure.sh"
+brave="${HFT_ROOT}/config/desktop/brave-policy.json"
+ufw_policy="${HFT_ROOT}/config/ufw/policy.conf"
+usb="${HFT_ROOT}/service/usbguard/configure.sh"
+reboot="${HFT_ROOT}/service/cron/watchdogs/reboot-notice.sh"
 daily_ok=1
 grep -q '^AllowTcpForwarding no$' "${ssh_drop}" || daily_ok=0
 grep -q '^AllowAgentForwarding no$' "${ssh_drop}" || daily_ok=0
 grep -q '^PasswordAuthentication yes$' "${ssh_drop}" || daily_ok=0
-grep -q 'timestamp_timeout=5' "${HF_ROOT}/system/configure.sh" || daily_ok=0
-grep -q 'force_balanced_enabled' "${desk}" || daily_ok=0
-grep -q 'DnsOverHttpsMode' "${desk}" || daily_ok=0
+grep -q 'timestamp_timeout=5' "${HFT_ROOT}/system/configure.sh" || daily_ok=0
+grep -q 'force_balanced_enabled' "${brave}" || daily_ok=0
+grep -q 'DnsOverHttpsMode' "${brave}" || daily_ok=0
 grep -q 'pgrep -x' "${reboot}" || daily_ok=0
 if grep -qE 'systemctl reboot|shutdown' "${reboot}"; then
     daily_ok=0
@@ -389,34 +417,35 @@ grep -q '03:\*:\*' "${usb}" || daily_ok=0
 if grep -q 'usb-storage' "${usb}"; then
     daily_ok=0
 fi
-grep -q 'authorized_keys' "${HF_ROOT}/service/aide/configure.sh" || daily_ok=0
-grep -q '!/home/' "${HF_ROOT}/service/aide/aide.conf" || daily_ok=0
+grep -q 'authorized_keys' "${HFT_ROOT}/service/aide/configure.sh" || daily_ok=0
+grep -q '!/home/' "${HFT_ROOT}/config/aide/aide.conf" || daily_ok=0
 awk '
     /out\.extend/ { ext = NR }
     /path\.write_text/ { wr = NR }
     END { exit !(ext && wr && wr > ext) }
-' "${HF_ROOT}/service/aide/configure.sh" || daily_ok=0
-grep -q 'hfu-reboot-notice.timer' "${HF_ROOT}/service/cron/configure.sh" || daily_ok=0
-grep -q 'scope global' "${HF_ROOT}/service/ufw/configure.sh" || daily_ok=0
-grep -q 'SSH LAN' "${HF_ROOT}/service/ufw/configure.sh" || daily_ok=0
-grep -q 'ufw default allow outgoing' "${HF_ROOT}/service/ufw/configure.sh" || daily_ok=0
+' "${HFT_ROOT}/service/aide/configure.sh" || daily_ok=0
+grep -q 'hfu-reboot-notice.timer' "${HFT_ROOT}/service/cron/configure.sh" || daily_ok=0
+grep -q 'scope global' "${HFT_ROOT}/service/ufw/configure.sh" || daily_ok=0
+grep -q 'SSH LAN' "${ufw_policy}" || daily_ok=0
+grep -q 'HFU_UFW_DEFAULT_OUTGOING=allow' "${ufw_policy}" || daily_ok=0
+grep -qF 'ufw default "${HFU_UFW_DEFAULT_OUTGOING}" outgoing' "${HFT_ROOT}/service/ufw/configure.sh" || daily_ok=0
 if grep -q 'sleep-inactive' "${desk}"; then
     daily_ok=0
 fi
 for lang in en fr de es; do
-    page="${HF_ROOT}/docs/${lang}/README.md"
+    page="${HFT_ROOT}/docs/${lang}/README.md"
     grep -q 'AllowTcpForwarding no' "${page}" || daily_ok=0
     grep -q 'AllowAgentForwarding no' "${page}" || daily_ok=0
     grep -q 'PasswordAuthentication yes' "${page}" || daily_ok=0
     grep -q 'hfu-reboot-notice.timer' "${page}" || daily_ok=0
     grep -q 'usbguard' "${page}" || daily_ok=0
     grep -q 'force_balanced_enabled' "${page}" || daily_ok=0
-    grep -q 'reboot-notice.sh' "${HF_ROOT}/docs/${lang}/architecture.md" || daily_ok=0
+    grep -q 'reboot-notice.sh' "${HFT_ROOT}/docs/${lang}/architecture.md" || daily_ok=0
 done
-if grep -q 'No other incoming allow rule is added.' "${HF_ROOT}/docs/en/README.md"; then
+if grep -q 'No other incoming allow rule is added.' "${HFT_ROOT}/docs/en/README.md"; then
     daily_ok=0
 fi
-ver="${HF_ROOT}/verify/workstation.sh"
+ver="${HFT_ROOT}/verify/workstation.sh"
 grep -q 'allowtcpforwarding' "${ver}" || daily_ok=0
 grep -q 'allowagentforwarding' "${ver}" || daily_ok=0
 grep -qF 'SSH (limit)' "${ver}" || daily_ok=0
@@ -429,39 +458,39 @@ grep -qF 'mailnews.message_display.disable_remote_image' "${ver}" || daily_ok=0
 grep -q 'LockDatabaseIdleSeconds' "${ver}" || daily_ok=0
 grep -q 'uint32 1200' "${ver}" || daily_ok=0
 grep -q 'verrou de session différent de 20 minutes' "${ver}" || daily_ok=0
-grep -qF 'The same run checks SSH forwarding' "${HF_ROOT}/docs/en/README.md" || daily_ok=0
-grep -qF 'La même passe contrôle le relais SSH' "${HF_ROOT}/docs/fr/README.md" || daily_ok=0
-grep -qF 'Derselbe Lauf prüft die SSH-Weiterleitung' "${HF_ROOT}/docs/de/README.md" || daily_ok=0
-grep -qF 'La misma pasada comprueba el reenvío SSH' "${HF_ROOT}/docs/es/README.md" || daily_ok=0
+grep -qF 'The same run checks SSH forwarding' "${HFT_ROOT}/docs/en/README.md" || daily_ok=0
+grep -qF 'La même passe contrôle le relais SSH' "${HFT_ROOT}/docs/fr/README.md" || daily_ok=0
+grep -qF 'Derselbe Lauf prüft die SSH-Weiterleitung' "${HFT_ROOT}/docs/de/README.md" || daily_ok=0
+grep -qF 'La misma pasada comprueba el reenvío SSH' "${HFT_ROOT}/docs/es/README.md" || daily_ok=0
 if [[ "${daily_ok}" -eq 1 ]]; then
-    hf_pass "graph.daily" "relais SSH coupé, préfixes connectés, bureau, USB, avis de redémarrage"
+    hft_pass "graph.daily" "relais SSH coupé, préfixes connectés, bureau, USB, avis de redémarrage"
 else
-    hf_fail "graph.daily" "le durcissement quotidien doit rester compatible avec le poste"
+    hft_fail "graph.daily" "le durcissement quotidien doit rester compatible avec le poste"
 fi
 
-hf_section "readme"
-readme="${HF_ROOT}/README.md"
-en="${HF_ROOT}/docs/en/README.md"
-fr="${HF_ROOT}/docs/fr/README.md"
+hft_section "readme"
+readme="${HFT_ROOT}/README.md"
+en="${HFT_ROOT}/docs/en/README.md"
+fr="${HFT_ROOT}/docs/fr/README.md"
 pages_ok=1
 for lang in en fr de es; do
     for page in README.md configuration.md surveillance.md architecture.md files.md logs.md; do
-        if [[ ! -f "${HF_ROOT}/docs/${lang}/${page}" ]]; then
+        if [[ ! -f "${HFT_ROOT}/docs/${lang}/${page}" ]]; then
             pages_ok=0
-        elif [[ "${page}" != "README.md" ]] && ! head -1 "${HF_ROOT}/docs/${lang}/${page}" | grep -q 'README.md'; then
+        elif [[ "${page}" != "README.md" ]] && ! head -1 "${HFT_ROOT}/docs/${lang}/${page}" | grep -q 'README.md'; then
             pages_ok=0
         fi
     done
 done
 for old in configuration.md surveillance.md architecture.md files.md logs.md; do
-    [[ -f "${HF_ROOT}/${old}" ]] && pages_ok=0
+    [[ -f "${HFT_ROOT}/${old}" ]] && pages_ok=0
 done
 grep -qF '## Documentation' "${readme}" || pages_ok=0
 grep -qF 'Click a flag to open all the information.' "${readme}" || pages_ok=0
 grep -qF 'width="100%"' "${readme}" || pages_ok=0
 grep -qF 'Do not copy it into a message, a ticket, or a repository.' "${readme}" && pages_ok=0
 for flag in en fr de es; do
-    [[ -f "${HF_ROOT}/docs/flags/${flag}.svg" ]] || pages_ok=0
+    [[ -f "${HFT_ROOT}/docs/flags/${flag}.svg" ]] || pages_ok=0
     grep -qF "docs/flags/${flag}.svg" "${readme}" || pages_ok=0
 done
 warn='`secrets.conf` stays on the machine. Do not copy it into a message, a ticket, or a repository.'
@@ -487,10 +516,10 @@ if grep -qF '# High-Fortress User' "${readme}" \
    && grep -qF 'docs/de/README.md' "${readme}" \
    && grep -qF 'docs/es/README.md' "${readme}" \
    && ! grep -qF '## Avant de commencer' "${readme}" \
-   && ! grep -R -qF 'disable_ipv6' "${HF_ROOT}/docs" \
-   && ! grep -R -qF 'PasswordAuthentication no' "${HF_ROOT}/docs" \
+   && ! grep -R -qF 'disable_ipv6' "${HFT_ROOT}/docs" \
+   && ! grep -R -qF 'PasswordAuthentication no' "${HFT_ROOT}/docs" \
    && grep -qF 'Ne le copiez pas dans un message, un ticket ou un dépôt.' "${fr}" \
-   && grep -qF 'LYNIS_MIN_SCORE' "${en}" \
+   && grep -qF 'HF_LYNIS_MIN_SCORE' "${en}" \
    && grep -qF 'is 80' "${en}" \
    && awk '
         /^## Description$/ { h[++n] = NR }
@@ -523,7 +552,7 @@ if grep -qF '# High-Fortress User' "${readme}" \
         }
       ' "${fr}" \
    && [[ "${pages_ok}" -eq 1 ]]; then
-    hf_pass "graph.readme" "squelette du README et pages liées"
+    hft_pass "graph.readme" "squelette du README et pages liées"
 else
-    hf_fail "graph.readme" "le README du poste doit suivre agents/laws/readme.md"
+    hft_fail "graph.readme" "le README du poste doit suivre agents/laws/readme.md"
 fi

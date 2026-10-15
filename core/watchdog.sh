@@ -5,11 +5,11 @@
 # Creator    : palarchsys
 # =============================================================================
 
-hf_product_base() {
+hf_get_product_base() {
     if [[ -n "${HFU_BASE:-}" ]]; then
         printf '%s' "${HFU_BASE}"
-    elif [[ -n "${CONFIG_BASE_DIR:-}" ]]; then
-        printf '%s' "${CONFIG_BASE_DIR}"
+    elif [[ -n "${HF_CONFIG_BASE_DIRECTORY:-}" ]]; then
+        printf '%s' "${HF_CONFIG_BASE_DIRECTORY}"
     elif [[ -n "${HF_BASE:-}" ]]; then
         printf '%s' "${HF_BASE}"
     else
@@ -23,7 +23,7 @@ hf_send_path() {
         return 0
     fi
     local base
-    base="$(hf_product_base)"
+    base="$(hf_get_product_base)"
     if [[ -x "${base}/cron/bin/send.sh" ]]; then
         printf '%s\n' "${base}/cron/bin/send.sh"
         return 0
@@ -43,7 +43,7 @@ hf_signal_phrase() {
     esac
 }
 
-hf_crash_sentence() {
+hf_get_crash_sentence() {
     local label="$1"
     local status="$2"
     local signal phrase journal
@@ -61,24 +61,24 @@ hf_crash_sentence() {
     printf '\n'
 }
 
-hf_crash_mail_now() {
+hf_send_crash_mail() {
     local status=$?
     if [[ -n "${1-}" ]]; then
         status="$1"
     fi
     trap - EXIT
     [[ "${status}" -eq 0 ]] && return 0
-    hf_log_alert "$(hf_crash_sentence "${HF_CRASH_LABEL:-${HFU_CRASH_LABEL:-contrôle}}" "${status}")" || true
+    hf_log_alert "$(hf_get_crash_sentence "${HF_CRASH_LABEL:-${HFU_CRASH_LABEL:-contrôle}}" "${status}")" || true
 }
 
 hf_arm_crash_mail() {
     HF_CRASH_LABEL="$1"
     HFU_CRASH_LABEL="$1"
-    trap hf_crash_mail_now EXIT
+    trap hf_send_crash_mail EXIT
 }
 
-hf_cpu_quota_percent() {
-    local limit="${WATCHDOG_CPU_LIMIT:-50}"
+hf_get_cpu_quota_percent() {
+    local limit="${HF_WATCHDOG_CPU_LIMIT:-50}"
     local n=1
     if [[ ! "${limit}" =~ ^[0-9]+$ ]]; then
         limit=50
@@ -92,7 +92,7 @@ hf_cpu_quota_percent() {
     printf '%s\n' "$((limit * n))"
 }
 
-hf_limited_run() {
+hf_run_limited() {
     local status=0 pid=0 lim=0 errexit=0
     local -a cmd=()
     case $- in
@@ -104,10 +104,10 @@ hf_limited_run() {
         status=$?
     else
         if command -v nice >/dev/null 2>&1; then
-            cmd+=(nice -n "${WATCHDOG_LIMIT_NICE:-19}")
+            cmd+=(nice -n "${HF_WATCHDOG_LIMIT_NICE:-19}")
         fi
         if command -v ionice >/dev/null 2>&1; then
-            cmd+=(ionice -c "${WATCHDOG_LIMIT_IONICE:-3}")
+            cmd+=(ionice -c "${HF_WATCHDOG_LIMIT_IO_NICE:-3}")
         fi
         if [[ "${#cmd[@]}" -eq 0 ]]; then
             "$@" &
@@ -116,7 +116,7 @@ hf_limited_run() {
         fi
         pid=$!
         if command -v cpulimit >/dev/null 2>&1; then
-            cpulimit -p "${pid}" -l "$(hf_cpu_quota_percent)" -z >/dev/null 2>&1 &
+            cpulimit -p "${pid}" -l "$(hf_get_cpu_quota_percent)" -z >/dev/null 2>&1 &
             lim=$!
         fi
         wait "${pid}"
@@ -132,7 +132,7 @@ hf_limited_run() {
     return "${status}"
 }
 
-hf_alert_excerpt() {
+hf_get_alert_excerpt() {
     python3 - "${1:-}" << 'PY'
 import re
 import sys
@@ -249,7 +249,7 @@ if body:
 PY
 }
 
-hf_clam_kind() {
+hf_get_clamav_kind() {
     python3 - "${1:-}" << 'PY'
 import re
 import sys
@@ -284,15 +284,15 @@ else:
 PY
 }
 
-hf_clam_invoke() {
+hf_invoke_clamav() {
     if [[ "${HF_CLAM_MODE:-scan}" == "daemon" ]]; then
-        hf_limited_run clamdscan --fdpass --infected --no-summary -- "$@"
+        hf_run_limited clamdscan --fdpass --infected --no-summary -- "$@"
     else
         clamscan --infected --no-summary -- "$@"
     fi
 }
 
-hf_clam_scan_batch() {
+hf_scan_clamav_batch() {
     local status=0 signal=0 streak=0 path errexit=0 tool="clamscan"
     [[ "$#" -gt 0 ]] || return 0
     if [[ "${HF_CLAM_MODE:-scan}" == "daemon" ]]; then
@@ -302,7 +302,7 @@ hf_clam_scan_batch() {
         *e*) errexit=1 ;;
     esac
     set +e
-    hf_clam_invoke "$@"
+    hf_invoke_clamav "$@"
     status=$?
     if [[ "${errexit}" -eq 1 ]]; then
         set -e
@@ -313,7 +313,7 @@ hf_clam_scan_batch() {
     streak=0
     for path in "$@"; do
         set +e
-        hf_clam_invoke "${path}"
+        hf_invoke_clamav "${path}"
         status=$?
         if [[ "${errexit}" -eq 1 ]]; then
             set -e
@@ -325,7 +325,7 @@ hf_clam_scan_batch() {
             if [[ "${streak}" -ge 2 ]]; then
                 printf '%s planté signal %s, contrôle arrêté\n' "${tool}" "${signal}"
                 HF_CLAM_STOP=1
-                HFU_CLAM_STOP=1
+                HFU_CLAMAV_STOP=1
                 return 0
             fi
         else
@@ -335,24 +335,24 @@ hf_clam_scan_batch() {
     return 0
 }
 
-hf_clamscan_list() {
+hf_list_clamav_scan() {
     local file_list="$1"
     local path batch_max
     local -a batch=()
     batch_max="${HF_CLAM_BATCH:-80}"
     HF_CLAM_STOP=0
-    HFU_CLAM_STOP=0
+    HFU_CLAMAV_STOP=0
     while IFS= read -r -d '' path || [[ -n "${path}" ]]; do
         [[ -n "${path}" ]] || continue
         batch+=("${path}")
         if [[ "${#batch[@]}" -eq "${batch_max}" ]]; then
-            hf_clam_scan_batch "${batch[@]}" || true
+            hf_scan_clamav_batch "${batch[@]}" || true
             batch=()
             [[ "${HF_CLAM_STOP}" == 1 ]] && break
         fi
     done < "${file_list}"
     if [[ "${#batch[@]}" -gt 0 && "${HF_CLAM_STOP}" != 1 ]]; then
-        hf_clam_scan_batch "${batch[@]}" || true
+        hf_scan_clamav_batch "${batch[@]}" || true
     fi
     return 0
 }
@@ -362,7 +362,7 @@ hf_log_alert() {
     local excerpt="" module log alert line send base note="" note_cmd=""
     log="${LOG_FILE:-${LOG:-}}"
     alert="${ALERT_FILE:-}"
-    excerpt="$(hf_alert_excerpt "${log}")"
+    excerpt="$(hf_get_alert_excerpt "${log}")"
     line="$(printf '%s %s' "$(date -Iseconds)" "${summary}")"
     if [[ -n "${log}" && -n "${alert}" ]]; then
         printf '%s\n' "${line}" | tee -a "${log}" "${alert}"
@@ -376,7 +376,7 @@ hf_log_alert() {
         module="$(basename "${log}" | sed -E 's/-[0-9]{8}-.*//')"
     fi
     module="${module:-contrôle}"
-    base="$(hf_product_base)"
+    base="$(hf_get_product_base)"
     if [[ "${HFU_AIDE_REFRESH:-}" == "1" ]]; then
         note="Si ce journal correspond à des changements attendus (une mise à jour, un logiciel que vous avez installé, un fichier que vous avez modifié) et qu'il ne révèle pas d'anomalie, exécutez la commande ci-dessous. Elle recalcule la base de référence AIDE à partir du disque actuel."
         note_cmd="sudo bash ${base}/bin/aide-refresh-db.sh"
@@ -397,14 +397,14 @@ hf_log_alert() {
     if [[ -z "${TITLE:-}" ]]; then
         TITLE="Alerte ${module}"
     fi
-    if [[ -z "${PROJECT_NAME:-}" ]]; then
+    if [[ -z "${HF_PROJECT_NAME:-}" ]]; then
         if [[ -n "${HFU_BASE:-}" ]]; then
-            PROJECT_NAME="High-Fortress User"
+            HF_PROJECT_NAME="High-Fortress User"
         else
-            PROJECT_NAME="High-Fortress"
+            HF_PROJECT_NAME="High-Fortress"
         fi
     fi
-    if [[ "${HF_MAIL_ALERTS:-0}" != "1" || -z "${WATCHDOG_MAIL:-}" ]]; then
+    if [[ "${HF_MAIL_ALERTS:-0}" != "1" || -z "${HF_WATCHDOG_MAIL:-}" ]]; then
         return 0
     fi
     send="$(hf_send_path)" || return 0
@@ -415,13 +415,13 @@ hf_log_alert() {
 ${excerpt}" \
     NOTE="${NOTE:-}" \
     NOTE_CMD="${NOTE_CMD:-}" \
-    WATCHDOG_MAIL="${WATCHDOG_MAIL}" \
-    PROJECT_NAME="${PROJECT_NAME}" \
-    MAIL_TEMPLATE="${MAIL_TEMPLATE:-mail.html}" \
+    HF_WATCHDOG_MAIL="${HF_WATCHDOG_MAIL}" \
+    HF_PROJECT_NAME="${HF_PROJECT_NAME}" \
+    HF_MAIL_TEMPLATE="${HF_MAIL_TEMPLATE:-mail.html}" \
         bash "${send}" || true
 }
 
-hf_clam_report() {
+hf_report_clamav() {
     local crashed=0 signal phrase log
     log="${LOG_FILE:-${LOG:-}}"
     [[ -n "${log}" && -f "${log}" ]] || return 1
@@ -439,7 +439,7 @@ hf_clam_report() {
     return 0
 }
 
-hf_mail_about() {
+hf_render_mail_about() {
     case "${MODULE_NAME:-}" in
         Aide) printf '%s\n' "Intégrité des fichiers surveillés par AIDE (aide --check)." ;;
         Chkrootkit) printf '%s\n' "Recherche de rootkits (chkrootkit -x -q)." ;;
@@ -464,11 +464,11 @@ hf_deliver_mail() {
         exit 0
     fi
     if [[ "${HF_MAIL_REQUIRE_FLAG:-0}" == "1" ]]; then
-        if [[ "${HF_MAIL_ALERTS:-0}" != "1" || -z "${WATCHDOG_MAIL:-}" ]]; then
+        if [[ "${HF_MAIL_ALERTS:-0}" != "1" || -z "${HF_WATCHDOG_MAIL:-}" ]]; then
             echo "Mail non envoyé (${MODULE_NAME:-?}) : alertes e-mail coupées." >&2
             exit 0
         fi
-    elif [[ -z "${WATCHDOG_MAIL:-}" ]]; then
+    elif [[ -z "${HF_WATCHDOG_MAIL:-}" ]]; then
         echo "Mail non envoyé (${MODULE_NAME:-?}) : destinataire ou corps vide." >&2
         exit 0
     fi
@@ -477,7 +477,7 @@ hf_deliver_mail() {
         exit 0
     fi
     if [[ "${HF_MAIL_ABOUT:-0}" == "1" ]]; then
-        CONTENT="$(hf_mail_about)
+        CONTENT="$(hf_render_mail_about)
 
 ${detail}"
     else
@@ -487,23 +487,23 @@ ${detail}"
     DATE="${DATE:-$(date '+%Y-%m-%d %H:%M:%S')}"
     TITLE="${TITLE:-Alerte}"
     MODULE_NAME="${MODULE_NAME:-alerte}"
-    if [[ -z "${PROJECT_NAME:-}" ]]; then
+    if [[ -z "${HF_PROJECT_NAME:-}" ]]; then
         if [[ -n "${HFU_BASE:-}" ]]; then
-            PROJECT_NAME="High-Fortress User"
+            HF_PROJECT_NAME="High-Fortress User"
         else
-            PROJECT_NAME="High-Fortress"
+            HF_PROJECT_NAME="High-Fortress"
         fi
     fi
-    export TITLE PROJECT_NAME HOSTNAME DATE MODULE_NAME CONTENT
+    export TITLE HF_PROJECT_NAME HOSTNAME DATE MODULE_NAME CONTENT
     export NOTE="${NOTE:-}"
     export NOTE_CMD="${NOTE_CMD:-}"
     _mail_sh=""
     for _candidate in \
         "${script_dir}/mail.sh" \
-        "${CONFIG_BASE_DIR:-}/cron/bin/mail.sh" \
-        "${CONFIG_BASE_DIR:-}/src/core/mail.sh" \
-        "${DIR_INSTALL_PATH:-}/core/mail.sh" \
-        "${DIR_INSTALL_PATH:-}/../core/mail.sh" \
+        "${HF_CONFIG_BASE_DIRECTORY:-}/cron/bin/mail.sh" \
+        "${HF_CONFIG_BASE_DIRECTORY:-}/src/core/mail.sh" \
+        "${HF_INSTALL_DIRECTORY:-}/core/mail.sh" \
+        "${HF_INSTALL_DIRECTORY:-}/../core/mail.sh" \
         "${script_dir}/../../../core/mail.sh" \
         "${script_dir}/../../../../core/mail.sh" \
         "${script_dir}/../core/mail.sh" \
@@ -521,7 +521,7 @@ ${detail}"
     fi
     # shellcheck disable=SC1090
     source "${_mail_sh}"
-    tpl="$(hf_mail_template_file "${script_dir}")" || {
+    tpl="$(hf_locate_mail_template "${script_dir}")" || {
         echo "Mail non envoyé (${MODULE_NAME}) : modèle HTML introuvable." >&2
         exit 0
     }
@@ -537,7 +537,7 @@ ${detail}"
     if [[ -n "${HTML_REPORT:-}" ]]; then
         printf '%s\n' "${MAIL_CONTENT}" > "${HTML_REPORT}" || true
     fi
-    printf '%s\n' "${MAIL_CONTENT}" | mail -s "${PROJECT_NAME} - ${HOSTNAME} - ${MODULE_NAME}" \
+    printf '%s\n' "${MAIL_CONTENT}" | mail -s "${HF_PROJECT_NAME} - ${HOSTNAME} - ${MODULE_NAME}" \
         -a "Content-Type: text/html; charset=UTF-8" \
-        "${WATCHDOG_MAIL}"
+        "${HF_WATCHDOG_MAIL}"
 }

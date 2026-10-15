@@ -1,0 +1,11 @@
+# =============================================================================
+# File       : config/crowdsec/collections.list
+# Updated at : 2026-10-15
+# Creator    : palarchsys
+# =============================================================================
+
+crowdsecurity/linux
+crowdsecurity/sshd
+crowdsecurity/postfix
+crowdsecurity/iptables
+crowdsecurity/whitelist-good-actors

@@ -14,7 +14,7 @@ LOG_FILE="${LOG_DIR}/reboot-notice-${STAMP}.log"
 ALERT_FILE="${ALERT_DIR}/reboot-notice-${STAMP}.txt"
 : > "${LOG_FILE}"
 MODULE_NAME="reboot"
-hfu_arm_crash_mail "avis de redémarrage"
+hf_arm_crash_mail "avis de redémarrage"
 
 busy=""
 for name in steam steamwebhelper lutris heroic wineserver gamescope; do
@@ -24,7 +24,7 @@ for name in steam steamwebhelper lutris heroic wineserver gamescope; do
     fi
 done
 if [[ -n "${busy}" ]]; then
-    log_ok "avis de redémarrage reporté : ${busy} tourne"
+    hfu_log_pass "avis de redémarrage reporté : ${busy} tourne"
     exit 0
 fi
 
@@ -45,18 +45,18 @@ if command -v fwupdmgr >/dev/null 2>&1; then
 fi
 body="$(printf '%s' "${body}" | sed '/^$/d')"
 if [[ -z "${body}" ]]; then
-    log_ok "aucun redémarrage utile"
+    hfu_log_pass "aucun redémarrage utile"
     exit 0
 fi
 
 seen="${HFU_BASE}/cron/reboot-notice.seen"
 digest="$(printf '%s' "${body}" | sha256sum | awk '{print $1}')"
 if [[ -f "${seen}" ]] && [[ "$(cat "${seen}")" == "${digest}" ]]; then
-    log_ok "avis de redémarrage déjà envoyé"
+    hfu_log_pass "avis de redémarrage déjà envoyé"
     exit 0
 fi
 printf '%s\n' "${body}" >> "${LOG_FILE}"
-log_alert "Un redémarrage est utile. La machine n'a pas été redémarrée."
+hf_log_alert "Un redémarrage est utile. La machine n'a pas été redémarrée."
 umask 077
 printf '%s\n' "${digest}" > "${seen}"
 chmod 600 "${seen}"
