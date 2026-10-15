@@ -30,7 +30,7 @@ Los nombres y los valores de abajo son el `user/config/global.conf` entregado y 
 | FAILLOCK_DENY              | 8                                                                | Fallos antes del bloqueo. No se pregunta.                                                          |
 | FAILLOCK_UNLOCK            | 600                                                              | Segundos de bloqueo. No se pregunta.                                                               |
 | FAILLOCK_FAIL_INTERVAL     | 900                                                              | Ventana de recuento de los fallos. No se pregunta.                                                 |
-| WATCHDOG_CPU_LIMIT         | 20                                                               | Cuota de CPU en porcentaje de la pasada de arranque. No se pregunta.                               |
+| WATCHDOG_CPU_LIMIT         | 20                                                               | Porcentaje de la máquina para una pasada. La unidad escribe `CPUQuota` como este número multiplicado por el número de CPU. No se pregunta. |
 | WATCHDOG_LIMIT_NICE        | 19                                                               | Valor nice de la pasada de arranque. No se pregunta.                                               |
 | WATCHDOG_LIMIT_IONICE      | 3                                                                | Clase ionice guardada en el archivo. El temporizador usa `IOSchedulingClass=idle`. No se pregunta. |
 | HF_MAIL_ALERTS             | 1 in the shipped file, 0 in the builtin default until you answer | Lo fija la respuesta sobre las alertas.                                                            |

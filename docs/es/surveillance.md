@@ -115,6 +115,12 @@ El análisis poda también `proc`, `sys`, `dev`, `var/lib/docker`, `var/lib/libv
 
 El análisis lee los archivos con `clamscan`, en la unidad de arranque.
 
+La unidad limita esta pasada al 20 % de la máquina.
+
+El número se escribe al configurar cron.
+
+Un cambio posterior del número de CPU exige repetir ese paso.
+
 Brave, Thunderbird y Discord permanecen en esta pasada.
 
 Un archivo ilegible, sin línea `FOUND`, no envía correo.
@@ -138,7 +144,7 @@ El correo dice entonces que los archivos restantes no se leyeron.
 | Ajuste | Valor |
 | --- | --- |
 | temporizador | `OnBootSec=15min`, `OnUnitActiveSec=1h`, `Persistent=true` |
-| límites | `Nice` 19, `IOSchedulingClass=idle`, `CPUQuota` 20 % |
+| límites | `Nice` 19, `IOSchedulingClass=idle`, `CPUQuota` 20 % de la máquina |
 | espera | `steam`, `steamwebhelper`, `lutris`, `heroic`, `wineserver`, `gamescope` |
 | directorios saltados | `shadercache`, `downloading` |
 | archivos | ejecutables de cualquier tamaño, y los demás archivos de 25M o menos más recientes que `scan-skip.stamp` |
@@ -218,7 +224,7 @@ El instalador deja ambos sin cambios.
 
 El temporizador es `OnBootSec=20min` y `OnUnitActiveSec=6h`, con `Persistent=true`.
 
-`Nice` vale 19, `IOSchedulingClass` vale `idle`, y `CPUQuota` vale 20 %.
+`Nice` vale 19, `IOSchedulingClass` vale `idle`, y `CPUQuota` vale 20 % de la máquina.
 
 Un `steam`, `steamwebhelper`, `lutris`, `heroic`, `wineserver` o `gamescope` en marcha omite el correo.
 

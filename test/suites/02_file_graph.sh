@@ -223,6 +223,27 @@ else
     hf_fail "graph.scan-skip" "les exclusions passent par scan-skip.paths et ne retirent pas Brave, Discord ni Thunderbird"
 fi
 
+hf_section "plafond CPU"
+cpu_rc=0
+bash -s -- "${HF_ROOT}" << 'CPU' || cpu_rc=$?
+set -euo pipefail
+root="$1"
+work="$(mktemp -d)"
+trap 'rm -rf "${work}"' EXIT
+printf '%s\n' '#!/bin/sh' 'echo 4' > "${work}/nproc"
+chmod 755 "${work}/nproc"
+got="$(PATH="${work}:${PATH}" WATCHDOG_CPU_LIMIT=20 bash -c 'source "$1" && hf_cpu_quota_percent' _ "${root}/../core/watchdog.sh")"
+[[ "${got}" == "80" ]]
+grep -qF 'hf_cpu_quota_percent' "${root}/service/cron/configure.sh"
+grep -qF 'CPUQuota=${cpu_quota}%' "${root}/service/cron/configure.sh"
+! grep -qF 'CPUQuota=${WATCHDOG_CPU_LIMIT}%' "${root}/service/cron/configure.sh"
+CPU
+if [[ "${cpu_rc}" -eq 0 ]]; then
+    hf_pass "graph.cpu.quota" "20 % de la machine, CPUQuota multiplié par le nombre de CPU"
+else
+    hf_fail "graph.cpu.quota" "CPUQuota doit valoir WATCHDOG_CPU_LIMIT fois le nombre de CPU"
+fi
+
 hf_section "alerte de plantage et incident"
 crash_rc=0
 bash -s -- "${HF_ROOT}" << 'CRASH' || crash_rc=$?

@@ -30,7 +30,7 @@ Names and defaults below are the shipped `user/config/global.conf` and `hfu_conf
 | FAILLOCK_DENY              | 8                                                                | Failures before lockout. Not asked.                                                         |
 | FAILLOCK_UNLOCK            | 600                                                              | Lockout seconds. Not asked.                                                                 |
 | FAILLOCK_FAIL_INTERVAL     | 900                                                              | Window for counting failures. Not asked.                                                    |
-| WATCHDOG_CPU_LIMIT         | 20                                                               | CPU quota percent of the boot scan. Not asked.                                              |
+| WATCHDOG_CPU_LIMIT         | 20                                                               | Percent of the whole machine for one pass. The unit stores `CPUQuota` as this number times the CPU count. Not asked. |
 | WATCHDOG_LIMIT_NICE        | 19                                                               | Nice value of the boot scan. Not asked.                                                     |
 | WATCHDOG_LIMIT_IONICE      | 3                                                                | Ionice class number stored in the file. The timer uses `IOSchedulingClass=idle`. Not asked. |
 | HF_MAIL_ALERTS             | 1 in the shipped file, 0 in the builtin default until you answer | Set from the alert answer.                                                                  |

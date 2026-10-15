@@ -115,6 +115,12 @@ Elle élague aussi `proc`, `sys`, `dev`, `var/lib/docker`, `var/lib/libvirt`, `l
 
 Elle lit les fichiers avec `clamscan`, dans l'unité de démarrage.
 
+L'unité plafonne cette passe à 20 % de la machine.
+
+Le nombre est écrit lors de la configuration cron.
+
+Un changement ultérieur du nombre de CPU demande de relancer cette configuration.
+
 Brave, Thunderbird et Discord restent dans cette passe.
 
 Un fichier illisible, sans ligne `FOUND`, n'envoie pas de courrier.
@@ -138,7 +144,7 @@ Le courrier dit alors que les fichiers restants n'ont pas été lus.
 | Réglage | Valeur |
 | --- | --- |
 | minuteur | `OnBootSec=15min`, `OnUnitActiveSec=1h`, `Persistent=true` |
-| limites | `Nice` 19, `IOSchedulingClass=idle`, `CPUQuota` 20 % |
+| limites | `Nice` 19, `IOSchedulingClass=idle`, `CPUQuota` 20 % de la machine |
 | attente | `steam`, `steamwebhelper`, `lutris`, `heroic`, `wineserver`, `gamescope` |
 | répertoires sautés | `shadercache`, `downloading` |
 | fichiers | exécutables de toute taille, et les autres fichiers de 25 Mo ou moins plus récents que `scan-skip.stamp` |
@@ -218,7 +224,7 @@ L'installeur laisse les deux inchangés.
 
 La minuterie est `OnBootSec=20min` et `OnUnitActiveSec=6h`, avec `Persistent=true`.
 
-`Nice` vaut 19, `IOSchedulingClass` vaut `idle`, et `CPUQuota` vaut 20 %.
+`Nice` vaut 19, `IOSchedulingClass` vaut `idle`, et `CPUQuota` vaut 20 % de la machine.
 
 Un `steam`, `steamwebhelper`, `lutris`, `heroic`, `wineserver` ou `gamescope` en cours saute le courrier.
 

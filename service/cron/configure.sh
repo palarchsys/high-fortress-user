@@ -18,7 +18,13 @@ detect_current_user
 
 title "Watchdogs cron (root, cron.allow non restreint)"
 
-info "Installation des watchdogs (démarrage plafonné à ${WATCHDOG_CPU_LIMIT}% CPU)"
+cpu_quota="$(
+    WATCHDOG_CPU_LIMIT="${WATCHDOG_CPU_LIMIT:-20}" \
+        bash -c 'source "$1" && hf_cpu_quota_percent' _ "${DIR_INSTALL_PATH}/core/watchdog.sh"
+)" || error "quota CPU introuvable"
+[[ "${cpu_quota}" =~ ^[0-9]+$ ]] || error "quota CPU invalide (${cpu_quota:-vide})"
+
+info "Installation des watchdogs (démarrage plafonné à ${WATCHDOG_CPU_LIMIT}% du CPU total)"
 ensure_dir "${CONFIG_BASE_DIR}/cron/bin" 755
 ensure_dir "${CONFIG_BASE_DIR}/cron/cron_logs" 750
 ensure_dir "${CONFIG_BASE_DIR}/cron/security_logs" 750
@@ -66,7 +72,7 @@ DefaultDependencies=no
 Type=oneshot
 Nice=${WATCHDOG_LIMIT_NICE}
 IOSchedulingClass=idle
-CPUQuota=${WATCHDOG_CPU_LIMIT}%
+CPUQuota=${cpu_quota}%
 ExecStart=${CONFIG_BASE_DIR}/cron/bin/boot-scan.sh
 EOF
 tee /etc/systemd/system/hfu-boot-scan.timer > /dev/null << 'EOF'
@@ -93,7 +99,7 @@ After=local-fs.target multi-user.target
 Type=oneshot
 Nice=${WATCHDOG_LIMIT_NICE}
 IOSchedulingClass=idle
-CPUQuota=${WATCHDOG_CPU_LIMIT}%
+CPUQuota=${cpu_quota}%
 ExecStart=${CONFIG_BASE_DIR}/cron/bin/idle-scan.sh
 EOF
 tee /etc/systemd/system/hfu-idle-scan.timer > /dev/null << 'EOF'
@@ -122,7 +128,7 @@ After=local-fs.target multi-user.target
 Type=oneshot
 Nice=${WATCHDOG_LIMIT_NICE}
 IOSchedulingClass=idle
-CPUQuota=${WATCHDOG_CPU_LIMIT}%
+CPUQuota=${cpu_quota}%
 ExecStart=${CONFIG_BASE_DIR}/cron/bin/reboot-notice.sh
 EOF
 tee /etc/systemd/system/hfu-reboot-notice.timer > /dev/null << 'EOF'
@@ -144,7 +150,7 @@ run_silent systemctl daemon-reload
 run_silent systemctl enable hfu-boot-scan.timer
 run_silent systemctl enable hfu-idle-scan.timer
 run_silent systemctl enable hfu-reboot-notice.timer
-success "Démarrage plafonné à ${WATCHDOG_CPU_LIMIT}% CPU"
+success "Démarrage plafonné à ${WATCHDOG_CPU_LIMIT}% du CPU total"
 
 export HFU_BASE="${CONFIG_BASE_DIR}"
 export HFU_SCAN_SKIP_HOME="${CURRENT_HOME}"

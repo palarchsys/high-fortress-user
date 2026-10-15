@@ -115,6 +115,12 @@ Die Prüfung schneidet auch `proc`, `sys`, `dev`, `var/lib/docker`, `var/lib/lib
 
 Die Prüfung liest die Dateien mit `clamscan` in der Start-Unit.
 
+Die Unit deckelt diesen Lauf auf 20 % der ganzen Maschine.
+
+Die Zahl wird beim Einrichten von cron geschrieben.
+
+Eine spätere Änderung der CPU-Anzahl verlangt diesen Schritt erneut.
+
 Brave, Thunderbird und Discord bleiben in diesem Lauf.
 
 Eine unlesbare Datei ohne Zeile `FOUND` sendet keine Post.
@@ -138,7 +144,7 @@ Die Post sagt dann, dass die restlichen Dateien nicht gelesen wurden.
 | Einstellung | Wert |
 | --- | --- |
 | Timer | `OnBootSec=15min`, `OnUnitActiveSec=1h`, `Persistent=true` |
-| Grenzen | `Nice` 19, `IOSchedulingClass=idle`, `CPUQuota` 20 % |
+| Grenzen | `Nice` 19, `IOSchedulingClass=idle`, `CPUQuota` 20 % der ganzen Maschine |
 | Warten | `steam`, `steamwebhelper`, `lutris`, `heroic`, `wineserver`, `gamescope` |
 | übersprungene Verzeichnisse | `shadercache`, `downloading` |
 | Dateien | ausführbare Dateien jeder Größe, und andere Dateien von 25M oder weniger, neuer als `scan-skip.stamp` |
@@ -218,7 +224,7 @@ Der Installer lässt beides unverändert.
 
 Der Timer ist `OnBootSec=20min` und `OnUnitActiveSec=6h`, mit `Persistent=true`.
 
-`Nice` ist 19, `IOSchedulingClass` ist `idle`, und `CPUQuota` ist 20 %.
+`Nice` ist 19, `IOSchedulingClass` ist `idle`, und `CPUQuota` ist 20 % der ganzen Maschine.
 
 Ein laufendes `steam`, `steamwebhelper`, `lutris`, `heroic`, `wineserver` oder `gamescope` überspringt die Post.
 

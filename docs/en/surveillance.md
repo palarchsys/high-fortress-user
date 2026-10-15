@@ -115,6 +115,12 @@ It also prunes `proc`, `sys`, `dev`, `var/lib/docker`, `var/lib/libvirt`, `libvi
 
 It reads files with `clamscan` inside the boot unit.
 
+The unit caps that pass at 20% of the whole machine.
+
+The number is written when cron is configured.
+
+A later change in the CPU count needs that step again.
+
 Brave, Thunderbird and Discord stay in this pass.
 
 A file that cannot be read, with no `FOUND` line, does not send mail.
@@ -138,7 +144,7 @@ The mail then says that the remaining files were not read.
 | Setting | Value |
 | --- | --- |
 | timer | `OnBootSec=15min`, `OnUnitActiveSec=1h`, `Persistent=true` |
-| limits | `Nice` 19, `IOSchedulingClass=idle`, `CPUQuota` 20% |
+| limits | `Nice` 19, `IOSchedulingClass=idle`, `CPUQuota` 20% of the whole machine |
 | wait | `steam`, `steamwebhelper`, `lutris`, `heroic`, `wineserver`, `gamescope` |
 | skipped directories | `shadercache`, `downloading` |
 | files | executables of any size, and other files of 25M or less newer than `scan-skip.stamp` |
@@ -218,7 +224,7 @@ The installer leaves both unchanged.
 
 The timer is `OnBootSec=20min` and `OnUnitActiveSec=6h`, with `Persistent=true`.
 
-`Nice` is 19, `IOSchedulingClass` is `idle`, and `CPUQuota` is 20%.
+`Nice` is 19, `IOSchedulingClass` is `idle`, and `CPUQuota` is 20% of the whole machine.
 
 A running `steam`, `steamwebhelper`, `lutris`, `heroic`, `wineserver` or `gamescope` skips the mail.
 

@@ -30,7 +30,7 @@ Die Namen und Vorgaben unten sind die mitgelieferte `user/config/global.conf` un
 | FAILLOCK_DENY              | 8                                                                | Fehlschläge vor der Sperre. Wird nicht gefragt.                                                        |
 | FAILLOCK_UNLOCK            | 600                                                              | Sperrsekunden. Wird nicht gefragt.                                                                     |
 | FAILLOCK_FAIL_INTERVAL     | 900                                                              | Fenster für die Fehlzählung. Wird nicht gefragt.                                                       |
-| WATCHDOG_CPU_LIMIT         | 20                                                               | CPU-Quote in Prozent der Startprüfung. Wird nicht gefragt.                                             |
+| WATCHDOG_CPU_LIMIT         | 20                                                               | Prozent der ganzen Maschine für einen Lauf. Die Unit schreibt `CPUQuota` als diese Zahl mal der CPU-Anzahl. Wird nicht gefragt. |
 | WATCHDOG_LIMIT_NICE        | 19                                                               | Nice-Wert der Startprüfung. Wird nicht gefragt.                                                        |
 | WATCHDOG_LIMIT_IONICE      | 3                                                                | In der Datei gespeicherte Ionice-Klasse. Der Timer nutzt `IOSchedulingClass=idle`. Wird nicht gefragt. |
 | HF_MAIL_ALERTS             | 1 in the shipped file, 0 in the builtin default until you answer | Gesetzt durch die Alarmantwort.                                                                        |

@@ -77,6 +77,21 @@ hf_arm_crash_mail() {
     trap hf_crash_mail_now EXIT
 }
 
+hf_cpu_quota_percent() {
+    local limit="${WATCHDOG_CPU_LIMIT:-20}"
+    local n=1
+    if [[ ! "${limit}" =~ ^[0-9]+$ ]]; then
+        limit=20
+    fi
+    if command -v nproc >/dev/null 2>&1; then
+        n="$(nproc 2>/dev/null)" || n=1
+    fi
+    if [[ ! "${n}" =~ ^[0-9]+$ ]] || [[ "${n}" -lt 1 ]]; then
+        n=1
+    fi
+    printf '%s\n' "$((limit * n))"
+}
+
 hf_limited_run() {
     local status=0 pid=0 lim=0 errexit=0
     local -a cmd=()
@@ -101,7 +116,7 @@ hf_limited_run() {
         fi
         pid=$!
         if command -v cpulimit >/dev/null 2>&1; then
-            cpulimit -p "${pid}" -l "${WATCHDOG_CPU_LIMIT:-20}" -z >/dev/null 2>&1 &
+            cpulimit -p "${pid}" -l "$(hf_cpu_quota_percent)" -z >/dev/null 2>&1 &
             lim=$!
         fi
         wait "${pid}"

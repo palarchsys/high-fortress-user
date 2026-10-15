@@ -30,7 +30,7 @@ Les noms et les défauts ci-dessous sont le `user/config/global.conf` livré et 
 | FAILLOCK_DENY              | 8                                                                | Échecs avant verrouillage. Non demandé.                                                            |
 | FAILLOCK_UNLOCK            | 600                                                              | Secondes de verrouillage. Non demandé.                                                             |
 | FAILLOCK_FAIL_INTERVAL     | 900                                                              | Fenêtre de comptage des échecs. Non demandée.                                                      |
-| WATCHDOG_CPU_LIMIT         | 20                                                               | Quota CPU en pour cent de la passe de démarrage. Non demandé.                                      |
+| WATCHDOG_CPU_LIMIT         | 20                                                               | Pourcentage de la machine pour une passe. L'unité écrit `CPUQuota` comme ce nombre fois le nombre de CPU. Non demandé. |
 | WATCHDOG_LIMIT_NICE        | 19                                                               | Valeur nice de la passe de démarrage. Non demandée.                                                |
 | WATCHDOG_LIMIT_IONICE      | 3                                                                | Classe ionice enregistrée dans le fichier. Le timer utilise `IOSchedulingClass=idle`. Non demandé. |
 | HF_MAIL_ALERTS             | 1 in the shipped file, 0 in the builtin default until you answer | Posé par la réponse sur les alertes.                                                               |
