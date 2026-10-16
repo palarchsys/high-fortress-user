@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : scripts/configure.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 
@@ -158,7 +158,6 @@ if [[ -f "${DIR_SCRIPT}/config/secrets.conf" ]]; then
     source "${DIR_SCRIPT}/config/secrets.conf"
     set -u
 fi
-hf_copy_legacy_config
 
 hf_set_color_violet "═════════════════════════════════════════════════════════════════════════════════"
 hf_set_color_violet " High-Fortress User — configuration                                               "

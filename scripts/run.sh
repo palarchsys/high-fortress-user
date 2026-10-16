@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : scripts/run.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 
@@ -37,23 +37,19 @@ hf_set_color_violet "═══════════════════�
 hf_set_color_violet " High-Fortress User — durcissement workstation                                   "
 hf_set_color_violet "═════════════════════════════════════════════════════════════════════════════════"
 
-hf_log_title "Nouvelles règles"
+hf_log_title "Poste"
 echo "   Utilisateur courant : ${CURRENT_USER}  (home ${CURRENT_HOME})"
 echo "   Port SSH détecté    : ${SSH_PORT}"
 echo "   OS                  : ${OS_PRETTY}"
 echo ""
-echo "   • Comptes humains (uid, groupes, home, shell, mot de passe) : inchangés."
-echo "   • Snaps Firefox et Thunderbird conservés. snapd reste installé."
 echo "   • SSH, puis la pile de sécurité. Postfix suit le choix des alertes e-mail."
-echo "   • Brave, Discord, Thunderbird, KeePassXC et Vencord ne sont pas installés."
 echo "   • Après les correctifs : politiques du bureau, puis USBGuard."
-echo "   • Steam reste utilisable. Dépôts APT existants intacts."
-echo "   • i386 activé sur amd64 (Steam)."
-echo "   • UFW : deny incoming, ALLOW outgoing."
-echo "   • DNS : Unbound local, sans le résolveur du FAI."
-echo "   • SSH : drop-in, PasswordAuthentication conservé, PermitRootLogin no."
+echo "   • i386 activé sur amd64."
+echo "   • UFW : deny incoming, allow outgoing."
+echo "   • DNS : Unbound local."
+echo "   • SSH : PasswordAuthentication yes, PermitRootLogin no."
 echo "   • Ubuntu Pro : ESM infra, ESM apps et Livepatch."
-echo "   • AIDE : base de référence sur le disque terminé, puis verify/workstation.sh."
+echo "   • AIDE : base de référence, puis verify/workstation.sh."
 echo ""
 
 hf_init_install_log
@@ -97,7 +93,7 @@ STEP_SECURITY_CONFIGURE=(
     "service/cron/configure.sh"
 )
 
-hf_run_step "${HF_INSTALL_DIRECTORY}" "system/snap-remove.sh"
+hf_run_step "${HF_INSTALL_DIRECTORY}" "system/snapd.sh"
 hf_run_step "${HF_INSTALL_DIRECTORY}" "${STEP_SYSTEM_PURGE[@]}"
 
 hf_run_step "${HF_INSTALL_DIRECTORY}" "${STEP_SYSTEM_INSTALL[@]}"
@@ -111,7 +107,6 @@ hf_run_step "${HF_INSTALL_DIRECTORY}" "${STEP_SSH_CONFIGURE[@]}"
 hf_run_step "${HF_INSTALL_DIRECTORY}" "${STEP_SECURITY_INSTALL[@]}"
 hf_run_step "${HF_INSTALL_DIRECTORY}" "${STEP_SECURITY_CONFIGURE[@]}"
 
-hf_run_step "${HF_INSTALL_DIRECTORY}" "service/desktop/install.sh"
 hf_run_step "${HF_INSTALL_DIRECTORY}" "service/apparmor/userns.sh"
 
 hf_run_optional sysctl --system
@@ -161,7 +156,6 @@ fi
 
 hf_set_step_hidden "Installation terminée"
 
-hf_log_info "${CURRENT_USER} : mot de passe inchangé"
 hf_log_info "Journaux : ${HF_LOG_DIR}"
 hf_log_info "Lynis : sudo bash hf lynis"
 reboot_needed=0

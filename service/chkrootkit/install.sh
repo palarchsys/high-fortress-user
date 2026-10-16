@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/chkrootkit/install.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 
@@ -20,4 +20,13 @@ hf_log_info "Installation de chkrootkit"
 hf_run_silent_apt install -y chkrootkit
 install -d -m 755 "${HF_CONFIG_BASE_DIRECTORY}/bin"
 install -m 755 "${DIR_SCRIPT_PATH}/ignore-log.sh" "${HF_CONFIG_BASE_DIRECTORY}/bin/chkrootkit-ignore-log.sh"
+ignore_src="$(hf_locate_config_file chkrootkit/chkrootkit.ignore || true)"
+ignore_dest="${HF_CONFIG_BASE_DIRECTORY}/src/config/chkrootkit/chkrootkit.ignore"
+if [[ -z "${ignore_src}" || ! -f "${ignore_src}" ]]; then
+    hf_log_error "Liste chkrootkit introuvable"
+fi
+if [[ "${ignore_src}" != "${ignore_dest}" ]]; then
+    install -d -m 755 "${HF_CONFIG_BASE_DIRECTORY}/src/config/chkrootkit"
+    install -m 664 "${ignore_src}" "${ignore_dest}"
+fi
 hf_log_success "chkrootkit installé"

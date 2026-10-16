@@ -2,17 +2,18 @@
 
 # Architecture
 
-This is the tree created under `/opt/high-fortress-user` after installation. It is not the clone tree. `src/` exists only when `install.sh` extracted the archive there.
+This is the tree created under `/opt/high-fortress-user` after installation. It is not the clone tree. `install.sh` extracts the archive into `src/`. `service/chkrootkit/install.sh` writes `src/config/chkrootkit/chkrootkit.ignore` there.
 
 ```
 /opt/high-fortress-user/                         755
 /opt/high-fortress-user/secrets/                  700
-/opt/high-fortress-user/src/                      install.sh only
+/opt/high-fortress-user/src/                      755
 /opt/high-fortress-user/bin/aide-refresh-db.sh    755
 /opt/high-fortress-user/bin/chkrootkit-ignore-log.sh  755
 /opt/high-fortress-user/bin/debsums-ignore-log.sh 755
 /opt/high-fortress-user/bin/scan-skip.sh          755
 /opt/high-fortress-user/src/config/clamav/scan-skip.paths  644
+/opt/high-fortress-user/src/config/chkrootkit/chkrootkit.ignore  664
 /opt/high-fortress-user/cron/scan-skip.stamp      644
 /opt/high-fortress-user/cron/scan-skip.seen       600
 /opt/high-fortress-user/cron/reboot-notice.seen       600

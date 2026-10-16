@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/apparmor/userns.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 
@@ -73,4 +73,4 @@ hfu_write_userns_file hfu-thunderbird "/usr/lib/thunderbird/thunderbird" hfu-thu
 
 hf_log_info "Rechargement d'AppArmor"
 hf_run_optional systemctl reload apparmor
-hf_log_success "Profils userns chargés, restriction Ubuntu conservée"
+hf_log_success "Profils userns chargés"

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : system/install.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 
@@ -25,7 +25,7 @@ hf_ensure_directory "${HF_SECRET_DIRECTORY}" 700
 hf_log_success "Répertoires projet prêts"
 
 hf_log_title "Outils de base"
-hf_log_info "Installation des outils de base (sources APT inchangées)"
+hf_log_info "Installation des outils de base"
 hf_run_silent_apt install -y apt-listchanges needrestart apt-show-versions \
     openssh-server openssh-client curl openssl rsync ca-certificates \
     jq gnupg gettext-base lsb-release
@@ -116,7 +116,7 @@ else
 fi
 
 hf_log_title "Mise à jour système"
-hf_log_info "Mise à jour du système (dépôts existants conservés)"
+hf_log_info "Mise à jour du système"
 hf_run_silent_apt update
 hf_run_silent_apt upgrade -y
 hf_log_success "Mise à jour terminée"

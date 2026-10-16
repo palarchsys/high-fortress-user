@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/apply-scan-skip.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 
@@ -22,6 +22,10 @@ hfu_restart_scan_skip_service() {
         fi
     done
 }
+
+if [[ -n "${HFU_SCAN_SKIP_HOME:-}" ]]; then
+    hfu_ensure_scan_skip_file "${HFU_SCAN_SKIP_HOME}"
+fi
 
 hfu_collect_scan_skip_path
 if [[ ${#HFU_SCAN_SKIP_BAD[@]} -gt 0 ]]; then

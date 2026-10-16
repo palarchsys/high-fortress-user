@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : system/purge.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 
@@ -52,7 +52,6 @@ else
 
 hfu_remove_removed_config_package
 
-hf_log_info "CUPS, bluetooth, avahi et compilateurs inchangés."
 hf_log_success "Purge workstation terminée"
 
 fi

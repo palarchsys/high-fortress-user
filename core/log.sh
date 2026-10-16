@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : core/log.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 
@@ -482,7 +482,7 @@ hf_offer_remove_installer() {
             hf_log_success "Installeur retiré."
             hf_log_info "Services, secrets et cron conservés."
             if [[ ! -e "${root}/hf" && ! -e "${base}/src/hf" ]]; then
-                hf_log_info "La commande hf n'est plus disponible."
+                hf_log_info "La commande hf est absente."
             fi
             hf_refresh_aide_after_remove || true
             ;;

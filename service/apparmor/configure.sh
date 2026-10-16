@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/apparmor/configure.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 
@@ -16,5 +16,3 @@ hf_log_title "Activation AppArmor"
 hf_log_info "Activation d'AppArmor"
 hf_run_silent systemctl enable --now apparmor
 hf_log_success "AppArmor activé"
-hf_log_info "Les profils Ubuntu restent en l'état."
-hf_log_info "La restriction des user namespaces reste celle du système."

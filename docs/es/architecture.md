@@ -2,17 +2,18 @@
 
 # Arquitectura
 
-Este es el árbol creado bajo `/opt/high-fortress-user` después de la instalación. No es el árbol del clon. `src/` existe solo cuando `install.sh` extrajo el archivo allí.
+Este es el árbol creado bajo `/opt/high-fortress-user` después de la instalación. No es el árbol del clon. `install.sh` extrae el archivo en `src/`. `service/chkrootkit/install.sh` escribe allí `src/config/chkrootkit/chkrootkit.ignore`.
 
 ```
 /opt/high-fortress-user/                         755
 /opt/high-fortress-user/secrets/                  700
-/opt/high-fortress-user/src/                      install.sh only
+/opt/high-fortress-user/src/                      755
 /opt/high-fortress-user/bin/aide-refresh-db.sh    755
 /opt/high-fortress-user/bin/chkrootkit-ignore-log.sh  755
 /opt/high-fortress-user/bin/debsums-ignore-log.sh 755
 /opt/high-fortress-user/bin/scan-skip.sh          755
 /opt/high-fortress-user/src/config/clamav/scan-skip.paths  644
+/opt/high-fortress-user/src/config/chkrootkit/chkrootkit.ignore  664
 /opt/high-fortress-user/cron/scan-skip.stamp      644
 /opt/high-fortress-user/cron/scan-skip.seen       600
 /opt/high-fortress-user/cron/reboot-notice.seen       600

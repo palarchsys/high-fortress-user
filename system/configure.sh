@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : system/configure.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 
@@ -302,5 +302,4 @@ hf_log_info "Mise à jour de l'initramfs (modules blacklist)"
 hf_run_optional update-initramfs -u
 hf_log_success "Initramfs mis à jour (best-effort)"
 
-hf_log_info "Compte ${CURRENT_USER} : mot de passe inchangé."
 hf_log_success "Configuration système workstation terminée"

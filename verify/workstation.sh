@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : verify/workstation.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 
@@ -53,7 +53,7 @@ fi
 
 maxdays="$(LANG=C LC_ALL=C chage -l "${CURRENT_USER}" 2>/dev/null | awk -F: '/Maximum/{gsub(/ /,"",$2); print $2}')"
 if [[ "${maxdays}" == "90" ]]; then
-    hfu_report_warn "chage MAXDAYS=90 sur ${CURRENT_USER} (n'a pas été posé par ce script ; état antérieur ?)"
+    hfu_report_warn "chage MAXDAYS=90 sur ${CURRENT_USER}"
 else
     hfu_report_pass "chage ${CURRENT_USER} non forcé à 90 jours"
 fi
@@ -69,7 +69,7 @@ for bin in brave-browser thunderbird steam discord keepassxc; do
     if command -v "${bin}" >/dev/null 2>&1; then
         mode="$(stat -c '%a' "$(command -v "${bin}")" 2>/dev/null || echo '?')"
         if [[ "${mode}" == "700" || "${mode}" == "750" ]]; then
-            hfu_report_fail "${bin} n'est plus exécutable par l'utilisateur (mode ${mode})"
+            hfu_report_fail "${bin} n'est pas exécutable par l'utilisateur (mode ${mode})"
         else
             hfu_report_pass "${bin} présent (mode ${mode})"
         fi
@@ -392,7 +392,7 @@ else
     hf_log_info "Thunderbird absent"
 fi
 if dpkg-query -W -f '${Status}' snapd 2>/dev/null | grep -q 'install ok'; then
-    hfu_report_pass "snapd conservé"
+    hfu_report_pass "snapd installé"
 else
     hfu_report_fail "snapd absent"
 fi

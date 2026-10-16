@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/crowdsec/configure.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 
@@ -16,7 +16,7 @@ hf_log_title "Collections CrowdSec"
 hf_log_info "Installation des collections CrowdSec"
 hf_run_silent cscli hub update
 
-mapfile -t collections < <(grep -v '^#' "$(hf_locate_config_file crowdsec/collections.list)")
+mapfile -t collections < <(grep -vE '^[[:space:]]*(#|$)' "$(hf_locate_config_file crowdsec/collections.list)")
 hf_run_silent cscli collections install --force "${collections[@]}"
 hf_log_success "Collections linux, sshd, postfix et liste blanche installées"
 

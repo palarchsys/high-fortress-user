@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : test/suites/02_file_graph.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 
@@ -16,7 +16,7 @@ while IFS= read -r step; do
 done < <(grep -oE '"(system|service|verify)/[^"]+\.sh"' "${HFT_ROOT}/scripts/run.sh" | tr -d '"' | sort -u)
 
 hft_section "désinstallations avant system/install"
-snap_line=$(grep -n 'system/snap-remove.sh' "${HFT_ROOT}/scripts/run.sh" | head -1 | cut -d: -f1)
+snap_line=$(grep -n 'system/snapd.sh' "${HFT_ROOT}/scripts/run.sh" | head -1 | cut -d: -f1)
 purge_line=$(grep -n 'STEP_SYSTEM_PURGE\[@\]' "${HFT_ROOT}/scripts/run.sh" | head -1 | cut -d: -f1)
 inst_line=$(grep -n 'STEP_SYSTEM_INSTALL\[@\]' "${HFT_ROOT}/scripts/run.sh" | head -1 | cut -d: -f1)
 if [[ -n "${snap_line}" && -n "${purge_line}" && -n "${inst_line}" \
@@ -95,7 +95,6 @@ if awk '
         uconf = pos("service/usbguard/configure.sh")
         cinst = pos("service/clamav/install.sh")
         cconf = pos("service/clamav/configure.sh")
-        dinst = pos("service/desktop/install.sh")
         userns = pos("service/apparmor/userns.sh")
         dconf = pos("service/desktop/configure.sh")
         rk = pos("service/rkhunter/init-db.sh")
@@ -104,9 +103,9 @@ if awk '
         up = pos("UPGRADE")
         exit !(ssh && ufw && ssh < ufw \
             && uinst && uconf && uinst < uconf \
-            && cinst && cconf && cinst < cconf && cconf < dinst \
-            && dinst && userns && up && dconf && uconf \
-            && dinst < userns && userns < up && up < dconf && dconf < uconf \
+            && cinst && cconf && cinst < cconf && cconf < userns \
+            && userns && up && dconf && uconf \
+            && userns < up && up < dconf && dconf < uconf \
             && uconf < rk && rk < aide && aide < ver)
     }
 ' "${HFT_ROOT}/scripts/run.sh"; then
@@ -226,6 +225,23 @@ if [[ -f "${skip_lib}" && -f "${skip_tpl}" && -f "${skip_apply}" && -f "${skip_c
     hft_pass "graph.scan-skip" "fichier de chemins, commande, passe différée, sans Brave ni Discord ni Thunderbird"
 else
     hft_fail "graph.scan-skip" "les exclusions passent par scan-skip.paths et ne retirent pas Brave, Discord ni Thunderbird"
+fi
+
+hft_section "ordre Unbound et liste chkrootkit"
+order_ok=1
+if grep -q 'systemd-resolved' "${HFT_ROOT}/config/unbound/unbound.service.conf"; then
+    order_ok=0
+fi
+if grep -q '^After=unbound' "${HFT_ROOT}/config/unbound/resolved.service.conf"; then
+    order_ok=0
+fi
+grep -q '^Wants=unbound.service$' "${HFT_ROOT}/config/unbound/resolved.service.conf" || order_ok=0
+grep -q 'chkrootkit/chkrootkit.ignore' "${HFT_ROOT}/service/chkrootkit/install.sh" || order_ok=0
+grep -q 'src/config/chkrootkit' "${HFT_ROOT}/service/chkrootkit/install.sh" || order_ok=0
+if [[ "${order_ok}" -eq 1 ]]; then
+    hft_pass "graph.unbound.order" "Unbound après le réseau, liste chkrootkit installée"
+else
+    hft_fail "graph.unbound.order" "Unbound ne doit pas précéder systemd-resolved, la liste chkrootkit doit être copiée"
 fi
 
 hft_section "plafond CPU"

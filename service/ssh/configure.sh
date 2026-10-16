@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/ssh/configure.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 
@@ -18,7 +18,7 @@ hf_require_root
 hf_get_ssh_port
 
 hf_log_title "Configuration SSH (drop-in)"
-hf_log_info "Port détecté : ${SSH_PORT} (conservé)"
+hf_log_info "Port détecté : ${SSH_PORT}"
 hf_log_info "Configuration de SSH"
 hf_copy_backup /etc/ssh/sshd_config
 
