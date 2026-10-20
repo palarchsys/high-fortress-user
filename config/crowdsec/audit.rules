@@ -1,9 +1,7 @@
 # =============================================================================
-# File       : config/unbound/default-unbound
-# Updated at : 2026-10-15
+# File       : config/crowdsec/audit.rules
+# Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 
-RESOLVCONF=false
-ROOT_TRUST_ANCHOR_UPDATE=true
-USE_RESOLVCONF_FORWARDS=false
+-a always,exit -F arch=b64 -F dir=/etc/crowdsec -F perm=wa -F key=crowdsec-config

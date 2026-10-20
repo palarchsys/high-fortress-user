@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/postfix/configure.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 
@@ -53,7 +53,7 @@ hfu_apply_postfix() {
         value="${value//__RELAYHOST__/${relayhost}}"
         value="${value//__PROJECT_NAME__/${HF_PROJECT_NAME}}"
         postconf -e "${key} = ${value}"
-    done < "$(hf_locate_config_file postfix/main.cf.keys)"
+    done < "$(hf_locate_config_file postfix/main.keys)"
 }
 hfu_apply_postfix
 hf_log_success "Expéditeur local réécrit, tout part comme ${HF_POSTFIX_MAIL_ADDRESS}"

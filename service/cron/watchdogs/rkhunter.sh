@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/rkhunter.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 
@@ -41,7 +41,8 @@ if [[ "${rc}" -ge 128 ]]; then
 elif [[ "${rc}" -ge 2 ]]; then
     hf_log_alert "rkhunter erreur rc=${rc}"
 elif [[ "${rc}" -eq 1 ]]; then
-    hf_log_alert "rkhunter warnings (voir ${LOG_FILE})"
+    HFU_RKHUNTER_REFRESH=1 \
+        hf_log_alert "rkhunter warnings (voir ${LOG_FILE})"
 else
     hfu_log_pass "rkhunter OK"
 fi

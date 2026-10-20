@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/crowdsec/install.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 
@@ -19,11 +19,11 @@ CROWDSEC_KEY="/etc/apt/keyrings/crowdsec_crowdsec-archive-keyring.gpg"
 CROWDSEC_LIST="/etc/apt/sources.list.d/crowdsec_crowdsec.list"
 curl -fsSL https://packagecloud.io/crowdsec/crowdsec/gpgkey | gpg --dearmor -o "${CROWDSEC_KEY}"
 chmod 644 "${CROWDSEC_KEY}"
-sed "s|__KEY__|${CROWDSEC_KEY}|g" "$(hf_locate_config_file crowdsec/crowdsec.list)" \
+sed "s|__KEY__|${CROWDSEC_KEY}|g" "$(hf_locate_config_file crowdsec/package.list)" \
     | grep -v '^#' > "${CROWDSEC_LIST}"
 chmod 644 "${CROWDSEC_LIST}"
 
-grep -v '^#' "$(hf_locate_config_file crowdsec/preferences)" > /etc/apt/preferences.d/crowdsec
+grep -v '^#' "$(hf_locate_config_file crowdsec/preferences.conf)" > /etc/apt/preferences.d/crowdsec
 chmod 644 /etc/apt/preferences.d/crowdsec
 hf_run_silent_apt update
 hf_log_success "Dépôt CrowdSec enregistré"

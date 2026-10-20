@@ -41,7 +41,7 @@ if [[ -f /etc/ssh/sshd_config ]]; then
         && rm -f /etc/ssh/sshd_config.hfu
 
     if ! grep -q 'High-Fortress User permit-root' /etc/ssh/sshd_config; then
-        cat "$(hf_locate_config_file ssh/99-permit-root.conf)" >> /etc/ssh/sshd_config
+        cat "$(hf_locate_config_file ssh/permit-root.conf)" >> /etc/ssh/sshd_config
     fi
 fi
 for snippet in /etc/ssh/sshd_config.d/*.conf; do

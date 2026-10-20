@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : test/suites/04_forbidden.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 
@@ -60,7 +60,7 @@ if [[ -f "${MONO}/server/service/ssh/00-high-fortress-user.conf" || -f "${MONO}/
 else
     hft_pass "forbid.dropin-on-server" "drop-in poste absent du serveur"
 fi
-if grep -q '^PasswordAuthentication yes$' "${MONO}/server/config/ssh/sshd_config.conf" 2>/dev/null; then
+if grep -q '^PasswordAuthentication yes$' "${MONO}/server/config/ssh/sshd.conf" 2>/dev/null; then
     hft_fail "forbid.server-ssh-password" "le sshd serveur accepte le mot de passe"
 else
     hft_pass "forbid.server-ssh-password" "sshd serveur sans mot de passe"

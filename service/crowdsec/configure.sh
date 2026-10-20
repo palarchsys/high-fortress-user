@@ -28,15 +28,15 @@ hf_log_success "Blocage de 24 h posé"
 hf_log_title "Journaux lus par CrowdSec"
 hf_log_info "Configuration des journaux lus par CrowdSec"
 {
-    grep -v '^#' "$(hf_locate_config_file crowdsec/acquisition.journal.yaml)"
+    grep -v '^#' "$(hf_locate_config_file crowdsec/acquisition-journal.yaml)"
     if [[ -f /var/log/auth.log ]]; then
-        grep -v '^#' "$(hf_locate_config_file crowdsec/acquisition.auth.yaml)"
+        grep -v '^#' "$(hf_locate_config_file crowdsec/acquisition-auth.yaml)"
     fi
     if [[ -f /var/log/syslog ]]; then
-        grep -v '^#' "$(hf_locate_config_file crowdsec/acquisition.syslog.yaml)"
+        grep -v '^#' "$(hf_locate_config_file crowdsec/acquisition-syslog.yaml)"
     fi
     if [[ -f /var/log/mail.log ]]; then
-        grep -v '^#' "$(hf_locate_config_file crowdsec/acquisition.mail.yaml)"
+        grep -v '^#' "$(hf_locate_config_file crowdsec/acquisition-mail.yaml)"
     fi
 } > /etc/crowdsec/acquisitions.yaml
 chmod 644 /etc/crowdsec/acquisitions.yaml
@@ -58,7 +58,7 @@ sed -i "s|^[[:space:]]*api_key:.*|api_key: ${key}|" "${bouncer_cfg}"
 hf_log_success "Bouncer nftables relié à l'API locale"
 
 hf_log_info "Activation de CrowdSec et du bouncer"
-grep -v '^#' "$(hf_locate_config_file crowdsec/audit.rule)" \
+grep -v '^#' "$(hf_locate_config_file crowdsec/audit.rules)" \
     > /etc/audit/rules.d/hfu-crowdsec.rules
 chmod 640 /etc/audit/rules.d/hfu-crowdsec.rules
 hf_run_silent augenrules --load

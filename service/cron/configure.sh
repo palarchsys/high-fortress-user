@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/configure.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 
@@ -58,7 +58,7 @@ chown -R root:root "${HF_CONFIG_BASE_DIRECTORY}/cron"
 
 export HFU_PROJECT_SLUG HF_CONFIG_BASE_DIRECTORY
 
-sed "s|\${HF_CONFIG_BASE_DIRECTORY}|${HF_CONFIG_BASE_DIRECTORY}|g" "$(hf_locate_config_file cron/hfu.cron)" \
+sed "s|\${HF_CONFIG_BASE_DIRECTORY}|${HF_CONFIG_BASE_DIRECTORY}|g" "$(hf_locate_config_file cron/schedule.cron)" \
     > "/etc/cron.d/${HFU_PROJECT_SLUG}"
 chown root:root "/etc/cron.d/${HFU_PROJECT_SLUG}"
 chmod 600 "/etc/cron.d/${HFU_PROJECT_SLUG}"

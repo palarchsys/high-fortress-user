@@ -2,7 +2,7 @@
 
 ## Descripción
 
-High-Fortress User prepara un puesto Ubuntu 26.04. Instala los programas de escritorio, el resolutor DNS local, el cortafuegos y los controles de seguridad.
+High-Fortress User prepara un puesto Ubuntu 26.04. Instala el resolutor DNS local, el cortafuegos y los controles de seguridad.
 
 La cuenta Ubuntu ya creada en la máquina no se sustituye. El instalador no crea una segunda cuenta.
 
@@ -103,10 +103,7 @@ Los valores que no se preguntan se escriben desde `hfu_set_config_default` y des
 | Controles   | `hfu-boot-chain.timer` lanza `hfu-boot-chain.service` cuando `multi-user.target` está alcanzado (`OnBootSec=0`, `Persistent=false`). La cadena lanza `hfu-boot-scan.service`, luego `hfu-idle-scan.service`, luego `hfu-reboot-notice.service`. La pasada lanza AIDE, rkhunter, chkrootkit, ClamAV y debsums. `Nice` vale `HF_WATCHDOG_LIMIT_NICE` (19), `IOSchedulingClass=idle`, `CPUQuota` vale `HF_WATCHDOG_CPU_LIMIT` multiplicado por el número de CPU, así que 50 es el 50 % de la máquina. `/etc/cron.d/high-fortress-user` solo contiene `SHELL` y `PATH`. La crontab del usuario no se modifica. El correo sale solo cuando un control encuentra algo y `HF_MAIL_ALERTS=1`. `hfu-idle-scan.timer` relanza el análisis diferido cada hora. `hfu-reboot-notice.timer` relanza el aviso cada 6 horas y envía correo cuando un reinicio es útil y ningún juego está en marcha. Las reglas están en [surveillance.md](surveillance.md). |
 | Lynis       | `HF_LYNIS_MIN_SCORE` vale 80. `verify/workstation.sh` acepta un `hardening_index` superior o igual a ese umbral.                                                                                                                                                                                                                                                                                                                                                                     |
 | Diarios     | Los diarios de instalación están en `<source>/logs/install-YYYYMMDD-HHMMSS-user/`. Los diarios de seguridad están en `/opt/high-fortress-user/cron/security_logs/`. El almacenamiento de journald es persistente.                                                                                                                                                                                                                                                                |
-| Paquetes    | En amd64 se activa la arquitectura i386. |
-| Brave        | `DnsOverHttpsMode` vale `off`. `BuiltInDnsClientEnabled` vale false. `HttpsOnlyMode` vale `force_balanced_enabled`. HTTP sigue permitido para `localhost`, `127.0.0.1`, `[::1]`, `[*.]local` y cada puerta de enlace predeterminada detectada. WebUSB, WebHID y el puerto serie preguntan. `BrowserGuestModeEnabled` vale false. Las extensiones quedan como están. |
-| Thunderbird  | `mailnews.message_display.disable_remote_image` vale true, con estado `user`. Una imagen remota se carga después de un clic. La lectura HTML y la descarga de adjuntos permanecen. |
-| Sesión       | La pantalla se bloquea después de 1200 segundos. `lock-enabled` vale true, `lock-delay` vale 0, y `ubuntu-lock-on-suspend` vale true. Estas claves siguen siendo modificables. KeePassXC pone `LockDatabaseScreenLock` y `LockDatabaseIdle` en true, y `LockDatabaseIdleSeconds` en 900. La ruta de la base permanece. El retardo de suspensión permanece. Un configure posterior vuelve a escribir estos valores. |
+| Paquetes    | En amd64 se activa la arquitectura i386. CUPS se purga al inicio de la instalación. |
 | USB          | Los dispositivos presentes en el momento del configure permanecen permitidos. La clase de interfaz `03` y la clase `09` permanecen permitidas. Un soporte de almacenamiento nuevo permanece bloqueado hasta que usted lo acepte en el escritorio. El módulo `usb-storage` permanece disponible. |
 
 ## Correos de alerta
@@ -141,15 +138,13 @@ La orden registra las líneas de ese diario en `/opt/high-fortress-user/cron/chk
 
 ### debsums
 
-El mensaje contiene el resumen y el extracto del diario, después la nota y la orden. El ejemplo de abajo muestra la forma. El correo contiene la ruta real.
+El mensaje contiene el resumen y el extracto del diario. No añade un bloque de orden. El control reinstala cada paquete que sigue señalado con `apt-get install --reinstall`. El correo nombra cada paquete restablecido. La línea de éxito es `La somme correspond.`
 
-```bash
-sudo bash /opt/high-fortress-user/bin/debsums-ignore-log.sh '/opt/high-fortress-user/cron/security_logs/debsums-YYYYMMDD-HHMMSS.log'
-```
+Un paquete cuya suma sigue distinta, o cuya reinstalación falla, permanece en el correo.
 
-La orden registra las líneas de ese diario en `/opt/high-fortress-user/cron/debsums.local.ignore`. La línea de éxito es `Aucune nouvelle détection à enregistrer.` o `N détection(s) enregistrée(s) dans /opt/high-fortress-user/cron/debsums.local.ignore`. Una línea de `/var/lib/rkhunter/db/mirrors.dat` se retira antes del correo solo si su SHA-256 actual es igual a `/opt/high-fortress-user/cron/rkhunter-mirrors.sha256`. Cualquier otro contenido permanece en el correo. No ignore el archivo entero.
+Una línea de `/var/lib/rkhunter/db/mirrors.dat` se retira antes de esta reinstalación solo si su SHA-256 actual es igual a `/opt/high-fortress-user/cron/rkhunter-mirrors.sha256`.
 
-Una línea modificada bajo `/usr/lib/*/perl-base/unicore/` del paquete `perl-base` se retira antes del correo.
+Una línea modificada bajo `/usr/lib/*/perl-base/unicore/` del paquete `perl-base` se retira antes de esta reinstalación.
 
 El archivo que entrega Ubuntu no coincide con la suma de ese paquete.
 
@@ -205,7 +200,13 @@ La forma del diario es `/opt/high-fortress-user/cron/security_logs/idle-scan-YYY
 
 ### rkhunter
 
-El mensaje contiene el resumen y el extracto del diario. Este correo no añade un bloque de orden. Una suma distinta añade la línea `mirrors.dat modifié hors rkhunter --update`. Esa línea no es una orden. La forma del diario es `/opt/high-fortress-user/cron/security_logs/rkhunter-YYYYMMDD-HHMMSS.log`.
+El correo de avisos contiene el resumen y el extracto del diario, después la nota y el bloque de orden. El correo `mirrors.dat modifié hors rkhunter --update` no añade ese bloque. Un correo de error tampoco lo añade. La forma del diario es `/opt/high-fortress-user/cron/security_logs/rkhunter-YYYYMMDD-HHMMSS.log`.
+
+```bash
+sudo bash /opt/high-fortress-user/bin/rkhunter-refresh-db.sh
+```
+
+La orden recalcula la base de propiedades de rkhunter a partir del disco actual. La línea de éxito es `Base de propriétés rkhunter enregistrée.`
 
 Los archivos de `/dev/shm` y el socket `/dev/log` están permitidos en `rkhunter.conf.local`.
 
@@ -269,7 +270,7 @@ sudo bash verify/workstation.sh "$PWD"
 
 Lanza la verificación del puesto. La línea final tiene la forma `Check : N OK / N WARN / N FAIL`.
 
-La misma pasada comprueba el reenvío SSH, la regla de cortafuegos SSH, USBGuard, la política de Brave, la política de Thunderbird, el bloqueo de sesión, KeePassXC, el plazo de sudo y `hfu-reboot-notice.timer`.
+La misma pasada comprueba el reenvío SSH, la regla de cortafuegos SSH, USBGuard, el plazo de sudo y `hfu-reboot-notice.timer`.
 
 ### Comprobación después del arranque
 

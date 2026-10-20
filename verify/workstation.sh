@@ -65,7 +65,7 @@ else
     printf '%s\n' "${drift}" >> "${REPORT}"
 fi
 
-for bin in brave-browser thunderbird steam discord keepassxc; do
+for bin in brave-browser thunderbird steam discord; do
     if command -v "${bin}" >/dev/null 2>&1; then
         mode="$(stat -c '%a' "$(command -v "${bin}")" 2>/dev/null || echo '?')"
         if [[ "${mode}" == "700" || "${mode}" == "750" ]]; then
@@ -400,52 +400,6 @@ if command -v snap >/dev/null 2>&1 && snap list firefox >/dev/null 2>&1; then
     hf_log_info "snap Firefox présent"
 else
     hf_log_info "snap Firefox absent"
-fi
-if dpkg-query -W -f '${Status}' keepassxc 2>/dev/null | grep -q 'install ok' \
-    || command -v keepassxc >/dev/null 2>&1; then
-    hf_log_info "KeePassXC présent"
-else
-    hf_log_info "KeePassXC absent"
-fi
-
-hf_log_title "Politique du bureau"
-
-brave_policy="/etc/brave/policies/managed/high-fortress-user.json"
-if [[ -f "${brave_policy}" ]] \
-    && grep -qF '"DnsOverHttpsMode": "off"' "${brave_policy}" \
-    && grep -qF '"HttpsOnlyMode": "force_balanced_enabled"' "${brave_policy}" \
-    && grep -qF '"BrowserGuestModeEnabled": false' "${brave_policy}"; then
-    hfu_report_pass "politique Brave (DNS du poste, mode invité coupé)"
-else
-    hfu_report_fail "politique Brave absente ou incomplète"
-fi
-tb_policy="/etc/thunderbird/policies/policies.json"
-if [[ -f "${tb_policy}" ]] && grep -qF 'mailnews.message_display.disable_remote_image' "${tb_policy}"; then
-    hfu_report_pass "images distantes de Thunderbird affichées après un clic"
-else
-    hfu_report_fail "politique Thunderbird absente"
-fi
-kpxc_ini="${CURRENT_HOME}/.config/keepassxc/keepassxc.ini"
-if [[ -f "${kpxc_ini}" ]] \
-    && grep -qE '^LockDatabaseScreenLock[[:space:]]*=[[:space:]]*true[[:space:]]*$' "${kpxc_ini}" \
-    && grep -qE '^LockDatabaseIdle[[:space:]]*=[[:space:]]*true[[:space:]]*$' "${kpxc_ini}" \
-    && grep -qE '^LockDatabaseIdleSeconds[[:space:]]*=[[:space:]]*900[[:space:]]*$' "${kpxc_ini}"; then
-    hfu_report_pass "KeePassXC se ferme avec la session"
-else
-    hfu_report_fail "KeePassXC ne se ferme pas avec la session"
-fi
-if ! command -v gsettings >/dev/null 2>&1 || ! command -v dbus-run-session >/dev/null 2>&1; then
-    hfu_report_warn "gsettings absent : verrou de session non contrôlé"
-else
-    idle_delay="$(sudo -u "${CURRENT_USER}" -H dbus-run-session -- gsettings get org.gnome.desktop.session idle-delay 2>/dev/null || true)"
-    lock_on="$(sudo -u "${CURRENT_USER}" -H dbus-run-session -- gsettings get org.gnome.desktop.screensaver lock-enabled 2>/dev/null || true)"
-    if [[ -z "${idle_delay}" || -z "${lock_on}" ]]; then
-        hfu_report_warn "schéma GNOME absent : verrou de session non contrôlé"
-    elif [[ "${idle_delay}" == "uint32 1200" && "${lock_on}" == "true" ]]; then
-        hfu_report_pass "session verrouillée après 20 minutes d'inactivité"
-    else
-        hfu_report_warn "verrou de session différent de 20 minutes"
-    fi
 fi
 
 hf_log_title "Démarrage"

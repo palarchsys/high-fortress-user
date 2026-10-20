@@ -1,7 +1,7 @@
 # =============================================================================
-# File       : config/debsums/debsums.default
-# Updated at : 2026-10-15
+# File       : config/crowdsec/package.list
+# Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 
-CRON_CHECK=no
+deb [signed-by=__KEY__] https://packagecloud.io/crowdsec/crowdsec/any any main

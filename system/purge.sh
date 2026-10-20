@@ -17,6 +17,34 @@ source "${HF_INSTALL_DIRECTORY}/config/global.conf"
 
 hf_require_root
 
+hfu_remove_cups() {
+
+    local p unit
+    local -a cups_pkgs=()
+    hf_log_title "CUPS"
+    for p in cups cups-daemon cups-browsed cups-core-drivers cups-server-common cups-filters; do
+        if dpkg-query -W -f '${Status}\n' "${p}" 2>/dev/null | grep -q 'install ok'; then
+            cups_pkgs+=("${p}")
+        fi
+    done
+    if dpkg-statoverride --list /etc/cups/cupsd.conf >/dev/null 2>&1; then
+        dpkg-statoverride --remove /etc/cups/cupsd.conf >/dev/null 2>&1 || true
+    fi
+    if [[ ${#cups_pkgs[@]} -gt 0 ]]; then
+        hf_log_info "Purge de CUPS (${cups_pkgs[*]})"
+        for unit in cups.socket cups.path cups-browsed.socket cups-browsed.service cups.service; do
+            timeout 20 systemctl disable --now "${unit}" >/dev/null 2>&1 || true
+            timeout 20 systemctl stop "${unit}" >/dev/null 2>&1 || true
+            systemctl kill "${unit}" >/dev/null 2>&1 || true
+        done
+        hf_run_silent_apt purge -y "${cups_pkgs[@]}"
+        hf_log_success "CUPS purgé"
+    else
+        hf_log_info "Contrôle de CUPS"
+        hf_log_success "CUPS absent"
+    fi
+}
+
 hfu_remove_removed_config_package() {
 
     hf_log_title "Purge des paquets rc (Lynis PKGS-7346)"
@@ -49,6 +77,8 @@ if [[ "${HF_REAPPLY_LOCKS:-0}" == "1" ]]; then
     hf_log_title "Réapplication des désactivations"
     hf_log_info "Le dernier upgrade peut réactiver systemd-coredump."
 else
+
+hfu_remove_cups
 
 hfu_remove_removed_config_package
 

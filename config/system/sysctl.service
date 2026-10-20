@@ -1,6 +1,6 @@
 # =============================================================================
-# File       : config/system/hfu-sysctl.service
-# Updated at : 2026-10-15
+# File       : config/system/sysctl.service
+# Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 

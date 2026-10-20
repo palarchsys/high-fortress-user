@@ -1,8 +1,11 @@
 # =============================================================================
-# File       : config/unbound/resolved.service.conf
+# File       : config/crowdsec/acquisition-mail.yaml
 # Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 
-[Unit]
-Wants=unbound.service
+---
+source: file
+file: /var/log/mail.log
+labels:
+  type: syslog

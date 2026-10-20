@@ -195,7 +195,7 @@ chmod 644 /etc/sysctl.d/90-high-fortress-user.conf /etc/sysctl.d/99-zzz-high-for
 install -d -m 755 "${HF_CONFIG_BASE_DIRECTORY}/cron/bin"
 install -m 755 "${DIR_SCRIPT_PATH}/hfu-sysctl-apply.sh" \
     "${HF_CONFIG_BASE_DIRECTORY}/cron/bin/hfu-sysctl-apply.sh"
-sed "s|__HF_BASE__|${HF_CONFIG_BASE_DIRECTORY}|g" "$(hf_locate_config_file system/hfu-sysctl.service)" \
+sed "s|__HF_BASE__|${HF_CONFIG_BASE_DIRECTORY}|g" "$(hf_locate_config_file system/sysctl.service)" \
     > /etc/systemd/system/high-fortress-user-sysctl.service
 
 rm -f /etc/systemd/system/docker.service.wants/high-fortress-user-sysctl.service
@@ -221,7 +221,6 @@ done
 hfu_apply_strict_mode 600 root root /etc/crontab
 hfu_apply_strict_mode 600 root root /etc/ssh/sshd_config
 hfu_apply_strict_mode 750 root root /etc/sudoers.d
-hfu_apply_strict_mode 640 root lp /etc/cups/cupsd.conf
 tee /etc/tmpfiles.d/high-fortress-user-cron.conf > /dev/null << 'EOF'
 z /etc/cron.d 0700 root root -
 z /etc/cron.hourly 0700 root root -
@@ -229,7 +228,7 @@ z /etc/cron.daily 0700 root root -
 z /etc/cron.weekly 0700 root root -
 z /etc/cron.monthly 0700 root root -
 EOF
-hf_log_success "Permissions cron, sudoers, SSH et CUPS resserrées"
+hf_log_success "Permissions cron, sudoers et SSH resserrées"
 
 hf_log_info "Pose du profil Lynis (poste de travail, exceptions documentées)"
 mkdir -p /etc/lynis

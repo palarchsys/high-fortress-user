@@ -12,11 +12,12 @@ Each row is a file the installer writes, with the mode the script sets. Files in
 | /opt/high-fortress-user/src/config/secrets.conf                | Secrets written by configure.sh. Stays on the machine.                                           | 600                          |
 | /opt/high-fortress-user/src/hf                          | Launcher.                                                                                        | 755                          |
 | /opt/high-fortress-user/bin/aide-refresh-db.sh          | Rebuilds the AIDE baseline.                                                                      | 755                          |
+| /opt/high-fortress-user/bin/rkhunter-refresh-db.sh      | Rebuilds the rkhunter property baseline.                                                         | 755                          |
 | /opt/high-fortress-user/bin/chkrootkit-ignore-log.sh    | Records recognized chkrootkit lines.                                                             | 755                          |
 | /opt/high-fortress-user/bin/debsums-ignore-log.sh       | Records recognized debsums lines.                                                                | 755                          |
 | /opt/high-fortress-user/cron/bin/*.sh                   | Watch scripts, mail.sh, and shared watchdog.sh. Owner root.                                      | 750                          |
 | /opt/high-fortress-user/cron/bin/mail.html              | Mail template.                                                                                   | 644                          |
-| /opt/high-fortress-user/src/config/chkrootkit/chkrootkit.ignore | Shipped chkrootkit patterns.                                                                     | 664                          |
+| /opt/high-fortress-user/src/config/chkrootkit/patterns.ignore | Shipped chkrootkit patterns.                                                                     | 664                          |
 | /opt/high-fortress-user/cron/mail.conf                  | HF_MAIL_ALERTS, HF_WATCHDOG_MAIL, HF_PROJECT_NAME, HF_MAIL_TEMPLATE.                                      | 600                          |
 | /opt/high-fortress-user/cron/rkhunter-mirrors.sha256    | Stamp of mirrors.dat after a successful update.                                                  | 600                          |
 | /etc/cron.d/high-fortress-user                          | SHELL and PATH only.                                                                             | 600                          |
@@ -55,7 +56,5 @@ Each row is a file the installer writes, with the mode the script sets. Files in
 | /etc/security/faillock.conf                             | Account lockout.                                                                                 | written by redirection       |
 | /etc/audit/rules.d/00-high-fortress-user.rules          | Audit watches.                                                                                   | 640                          |
 | /etc/sudoers.d/high-fortress-user-timeout               | sudo asks for the password again after 5 minutes.                                                         | 440                          |
-| /etc/brave/policies/managed/high-fortress-user.json     | Brave policy for the machine resolver, balanced HTTPS and guest mode.                                     | 644                          |
-| /etc/thunderbird/policies/policies.json                 | Remote images load after a click.                                                                          | 644                          |
 | /etc/usbguard/rules.conf                                | Present devices, keyboards, mice and hubs.                                                                 | 600                          |
 | /etc/usbguard/IPCAccessControl.d/<user>                 | Lets the desktop user accept a new device.                                                                 | 600                          |

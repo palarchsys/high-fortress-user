@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/unbound/configure.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 
@@ -23,9 +23,9 @@ if [[ ! -f /usr/share/dns/root.hints ]]; then
 fi
 
 hf_ensure_directory /etc/unbound/unbound.conf.d 755
-install -m 644 "$(hf_locate_config_file unbound/unbound.conf)" /etc/unbound/unbound.conf.d/high-fortress-user.conf
+install -m 644 "$(hf_locate_config_file unbound/resolver.conf)" /etc/unbound/unbound.conf.d/high-fortress-user.conf
 
-grep -v '^#' "$(hf_locate_config_file unbound/default-unbound)" > /etc/default/unbound
+grep -v '^#' "$(hf_locate_config_file unbound/default.conf)" > /etc/default/unbound
 chmod 644 /etc/default/unbound
 if [[ -f /etc/resolvconf/update.d/unbound ]]; then
     chmod a-x /etc/resolvconf/update.d/unbound
@@ -38,11 +38,11 @@ grep -v '^#' "$(hf_locate_config_file unbound/resolved.conf)" > /etc/systemd/res
 chmod 644 /etc/systemd/resolved.conf.d/90-high-fortress-user.conf
 
 hf_ensure_directory /etc/systemd/system/systemd-resolved.service.d 755
-grep -v '^#' "$(hf_locate_config_file unbound/resolved.service.conf)" > /etc/systemd/system/systemd-resolved.service.d/90-high-fortress-user.conf
+grep -v '^#' "$(hf_locate_config_file unbound/resolved-service.conf)" > /etc/systemd/system/systemd-resolved.service.d/90-high-fortress-user.conf
 chmod 644 /etc/systemd/system/systemd-resolved.service.d/90-high-fortress-user.conf
 
 hf_ensure_directory /etc/systemd/system/unbound.service.d 755
-grep -v '^#' "$(hf_locate_config_file unbound/unbound.service.conf)" > /etc/systemd/system/unbound.service.d/90-high-fortress-user.conf
+grep -v '^#' "$(hf_locate_config_file unbound/service.conf)" > /etc/systemd/system/unbound.service.d/90-high-fortress-user.conf
 chmod 644 /etc/systemd/system/unbound.service.d/90-high-fortress-user.conf
 
 install -m 644 "$(hf_locate_config_file unbound/root-hints.service)" /etc/systemd/system/hfu-unbound-root-hints.service

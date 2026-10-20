@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/chkrootkit.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 
@@ -21,16 +21,16 @@ elif [[ -f "${HERE}/../../../core/fs.sh" ]]; then
 fi
 IGNORE=""
 if declare -F hf_locate_config_file >/dev/null 2>&1; then
-    IGNORE="$(hf_locate_config_file chkrootkit/chkrootkit.ignore || true)"
+    IGNORE="$(hf_locate_config_file chkrootkit/patterns.ignore || true)"
 fi
-if [[ ! -f "${IGNORE}" && -f "${HERE}/../../../config/chkrootkit/chkrootkit.ignore" ]]; then
-    IGNORE="${HERE}/../../../config/chkrootkit/chkrootkit.ignore"
+if [[ ! -f "${IGNORE}" && -f "${HERE}/../../../config/chkrootkit/patterns.ignore" ]]; then
+    IGNORE="${HERE}/../../../config/chkrootkit/patterns.ignore"
 fi
 if [[ ! -f "${IGNORE}" && -f "${HERE}/chkrootkit.ignore" ]]; then
     IGNORE="${HERE}/chkrootkit.ignore"
 fi
 if [[ ! -f "${IGNORE}" ]]; then
-    IGNORE="${HFU_BASE}/src/config/chkrootkit/chkrootkit.ignore"
+    IGNORE="${HFU_BASE}/src/config/chkrootkit/patterns.ignore"
 fi
 
 LOCAL_IGNORE="${HFU_BASE}/cron/chkrootkit.local.ignore"

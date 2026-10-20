@@ -43,7 +43,7 @@ echo "   Port SSH détecté    : ${SSH_PORT}"
 echo "   OS                  : ${OS_PRETTY}"
 echo ""
 echo "   • SSH, puis la pile de sécurité. Postfix suit le choix des alertes e-mail."
-echo "   • Après les correctifs : politiques du bureau, puis USBGuard."
+echo "   • Après les correctifs : USBGuard."
 echo "   • i386 activé sur amd64."
 echo "   • UFW : deny incoming, allow outgoing."
 echo "   • DNS : Unbound local."
@@ -119,7 +119,6 @@ hf_run_silent_apt update
 hf_run_silent_apt -o APT::Get::Always-Include-Phased-Updates=true upgrade -y --with-new-pkgs
 hf_log_success "Correctifs de sécurité installés"
 
-hf_run_step "${HF_INSTALL_DIRECTORY}" "service/desktop/configure.sh"
 hf_run_step "${HF_INSTALL_DIRECTORY}" "service/usbguard/configure.sh"
 
 HF_PURGE_REMOVED_CONFIG_ONLY=1 bash "${HF_INSTALL_DIRECTORY}/system/purge.sh" "${HF_INSTALL_DIRECTORY}"

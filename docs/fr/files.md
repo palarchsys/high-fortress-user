@@ -12,11 +12,12 @@ Chaque ligne est un fichier que l'installeur écrit, avec le mode que le script 
 | /opt/high-fortress-user/src/config/secrets.conf                | Secrets écrits par configure.sh. Reste sur la machine.                                                            | 600                          |
 | /opt/high-fortress-user/src/hf                          | Lanceur.                                                                                                          | 755                          |
 | /opt/high-fortress-user/bin/aide-refresh-db.sh          | Reconstruit la base AIDE.                                                                                         | 755                          |
+| /opt/high-fortress-user/bin/rkhunter-refresh-db.sh      | Recalcule la base de propriétés rkhunter.                                                                         | 755                          |
 | /opt/high-fortress-user/bin/chkrootkit-ignore-log.sh    | Enregistre les lignes chkrootkit reconnues.                                                                       | 755                          |
 | /opt/high-fortress-user/bin/debsums-ignore-log.sh       | Enregistre les lignes debsums reconnues.                                                                          | 755                          |
 | /opt/high-fortress-user/cron/bin/*.sh                   | Scripts de contrôle, mail.sh et watchdog.sh partagé. Propriétaire root.                                          | 750                          |
 | /opt/high-fortress-user/cron/bin/mail.html              | Modèle de courrier.                                                                                               | 644                          |
-| /opt/high-fortress-user/src/config/chkrootkit/chkrootkit.ignore | Motifs chkrootkit livrés.                                                                                         | 664                          |
+| /opt/high-fortress-user/src/config/chkrootkit/patterns.ignore | Motifs chkrootkit livrés.                                                                                         | 664                          |
 | /opt/high-fortress-user/cron/mail.conf                  | HF_MAIL_ALERTS, HF_WATCHDOG_MAIL, HF_PROJECT_NAME, HF_MAIL_TEMPLATE.                                                       | 600                          |
 | /opt/high-fortress-user/cron/rkhunter-mirrors.sha256    | Empreinte de mirrors.dat après une mise à jour réussie.                                                           | 600                          |
 | /etc/cron.d/high-fortress-user                          | SHELL et PATH seulement.                                                                                          | 600                          |
@@ -55,7 +56,5 @@ Chaque ligne est un fichier que l'installeur écrit, avec le mode que le script 
 | /etc/security/faillock.conf                             | Verrouillage de compte.                                                                                           | written by redirection       |
 | /etc/audit/rules.d/00-high-fortress-user.rules          | Surveillances d'audit.                                                                                            | 640                          |
 | /etc/sudoers.d/high-fortress-user-timeout               | sudo redemande le mot de passe après 5 minutes.                                                            | 440                          |
-| /etc/brave/policies/managed/high-fortress-user.json     | Politique Brave pour le résolveur du poste, le HTTPS équilibré et le mode invité.                         | 644                          |
-| /etc/thunderbird/policies/policies.json                 | Les images distantes se chargent après un clic.                                                           | 644                          |
 | /etc/usbguard/rules.conf                                | Appareils présents, claviers, souris et concentrateurs.                                                    | 600                          |
 | /etc/usbguard/IPCAccessControl.d/<user>                 | Permet au compte du bureau d'accepter un appareil nouveau.                                                 | 600                          |

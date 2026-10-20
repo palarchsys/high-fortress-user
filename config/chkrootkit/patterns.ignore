@@ -1,6 +1,6 @@
 # =============================================================================
-# File       : config/chkrootkit/chkrootkit.ignore
-# Updated at : 2026-10-15
+# File       : config/chkrootkit/patterns.ignore
+# Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 

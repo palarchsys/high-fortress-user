@@ -22,7 +22,9 @@ Les chemins surveillés sont `.ssh/authorized_keys`, `.bashrc`, `.profile`, `.ba
 
 | Service qui surveille       | Zones                                            | Ce qui part en alerte                                                                      | Commande du courrier     |
 | --------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------ | ------------------------ |
-| rkhunter.sh in boot-scan.sh | Périmètre du paquet, plus la base de propriétés. | Avertissements, une mise à jour en échec, ou `mirrors.dat modifié hors rkhunter --update`. | Pas de bloc de commande. |
+| rkhunter.sh in boot-scan.sh | Périmètre du paquet, plus la base de propriétés. | Avertissements, une mise à jour en échec, ou `mirrors.dat modifié hors rkhunter --update`. | `sudo bash /opt/high-fortress-user/bin/rkhunter-refresh-db.sh` |
+
+La commande du courrier est jointe aux avertissements. La ligne d'empreinte et un échec de mise à jour ne l'ajoutent pas.
 
 `/var/lib/rkhunter/db/mirrors.dat` n'est pas ignoré en tant que fichier. L'empreinte `/opt/high-fortress-user/cron/rkhunter-mirrors.sha256` est écrite seulement après un `rkhunter --update` qui retourne 0 ou 2. Un hash différent est une alerte. Le contrôle a lieu avant le `--update` suivant.
 
@@ -36,7 +38,7 @@ Ils ne produisent pas l'avertissement `Suspicious file types found in /dev`.
 | ----------------------------- | ----------------------- | --------------------------------------------------- | ---------------------------------------------------------------------------- |
 | chkrootkit.sh in boot-scan.sh | /usr/sbin/chkrootkit -q | Toute sortie restante après les listes d'exclusion. | `sudo bash /opt/high-fortress-user/bin/chkrootkit-ignore-log.sh '<journal>'` |
 
-Les lignes connues sont dans `src/config/chkrootkit/chkrootkit.ignore` et dans `cron/chkrootkit.local.ignore`.
+Les lignes connues sont dans `src/config/chkrootkit/patterns.ignore` et dans `cron/chkrootkit.local.ignore`.
 
 Le fichier local est rempli seulement par la commande du courrier, et seulement pour des lignes que vous reconnaissez.
 
@@ -176,11 +178,11 @@ Le tampon reste en place.
 
 | Service qui surveille      | Zones                                   | Ce qui part en alerte                                                    | Commande du courrier                                                      |
 | -------------------------- | --------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| debsums.sh in boot-scan.sh | Fichiers des paquets, via `debsums -s`. | Fichiers de paquets modifiés qui ne sont pas dans une liste d'exclusion. | `sudo bash /opt/high-fortress-user/bin/debsums-ignore-log.sh '<journal>'` |
+| debsums.sh in boot-scan.sh | Fichiers des paquets, via `debsums -s`. | Chaque paquet encore signalé est réinstallé. Le courrier nomme la correction. | Pas de bloc de commande. |
 
 La ligne mirrors.dat est retirée seulement lorsque le hash actuel correspond à l'empreinte. Il n'y a pas de fichier d'ignorance globale pour ce chemin.
 
-Une ligne modifiée sous `/usr/lib/*/perl-base/unicore/` du paquet `perl-base` est retirée avant le courrier.
+Une ligne modifiée sous `/usr/lib/*/perl-base/unicore/` du paquet `perl-base` est retirée avant cette réinstallation.
 
 ## auditd
 

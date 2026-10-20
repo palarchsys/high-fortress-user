@@ -1,9 +1,11 @@
 # =============================================================================
-# File       : config/desktop/keepassxc.conf
-# Updated at : 2026-10-15
+# File       : config/crowdsec/acquisition-syslog.yaml
+# Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 
-LockDatabaseScreenLock=true
-LockDatabaseIdle=true
-LockDatabaseIdleSeconds=900
+---
+source: file
+file: /var/log/syslog
+labels:
+  type: syslog

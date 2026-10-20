@@ -22,7 +22,9 @@ Las rutas vigiladas son `.ssh/authorized_keys`, `.bashrc`, `.profile`, `.bash_pr
 
 | Servicio que vigila         | Zonas                                            | Qué sale en alerta                                                                 | Orden del correo     |
 | --------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------- | -------------------- |
-| rkhunter.sh in boot-scan.sh | Alcance del paquete, más la base de propiedades. | Avisos, una actualización fallida, o `mirrors.dat modifié hors rkhunter --update`. | Sin bloque de orden. |
+| rkhunter.sh in boot-scan.sh | Alcance del paquete, más la base de propiedades. | Avisos, una actualización fallida, o `mirrors.dat modifié hors rkhunter --update`. | `sudo bash /opt/high-fortress-user/bin/rkhunter-refresh-db.sh` |
+
+La orden del correo va en el correo de avisos. La línea de huella y un fallo de actualización no la añaden.
 
 `/var/lib/rkhunter/db/mirrors.dat` no se ignora como archivo. La huella `/opt/high-fortress-user/cron/rkhunter-mirrors.sha256` se escribe solo después de un `rkhunter --update` que devuelve 0 o 2. Un hash distinto es una alerta. El control ocurre antes del `--update` siguiente.
 
@@ -36,7 +38,7 @@ No producen el aviso `Suspicious file types found in /dev`.
 | ----------------------------- | ----------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | chkrootkit.sh in boot-scan.sh | /usr/sbin/chkrootkit -q | Cualquier salida restante después de las listas de exclusión. | `sudo bash /opt/high-fortress-user/bin/chkrootkit-ignore-log.sh '<journal>'` |
 
-Las líneas conocidas están en `src/config/chkrootkit/chkrootkit.ignore` y en `cron/chkrootkit.local.ignore`.
+Las líneas conocidas están en `src/config/chkrootkit/patterns.ignore` y en `cron/chkrootkit.local.ignore`.
 
 El archivo local se llena solo con la orden del correo, y solo para líneas que usted reconoce.
 
@@ -176,11 +178,11 @@ El sello permanece en su sitio.
 
 | Servicio que vigila        | Zonas                                       | Qué sale en alerta                                                       | Orden del correo                                                          |
 | -------------------------- | ------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| debsums.sh in boot-scan.sh | Archivos de los paquetes, con `debsums -s`. | Archivos de paquetes modificados que no están en una lista de exclusión. | `sudo bash /opt/high-fortress-user/bin/debsums-ignore-log.sh '<journal>'` |
+| debsums.sh in boot-scan.sh | Archivos de los paquetes, con `debsums -s`. | Cada paquete que queda se reinstala. El correo nombra la corrección. | Sin bloque de orden. |
 
 La línea mirrors.dat se retira solo cuando el hash actual coincide con la huella. No hay un archivo de ignorancia global para esa ruta.
 
-Una línea modificada bajo `/usr/lib/*/perl-base/unicore/` del paquete `perl-base` se retira antes del correo.
+Una línea modificada bajo `/usr/lib/*/perl-base/unicore/` del paquete `perl-base` se retira antes de esta reinstalación.
 
 ## auditd
 

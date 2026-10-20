@@ -22,7 +22,9 @@ Die überwachten Pfade sind `.ssh/authorized_keys`, `.bashrc`, `.profile`, `.bas
 
 | Dienst, der überwacht       | Zonen                                              | Was als Alarm geht                                                                         | Befehl der Post    |
 | --------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------ |
-| rkhunter.sh in boot-scan.sh | Prüfumfang des Pakets, plus die Eigenschaftsbasis. | Warnungen, ein fehlgeschlagenes Update, oder `mirrors.dat modifié hors rkhunter --update`. | Kein Befehlsblock. |
+| rkhunter.sh in boot-scan.sh | Prüfumfang des Pakets, plus die Eigenschaftsbasis. | Warnungen, ein fehlgeschlagenes Update, oder `mirrors.dat modifié hors rkhunter --update`. | `sudo bash /opt/high-fortress-user/bin/rkhunter-refresh-db.sh` |
+
+Der Postbefehl steht in der Warnpost. Die Stempelzeile und ein fehlgeschlagenes Update fügen ihn nicht hinzu.
 
 `/var/lib/rkhunter/db/mirrors.dat` wird nicht als Datei ignoriert. Der Stempel `/opt/high-fortress-user/cron/rkhunter-mirrors.sha256` wird nur geschrieben, wenn `rkhunter --update` 0 oder 2 zurückgibt. Ein anderer Hash ist ein Alarm. Die Prüfung läuft vor dem nächsten `--update`.
 
@@ -36,7 +38,7 @@ Sie erzeugen nicht die Warnung `Suspicious file types found in /dev`.
 | ----------------------------- | ----------------------- | -------------------------------------------------- | ---------------------------------------------------------------------------- |
 | chkrootkit.sh in boot-scan.sh | /usr/sbin/chkrootkit -q | Jede verbleibende Ausgabe nach den Ignorierlisten. | `sudo bash /opt/high-fortress-user/bin/chkrootkit-ignore-log.sh '<journal>'` |
 
-Bekannte Zeilen stehen in `src/config/chkrootkit/chkrootkit.ignore` und in `cron/chkrootkit.local.ignore`.
+Bekannte Zeilen stehen in `src/config/chkrootkit/patterns.ignore` und in `cron/chkrootkit.local.ignore`.
 
 Die lokale Datei wird nur durch den Befehl aus der Post gefüllt, und nur für Zeilen, die Sie erkennen.
 
@@ -176,11 +178,11 @@ Der Stempel bleibt stehen.
 
 | Dienst, der überwacht      | Zonen                            | Was als Alarm geht                                                | Befehl der Post                                                           |
 | -------------------------- | -------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| debsums.sh in boot-scan.sh | Paketdateien, über `debsums -s`. | Geänderte Paketdateien, die nicht auf einer Ignorierliste stehen. | `sudo bash /opt/high-fortress-user/bin/debsums-ignore-log.sh '<journal>'` |
+| debsums.sh in boot-scan.sh | Paketdateien, über `debsums -s`. | Jedes verbleibende Paket wird neu installiert. Die Post nennt die Korrektur. | Kein Befehlsblock. |
 
 Die Zeile mirrors.dat wird nur entfernt, wenn der aktuelle Hash zum Stempel passt. Es gibt keine pauschale Ignorierdatei für diesen Pfad.
 
-Eine geänderte Zeile unter `/usr/lib/*/perl-base/unicore/` aus dem Paket `perl-base` wird vor der Post entfernt.
+Eine geänderte Zeile unter `/usr/lib/*/perl-base/unicore/` aus dem Paket `perl-base` wird vor dieser Neuinstallation entfernt.
 
 ## auditd
 

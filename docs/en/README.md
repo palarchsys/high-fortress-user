@@ -2,7 +2,7 @@
 
 ## Description
 
-High-Fortress User prepares an Ubuntu 26.04 workstation. It installs the desktop programs, the local DNS resolver, the firewall, and the security checks.
+High-Fortress User prepares an Ubuntu 26.04 workstation. It installs the local DNS resolver, the firewall, and the security checks.
 
 The Ubuntu account already created on the machine is not replaced. The installer does not create a second account.
 
@@ -103,10 +103,7 @@ Values that are not asked are written from `hfu_set_config_default` and from the
 | Checks   | `hfu-boot-chain.timer` starts `hfu-boot-chain.service` when `multi-user.target` is reached (`OnBootSec=0`, `Persistent=false`). The chain runs `hfu-boot-scan.service`, then `hfu-idle-scan.service`, then `hfu-reboot-notice.service`. The boot pass runs AIDE, rkhunter, chkrootkit, ClamAV and debsums. `Nice` is `HF_WATCHDOG_LIMIT_NICE` (19), `IOSchedulingClass=idle`, `CPUQuota` is `HF_WATCHDOG_CPU_LIMIT` times the CPU count, so 50 is 50% of the whole machine. `/etc/cron.d/high-fortress-user` contains only `SHELL` and `PATH`. The user crontab is not modified. Mail is sent only when a check finds something and `HF_MAIL_ALERTS=1`. `hfu-idle-scan.timer` repeats the deferred scan every hour. `hfu-reboot-notice.timer` repeats the notice every 6 hours, and sends mail when a reboot is useful and no game is running. The rules are in [surveillance.md](surveillance.md). |
 | Lynis    | `HF_LYNIS_MIN_SCORE` is 80. `verify/workstation.sh` accepts a `hardening_index` greater than or equal to that score.                                                                                                                                                                                                                                                                                                                                          |
 | Journals | Install journals are `<source>/logs/install-YYYYMMDD-HHMMSS-user/`. Security journals are `/opt/high-fortress-user/cron/security_logs/`. Journald storage is persistent.                                                                                                                                                                                                                                                                                   |
-| Packages | On amd64, the i386 architecture is enabled. |
-| Brave        | `DnsOverHttpsMode` is `off`. `BuiltInDnsClientEnabled` is false. `HttpsOnlyMode` is `force_balanced_enabled`. HTTP stays allowed for `localhost`, `127.0.0.1`, `[::1]`, `[*.]local` and each detected default gateway. WebUSB, WebHID and serial ask. `BrowserGuestModeEnabled` is false. Extensions stay as they are. |
-| Thunderbird  | `mailnews.message_display.disable_remote_image` is true, with status `user`. A remote image loads after a click. HTML reading and attachment download stay. |
-| Session      | The screen locks after 1200 seconds. `lock-enabled` is true, `lock-delay` is 0, and `ubuntu-lock-on-suspend` is true. These keys stay changeable. KeePassXC sets `LockDatabaseScreenLock` and `LockDatabaseIdle` to true, and `LockDatabaseIdleSeconds` to 900. The database path stays. The suspend delay stays. A later configure writes these values again. |
+| Packages | On amd64, the i386 architecture is enabled. CUPS is purged at the start of the installation. |
 | USB          | Devices present at configure time stay allowed. Interface class `03` and class `09` stay allowed. A new storage device stays blocked until you accept it on the desktop. The `usb-storage` module stays available. |
 
 ## Alert emails
@@ -141,15 +138,13 @@ The command records the lines of that journal into `/opt/high-fortress-user/cron
 
 ### debsums
 
-The message contains the summary and the journal excerpt, then the note and the command. The example below shows the form. The mail contains the real path.
+The message contains the summary and the journal excerpt. It does not add a command block. The check reinstalls each package still listed with `apt-get install --reinstall`. The mail names each restored package. The success line is `La somme correspond.`
 
-```bash
-sudo bash /opt/high-fortress-user/bin/debsums-ignore-log.sh '/opt/high-fortress-user/cron/security_logs/debsums-YYYYMMDD-HHMMSS.log'
-```
+A package whose checksum stays different, or whose reinstall fails, stays in the mail.
 
-The command records the lines of that journal into `/opt/high-fortress-user/cron/debsums.local.ignore`. The success line is `Aucune nouvelle détection à enregistrer.` or `N détection(s) enregistrée(s) dans /opt/high-fortress-user/cron/debsums.local.ignore`. A line for `/var/lib/rkhunter/db/mirrors.dat` is dropped before the mail only when its live SHA-256 equals `/opt/high-fortress-user/cron/rkhunter-mirrors.sha256`. Any other content stays in the mail. Do not ignore the whole file.
+A line for `/var/lib/rkhunter/db/mirrors.dat` is dropped before this reinstall only when its live SHA-256 equals `/opt/high-fortress-user/cron/rkhunter-mirrors.sha256`.
 
-A changed line under `/usr/lib/*/perl-base/unicore/` from the package `perl-base` is dropped before the mail.
+A changed line under `/usr/lib/*/perl-base/unicore/` from the package `perl-base` is dropped before this reinstall.
 
 The file shipped by Ubuntu does not match that package checksum.
 
@@ -205,7 +200,13 @@ The journal form is `/opt/high-fortress-user/cron/security_logs/idle-scan-YYYYMM
 
 ### rkhunter
 
-The message contains the summary and the journal excerpt. This mail does not add a command block. A stamp mismatch adds the line `mirrors.dat modifié hors rkhunter --update`. That line is not a command. The journal form is `/opt/high-fortress-user/cron/security_logs/rkhunter-YYYYMMDD-HHMMSS.log`.
+The warning mail contains the summary and the journal excerpt, then the note and the command block. The mail `mirrors.dat modifié hors rkhunter --update` does not add that block. An error mail does not add it either. The journal form is `/opt/high-fortress-user/cron/security_logs/rkhunter-YYYYMMDD-HHMMSS.log`.
+
+```bash
+sudo bash /opt/high-fortress-user/bin/rkhunter-refresh-db.sh
+```
+
+The command rebuilds the rkhunter property baseline from the current disk. The success line is `Base de propriétés rkhunter enregistrée.`
 
 Files in `/dev/shm` and the socket `/dev/log` are allowed in `rkhunter.conf.local`.
 
@@ -269,7 +270,7 @@ sudo bash verify/workstation.sh "$PWD"
 
 Runs the workstation verification. The closing line has the form `Check : N OK / N WARN / N FAIL`.
 
-The same run checks SSH forwarding, the SSH firewall rule, USBGuard, the Brave policy, the Thunderbird policy, the session lock, KeePassXC, the sudo timeout and `hfu-reboot-notice.timer`.
+The same run checks SSH forwarding, the SSH firewall rule, USBGuard, the sudo timeout and `hfu-reboot-notice.timer`.
 
 ### Check after boot
 

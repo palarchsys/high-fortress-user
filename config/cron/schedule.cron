@@ -1,11 +1,8 @@
 # =============================================================================
-# File       : config/crowdsec/acquisition.journal.yaml
-# Updated at : 2026-10-15
+# File       : config/cron/schedule.cron
+# Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 
-source: journalctl
-journalctl_filter:
-  - _SYSTEMD_UNIT=ssh.service
-labels:
-  type: syslog
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin

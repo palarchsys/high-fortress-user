@@ -12,11 +12,12 @@ Jede Zeile ist eine Datei, die das Installationsprogramm schreibt, mit dem Modus
 | /opt/high-fortress-user/src/config/secrets.conf                | Von configure.sh geschriebene Geheimnisse. Bleibt auf der Maschine.                                               | 600                          |
 | /opt/high-fortress-user/src/hf                          | Starter.                                                                                                          | 755                          |
 | /opt/high-fortress-user/bin/aide-refresh-db.sh          | Baut die AIDE-Basis neu.                                                                                          | 755                          |
+| /opt/high-fortress-user/bin/rkhunter-refresh-db.sh      | Berechnet die rkhunter-Eigenschaftsbasis neu.                                                                     | 755                          |
 | /opt/high-fortress-user/bin/chkrootkit-ignore-log.sh    | Speichert erkannte chkrootkit-Zeilen.                                                                             | 755                          |
 | /opt/high-fortress-user/bin/debsums-ignore-log.sh       | Speichert erkannte debsums-Zeilen.                                                                                | 755                          |
 | /opt/high-fortress-user/cron/bin/*.sh                   | Prüfskripte, mail.sh und gemeinsames watchdog.sh. Eigentümer root.                                               | 750                          |
 | /opt/high-fortress-user/cron/bin/mail.html              | Mail-Vorlage.                                                                                                     | 644                          |
-| /opt/high-fortress-user/src/config/chkrootkit/chkrootkit.ignore | Mitgelieferte chkrootkit-Muster.                                                                                  | 664                          |
+| /opt/high-fortress-user/src/config/chkrootkit/patterns.ignore | Mitgelieferte chkrootkit-Muster.                                                                                  | 664                          |
 | /opt/high-fortress-user/cron/mail.conf                  | HF_MAIL_ALERTS, HF_WATCHDOG_MAIL, HF_PROJECT_NAME, HF_MAIL_TEMPLATE.                                                       | 600                          |
 | /opt/high-fortress-user/cron/rkhunter-mirrors.sha256    | Stempel von mirrors.dat nach einem erfolgreichen Update.                                                          | 600                          |
 | /etc/cron.d/high-fortress-user                          | Nur SHELL und PATH.                                                                                               | 600                          |
@@ -55,7 +56,5 @@ Jede Zeile ist eine Datei, die das Installationsprogramm schreibt, mit dem Modus
 | /etc/security/faillock.conf                             | Kontosperre.                                                                                                      | written by redirection       |
 | /etc/audit/rules.d/00-high-fortress-user.rules          | Audit-Überwachungen.                                                                                              | 640                          |
 | /etc/sudoers.d/high-fortress-user-timeout               | sudo fragt das Kennwort nach 5 Minuten erneut.                                                             | 440                          |
-| /etc/brave/policies/managed/high-fortress-user.json     | Brave-Politik für den Resolver der Maschine, ausgeglichenes HTTPS und den Gastmodus.                      | 644                          |
-| /etc/thunderbird/policies/policies.json                 | Entfernte Bilder laden nach einem Klick.                                                                   | 644                          |
 | /etc/usbguard/rules.conf                                | Vorhandene Geräte, Tastaturen, Mäuse und Hubs.                                                             | 600                          |
 | /etc/usbguard/IPCAccessControl.d/<user>                 | Lässt das Desktop-Konto ein neues Gerät annehmen.                                                          | 600                          |

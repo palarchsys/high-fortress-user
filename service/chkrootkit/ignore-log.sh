@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/chkrootkit/ignore-log.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 
@@ -27,7 +27,7 @@ base = Path(sys.argv[1]).resolve()
 log_path = Path(sys.argv[2]).resolve()
 logs = (base / "cron" / "security_logs").resolve()
 local = base / "cron" / "chkrootkit.local.ignore"
-shipped = base / "src" / "config" / "chkrootkit" / "chkrootkit.ignore"
+shipped = base / "src" / "config" / "chkrootkit" / "patterns.ignore"
 legacy = base / "cron" / "bin" / "chkrootkit.ignore"
 if not shipped.is_file():
     shipped = legacy

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/rkhunter/configure.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 
@@ -26,3 +26,7 @@ if grep -qE '^[[:space:]]*WEB_CMD=' /etc/rkhunter.conf; then
 fi
 
 hf_log_info "Base rkhunter (--propupd) après la purge des paquets."
+install -d -m 755 "${HF_CONFIG_BASE_DIRECTORY}/bin"
+install -m 755 \
+    "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/refresh-db.sh" \
+    "${HF_CONFIG_BASE_DIRECTORY}/bin/rkhunter-refresh-db.sh"

@@ -1,9 +1,11 @@
 # =============================================================================
-# File       : config/ssh/99-permit-root.conf
-# Updated at : 2026-10-15
+# File       : config/crowdsec/acquisition-journal.yaml
+# Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 
-# High-Fortress User permit-root
-Match all
-    PermitRootLogin no
+source: journalctl
+journalctl_filter:
+  - _SYSTEMD_UNIT=ssh.service
+labels:
+  type: syslog

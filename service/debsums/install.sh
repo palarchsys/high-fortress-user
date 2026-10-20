@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/debsums/install.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 
@@ -19,7 +19,7 @@ hf_run_silent_apt install -y debsums
 install -d -m 755 "${HF_CONFIG_BASE_DIRECTORY}/bin"
 install -m 755 "${DIR_SCRIPT_PATH}/ignore-log.sh" "${HF_CONFIG_BASE_DIRECTORY}/bin/debsums-ignore-log.sh"
 
-cron_line="$(grep -v '^#' "$(hf_locate_config_file debsums/debsums.default)" | head -1)"
+cron_line="$(grep -v '^#' "$(hf_locate_config_file debsums/check.conf)" | head -1)"
 if [[ -f /etc/default/debsums ]]; then
     if grep -q '^CRON_CHECK=' /etc/default/debsums; then
         sed -i "s/^CRON_CHECK=.*/${cron_line}/" /etc/default/debsums

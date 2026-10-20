@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/debsums.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-16
 # Creator    : palarchsys
 # =============================================================================
 
@@ -80,9 +80,11 @@ kept = [
 ]
 log_path.write_text(("\n".join(kept) + "\n") if kept else "")
 PY
-if [[ -s "${LOG_FILE}" ]]; then
-    HFU_DEBSUMS_IGNORE=1 \
-        hf_log_alert "debsums : fichiers modifiés (voir ${LOG_FILE})"
+if [[ "${crashed}" -eq 0 && -s "${LOG_FILE}" ]]; then
+    summary="$(hf_repair_debsums_log "${LOG_FILE}")"
+    if [[ -n "${summary}" ]]; then
+        hf_log_alert "${summary}"
+    fi
 elif [[ "${crashed}" -eq 0 ]]; then
     hfu_log_pass "debsums OK"
 fi

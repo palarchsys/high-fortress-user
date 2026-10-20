@@ -12,11 +12,12 @@ Cada fila es un archivo que el instalador escribe, con el modo que el script fij
 | /opt/high-fortress-user/src/config/secrets.conf                | Secretos escritos por configure.sh. Permanece en la máquina.                                             | 600                          |
 | /opt/high-fortress-user/src/hf                          | Lanzador.                                                                                                | 755                          |
 | /opt/high-fortress-user/bin/aide-refresh-db.sh          | Reconstruye la base AIDE.                                                                                | 755                          |
+| /opt/high-fortress-user/bin/rkhunter-refresh-db.sh      | Recalcula la base de propiedades de rkhunter.                                                            | 755                          |
 | /opt/high-fortress-user/bin/chkrootkit-ignore-log.sh    | Registra las líneas chkrootkit reconocidas.                                                              | 755                          |
 | /opt/high-fortress-user/bin/debsums-ignore-log.sh       | Registra las líneas debsums reconocidas.                                                                 | 755                          |
 | /opt/high-fortress-user/cron/bin/*.sh                   | Scripts de control, mail.sh y watchdog.sh compartido. Propietario root.                                 | 750                          |
 | /opt/high-fortress-user/cron/bin/mail.html              | Plantilla de correo.                                                                                     | 644                          |
-| /opt/high-fortress-user/src/config/chkrootkit/chkrootkit.ignore | Patrones chkrootkit entregados.                                                                          | 664                          |
+| /opt/high-fortress-user/src/config/chkrootkit/patterns.ignore | Patrones chkrootkit entregados.                                                                          | 664                          |
 | /opt/high-fortress-user/cron/mail.conf                  | HF_MAIL_ALERTS, HF_WATCHDOG_MAIL, HF_PROJECT_NAME, HF_MAIL_TEMPLATE.                                              | 600                          |
 | /opt/high-fortress-user/cron/rkhunter-mirrors.sha256    | Huella de mirrors.dat después de una actualización lograda.                                              | 600                          |
 | /etc/cron.d/high-fortress-user                          | Solo SHELL y PATH.                                                                                       | 600                          |
@@ -55,7 +56,5 @@ Cada fila es un archivo que el instalador escribe, con el modo que el script fij
 | /etc/security/faillock.conf                             | Bloqueo de cuenta.                                                                                       | written by redirection       |
 | /etc/audit/rules.d/00-high-fortress-user.rules          | Vigilancias de auditoría.                                                                                | 640                          |
 | /etc/sudoers.d/high-fortress-user-timeout               | sudo vuelve a pedir la contraseña después de 5 minutos.                                                    | 440                          |
-| /etc/brave/policies/managed/high-fortress-user.json     | Política de Brave para el resolutor del equipo, HTTPS equilibrado y el modo invitado.                     | 644                          |
-| /etc/thunderbird/policies/policies.json                 | Las imágenes remotas se cargan después de un clic.                                                         | 644                          |
 | /etc/usbguard/rules.conf                                | Dispositivos presentes, teclados, ratones y concentradores.                                                | 600                          |
 | /etc/usbguard/IPCAccessControl.d/<user>                 | Permite a la cuenta del escritorio aceptar un dispositivo nuevo.                                           | 600                          |

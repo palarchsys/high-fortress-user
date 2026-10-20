@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : test/suites/02_file_graph.sh
-# Updated at : 2026-10-16
+# Updated at : 2026-10-17
 # Creator    : palarchsys
 # =============================================================================
 
@@ -23,7 +23,10 @@ if [[ -n "${snap_line}" && -n "${purge_line}" && -n "${inst_line}" \
       && "${snap_line}" -lt "${purge_line}" && "${purge_line}" -lt "${inst_line}" ]] \
    && grep -q 'systemctl mask systemd-coredump.socket' "${HFT_ROOT}/system/purge.sh" \
    && ! grep -q 'systemctl mask systemd-coredump.socket' "${HFT_ROOT}/system/configure.sh" \
-   && ! grep -qE 'purge -y cups|disable --now cups|mask apport' "${HFT_ROOT}/system/purge.sh" \
+   && ! grep -q 'mask apport' "${HFT_ROOT}/system/purge.sh" \
+   && grep -q 'cups cups-daemon cups-browsed cups-core-drivers cups-server-common cups-filters' "${HFT_ROOT}/system/purge.sh" \
+   && grep -qF 'hf_run_silent_apt purge -y "${cups_pkgs[@]}"' "${HFT_ROOT}/system/purge.sh" \
+   && awk '$0 == "hfu_remove_cups" { cups = NR } $0 == "hfu_remove_removed_config_package" { rc = NR } END { exit !(cups && rc && cups < rc) }' "${HFT_ROOT}/system/purge.sh" \
    && awk '
         /upgrade -y --with-new-pkgs/ { up = NR }
         /HF_REAPPLY_LOCKS=1/ { if (up && !re) re = NR }
@@ -31,7 +34,7 @@ if [[ -n "${snap_line}" && -n "${purge_line}" && -n "${inst_line}" \
       ' "${HFT_ROOT}/scripts/run.sh"; then
     hft_pass "graph.order.purge-first" "snap (L${snap_line}), purge (L${purge_line}), install (L${inst_line})"
 else
-    hft_fail "graph.order.purge-first" "snap puis purge rc/coredump avant system/install ; CUPS reste"
+    hft_fail "graph.order.purge-first" "snap, puis purge de CUPS et des paquets rc, avant system/install"
 fi
 
 hft_section "purge rc avant les bases rkhunter et AIDE"
@@ -96,7 +99,6 @@ if awk '
         cinst = pos("service/clamav/install.sh")
         cconf = pos("service/clamav/configure.sh")
         userns = pos("service/apparmor/userns.sh")
-        dconf = pos("service/desktop/configure.sh")
         rk = pos("service/rkhunter/init-db.sh")
         aide = pos("service/aide/init-db.sh")
         ver = pos("verify/workstation.sh")
@@ -104,14 +106,14 @@ if awk '
         exit !(ssh && ufw && ssh < ufw \
             && uinst && uconf && uinst < uconf \
             && cinst && cconf && cinst < cconf && cconf < userns \
-            && userns && up && dconf && uconf \
-            && userns < up && up < dconf && dconf < uconf \
+            && userns && up && uconf \
+            && userns < up && up < uconf \
             && uconf < rk && rk < aide && aide < ver)
     }
 ' "${HFT_ROOT}/scripts/run.sh"; then
-    hft_pass "graph.order.daily" "SSH avant UFW, bureau après correctifs, verify après AIDE"
+    hft_pass "graph.order.daily" "SSH avant UFW, USBGuard après correctifs, verify après AIDE"
 else
-    hft_fail "graph.order.daily" "USBGuard et les politiques suivent les paquets ; verify suit AIDE"
+    hft_fail "graph.order.daily" "USBGuard suit les paquets ; verify suit AIDE"
 fi
 
 hft_section "modèle de mail dans template/"
@@ -213,7 +215,14 @@ if [[ -f "${skip_lib}" && -f "${skip_tpl}" && -f "${skip_apply}" && -f "${skip_c
    && grep -q 'hf_log_alert "AIDE: changements détectés' "${HFT_ROOT}/service/cron/watchdogs/aide.sh" \
    && grep -q 'hf_log_alert "rkhunter warnings' "${HFT_ROOT}/service/cron/watchdogs/rkhunter.sh" \
    && grep -q 'hf_log_alert "chkrootkit a produit une sortie' "${HFT_ROOT}/service/cron/watchdogs/chkrootkit.sh" \
-   && grep -q 'hf_log_alert "debsums : fichiers modifiés' "${HFT_ROOT}/service/cron/watchdogs/debsums.sh" \
+   && grep -q 'hf_repair_debsums_log' "${HFT_ROOT}/service/cron/watchdogs/debsums.sh" \
+   && grep -q '"apt-get", "clean"' "${HFT_ROOT}/../core/watchdog.sh" \
+   && grep -q 'Dir::Cache::archives' "${HFT_ROOT}/../core/watchdog.sh" \
+   && grep -q '"install", "--reinstall", "-y", "--", pkg' "${HFT_ROOT}/../core/watchdog.sh" \
+   && grep -q '/var/cache/apt/archives' "${HFT_ROOT}/../core/watchdog.sh" \
+   && grep -q 'HFU_RKHUNTER_REFRESH=1' "${HFT_ROOT}/service/cron/watchdogs/rkhunter.sh" \
+   && grep -q 'rkhunter-refresh-db.sh' "${HFT_ROOT}/../core/watchdog.sh" \
+   && grep -q 'rkhunter-refresh-db.sh' "${HFT_ROOT}/service/rkhunter/configure.sh" \
    && grep -q 'hf_log_alert "ClamAV :' "${HFT_ROOT}/service/cron/watchdogs/clamav-event.sh" \
    && grep -q 'hf_get_clamav_kind' "${skip_clam}" \
    && grep -q 'hf_get_clamav_kind' "${skip_idle}" \
@@ -229,14 +238,14 @@ fi
 
 hft_section "ordre Unbound et liste chkrootkit"
 order_ok=1
-if grep -q 'systemd-resolved' "${HFT_ROOT}/config/unbound/unbound.service.conf"; then
+if grep -q 'systemd-resolved' "${HFT_ROOT}/config/unbound/service.conf"; then
     order_ok=0
 fi
-if grep -q '^After=unbound' "${HFT_ROOT}/config/unbound/resolved.service.conf"; then
+if grep -q '^After=unbound' "${HFT_ROOT}/config/unbound/resolved-service.conf"; then
     order_ok=0
 fi
-grep -q '^Wants=unbound.service$' "${HFT_ROOT}/config/unbound/resolved.service.conf" || order_ok=0
-grep -q 'chkrootkit/chkrootkit.ignore' "${HFT_ROOT}/service/chkrootkit/install.sh" || order_ok=0
+grep -q '^Wants=unbound.service$' "${HFT_ROOT}/config/unbound/resolved-service.conf" || order_ok=0
+grep -q 'chkrootkit/patterns.ignore' "${HFT_ROOT}/service/chkrootkit/install.sh" || order_ok=0
 grep -q 'src/config/chkrootkit' "${HFT_ROOT}/service/chkrootkit/install.sh" || order_ok=0
 if [[ "${order_ok}" -eq 1 ]]; then
     hft_pass "graph.unbound.order" "Unbound après le réseau, liste chkrootkit installée"
@@ -413,8 +422,6 @@ fi
 
 hft_section "durcissement quotidien"
 ssh_drop="${HFT_ROOT}/config/ssh/00-high-fortress-user.conf"
-desk="${HFT_ROOT}/service/desktop/configure.sh"
-brave="${HFT_ROOT}/config/desktop/brave-policy.json"
 ufw_policy="${HFT_ROOT}/config/ufw/policy.conf"
 usb="${HFT_ROOT}/service/usbguard/configure.sh"
 reboot="${HFT_ROOT}/service/cron/watchdogs/reboot-notice.sh"
@@ -423,8 +430,6 @@ grep -q '^AllowTcpForwarding no$' "${ssh_drop}" || daily_ok=0
 grep -q '^AllowAgentForwarding no$' "${ssh_drop}" || daily_ok=0
 grep -q '^PasswordAuthentication yes$' "${ssh_drop}" || daily_ok=0
 grep -q 'timestamp_timeout=5' "${HFT_ROOT}/system/configure.sh" || daily_ok=0
-grep -q 'force_balanced_enabled' "${brave}" || daily_ok=0
-grep -q 'DnsOverHttpsMode' "${brave}" || daily_ok=0
 grep -q 'pgrep -x' "${reboot}" || daily_ok=0
 if grep -qE 'systemctl reboot|shutdown' "${reboot}"; then
     daily_ok=0
@@ -445,9 +450,6 @@ grep -q 'scope global' "${HFT_ROOT}/service/ufw/configure.sh" || daily_ok=0
 grep -q 'SSH LAN' "${ufw_policy}" || daily_ok=0
 grep -q 'HFU_UFW_DEFAULT_OUTGOING=allow' "${ufw_policy}" || daily_ok=0
 grep -qF 'ufw default "${HFU_UFW_DEFAULT_OUTGOING}" outgoing' "${HFT_ROOT}/service/ufw/configure.sh" || daily_ok=0
-if grep -q 'sleep-inactive' "${desk}"; then
-    daily_ok=0
-fi
 for lang in en fr de es; do
     page="${HFT_ROOT}/docs/${lang}/README.md"
     grep -q 'AllowTcpForwarding no' "${page}" || daily_ok=0
@@ -455,7 +457,6 @@ for lang in en fr de es; do
     grep -q 'PasswordAuthentication yes' "${page}" || daily_ok=0
     grep -q 'hfu-reboot-notice.timer' "${page}" || daily_ok=0
     grep -q 'usbguard' "${page}" || daily_ok=0
-    grep -q 'force_balanced_enabled' "${page}" || daily_ok=0
     grep -q 'reboot-notice.sh' "${HFT_ROOT}/docs/${lang}/architecture.md" || daily_ok=0
 done
 if grep -q 'No other incoming allow rule is added.' "${HFT_ROOT}/docs/en/README.md"; then
@@ -469,17 +470,12 @@ grep -qF 'SSH LAN' "${ver}" || daily_ok=0
 grep -q 'timestamp_timeout=5' "${ver}" || daily_ok=0
 grep -q 'hfu-reboot-notice.timer' "${ver}" || daily_ok=0
 grep -qF 'allow with-interface equals { 03:*:* }' "${ver}" || daily_ok=0
-grep -qF '"DnsOverHttpsMode": "off"' "${ver}" || daily_ok=0
-grep -qF 'mailnews.message_display.disable_remote_image' "${ver}" || daily_ok=0
-grep -q 'LockDatabaseIdleSeconds' "${ver}" || daily_ok=0
-grep -q 'uint32 1200' "${ver}" || daily_ok=0
-grep -q 'verrou de session différent de 20 minutes' "${ver}" || daily_ok=0
 grep -qF 'The same run checks SSH forwarding' "${HFT_ROOT}/docs/en/README.md" || daily_ok=0
 grep -qF 'La même passe contrôle le relais SSH' "${HFT_ROOT}/docs/fr/README.md" || daily_ok=0
 grep -qF 'Derselbe Lauf prüft die SSH-Weiterleitung' "${HFT_ROOT}/docs/de/README.md" || daily_ok=0
 grep -qF 'La misma pasada comprueba el reenvío SSH' "${HFT_ROOT}/docs/es/README.md" || daily_ok=0
 if [[ "${daily_ok}" -eq 1 ]]; then
-    hft_pass "graph.daily" "relais SSH coupé, préfixes connectés, bureau, USB, avis de redémarrage"
+    hft_pass "graph.daily" "relais SSH coupé, préfixes connectés, USB, avis de redémarrage"
 else
     hft_fail "graph.daily" "le durcissement quotidien doit rester compatible avec le poste"
 fi
@@ -571,4 +567,48 @@ if grep -qF '# High-Fortress User' "${readme}" \
     hft_pass "graph.readme" "squelette du README et pages liées"
 else
     hft_fail "graph.readme" "le README du poste doit suivre agents/laws/readme.md"
+fi
+
+hft_section "noms des fichiers de configuration"
+hft_config_name_ok() {
+    local rel="$1"
+    local domain sub base stem token
+    case "${rel}" in
+        global.conf|secrets.conf) return 0 ;;
+        aide/aide.conf|fail2ban/jail.local|rkhunter/rkhunter.conf.local) return 0 ;;
+        system/pam-configs/faillock|system/pam-configs/faillock-preauth) return 0 ;;
+        apparmor/hfu-brave|apparmor/hfu-discord|apparmor/hfu-steam|apparmor/hfu-thunderbird) return 0 ;;
+        ssh/00-high-fortress-user.conf) return 0 ;;
+        unattended-upgrades/20auto-upgrades|unattended-upgrades/51high-fortress-user) return 0 ;;
+    esac
+    if [[ "${rel}" =~ ^cron/hfu-[a-z][a-z0-9]*(-[a-z0-9]+)*\.(service|timer|path)$ ]]; then
+        return 0
+    fi
+    IFS=/ read -r domain sub base <<< "${rel}"
+    if [[ -z "${base}" ]]; then
+        base="${sub}"
+        sub=""
+    elif [[ -n "${base}" && "${base}" == */* ]]; then
+        return 1
+    fi
+    [[ "${domain}" =~ ^[a-z][a-z0-9]*(-[a-z0-9]+)*$ ]] || return 1
+    if [[ -n "${sub}" ]]; then
+        [[ "${sub}" =~ ^[a-z][a-z0-9]*(-[a-z0-9]+)*$ ]] || return 1
+    fi
+    [[ "${base}" =~ ^[a-z][a-z0-9]*(-[a-z0-9]+)*\.(conf|list|paths|rules|ignore|yaml|json|service|timer|path|cron|keys|acl)$ ]] || return 1
+    stem="${base%%.*}"
+    token="${stem%%-*}"
+    [[ "${token}" != "${domain}" ]]
+}
+config_bad=""
+while IFS= read -r rel; do
+    [[ -z "${rel}" ]] && continue
+    if ! hft_config_name_ok "${rel}"; then
+        config_bad="${config_bad} ${rel}"
+    fi
+done < <(cd -- "${HFT_ROOT}" && find config \( -type f -o -type l \) -printf '%P\n' | sort)
+if [[ -z "${config_bad}" ]]; then
+    hft_pass "graph.config.names" "fichiers de configuration au gabarit"
+else
+    hft_fail "graph.config.names" "noms hors gabarit :${config_bad}"
 fi

@@ -22,7 +22,9 @@ The watched paths are the workstation user's `.ssh/authorized_keys`, `.bashrc`, 
 
 | Service that watches        | Zones                                           | What is alerted                                                             | Mail command      |
 | --------------------------- | ----------------------------------------------- | --------------------------------------------------------------------------- | ----------------- |
-| rkhunter.sh in boot-scan.sh | Package scan scope, plus the property baseline. | Warnings, a failed update, or `mirrors.dat modifié hors rkhunter --update`. | No command block. |
+| rkhunter.sh in boot-scan.sh | Package scan scope, plus the property baseline. | Warnings, a failed update, or `mirrors.dat modifié hors rkhunter --update`. | `sudo bash /opt/high-fortress-user/bin/rkhunter-refresh-db.sh` |
+
+The mail command is attached to the warning mail. The stamp line and an update failure do not add it.
 
 `/var/lib/rkhunter/db/mirrors.dat` is not ignored as a file. The stamp `/opt/high-fortress-user/cron/rkhunter-mirrors.sha256` is written only after `rkhunter --update` returns 0 or 2. A different hash is an alert. The check runs before the next `--update`.
 
@@ -36,7 +38,7 @@ They do not raise `Suspicious file types found in /dev`.
 | ----------------------------- | ----------------------- | -------------------------------------------- | ---------------------------------------------------------------------------- |
 | chkrootkit.sh in boot-scan.sh | /usr/sbin/chkrootkit -q | Any remaining output after the ignore lists. | `sudo bash /opt/high-fortress-user/bin/chkrootkit-ignore-log.sh '<journal>'` |
 
-Known lines live in `src/config/chkrootkit/chkrootkit.ignore` and in `cron/chkrootkit.local.ignore`.
+Known lines live in `src/config/chkrootkit/patterns.ignore` and in `cron/chkrootkit.local.ignore`.
 
 The local file is filled only by the command from the mail, and only for lines you recognize.
 
@@ -176,11 +178,11 @@ The stamp stays in place.
 
 | Service that watches       | Zones                             | What is alerted                                        | Mail command                                                              |
 | -------------------------- | --------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------- |
-| debsums.sh in boot-scan.sh | Packaged files, via `debsums -s`. | Changed packaged files that are not on an ignore list. | `sudo bash /opt/high-fortress-user/bin/debsums-ignore-log.sh '<journal>'` |
+| debsums.sh in boot-scan.sh | Packaged files, via `debsums -s`. | Each remaining package is reinstalled. The mail names the correction. | No command block. |
 
 The mirrors.dat line is removed only when the live hash matches the stamp. There is no blanket ignore file for that path.
 
-A changed line under `/usr/lib/*/perl-base/unicore/` from the package `perl-base` is dropped before the mail.
+A changed line under `/usr/lib/*/perl-base/unicore/` from the package `perl-base` is dropped before this reinstall.
 
 ## auditd
 
