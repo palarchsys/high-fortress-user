@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : install.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-20
 # Creator    : palarchsys
 # =============================================================================
 
@@ -51,12 +51,12 @@ fi
 
 mkdir -p "${INSTALL_ROOT}"
 keep=""
-skip_keep=""
 mkdir -p "${tmp}/keep"
 if [[ -f "${INSTALL_ROOT}/config/global.conf" ]] && grep -q '^HF_CONFIG_PREPARED=1$' "${INSTALL_ROOT}/config/global.conf" && [[ -f "${INSTALL_ROOT}/config/secrets.conf" ]]; then
     cp -a "${INSTALL_ROOT}/config/global.conf" "${INSTALL_ROOT}/config/secrets.conf" "${tmp}/keep/"
     keep=1
 fi
+skip_keep=""
 if [[ -f "${INSTALL_ROOT}/config/clamav/scan-skip.paths" ]] && ! grep -q '__HOME__' "${INSTALL_ROOT}/config/clamav/scan-skip.paths"; then
     cp -a "${INSTALL_ROOT}/config/clamav/scan-skip.paths" "${tmp}/keep/scan-skip.paths"
     skip_keep=1

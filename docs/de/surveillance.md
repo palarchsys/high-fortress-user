@@ -46,7 +46,7 @@ Die lokale Datei wird nur durch den Befehl aus der Post gefüllt, und nur für Z
 
 | Dienst, der überwacht           | Zonen                  | Was als Alarm geht                              | Befehl der Post                    |
 | ------------------------------- | ---------------------- | ----------------------------------------------- | ---------------------------------- |
-| clamonacc, then clamav-event.sh | Downloads und Desktop. | Ein echter Fund. Sperrdateien alarmieren nicht. | `sudo ls -la -- <quarantine path>` |
+| clamonacc, then clamav-event.sh | XDG-Ordner, /tmp, /var/tmp, /opt. | Ein echter Fund. Sperrdateien alarmieren nicht. | `sudo ls -la -- <quarantine path>` |
 
 | Ausschluss | Regel |
 | --- | --- |
@@ -54,16 +54,15 @@ Die lokale Datei wird nur durch den Befehl aus der Post gefüllt, und nur für Z
 | Benutzer `clamav` | `OnAccessExcludeUname clamav` |
 | root | `OnAccessExcludeRootUID yes` |
 | Größe | Dateien über 25M. |
+| /var/lib/snapd, /snap | Fester Ausschluss. |
+| /var/lib/clamav/quarantine, /var/lib/clamav/tmp | Fester Ausschluss. |
+| /opt/high-fortress-user, /var/log | Fester Ausschluss. |
 
 Die gelieferte Datei listet:
 
-- `$HOME/.steam`
-- `$HOME/.local/share/Steam`
 - `$HOME/.cache`
 - `$HOME/snap`
 - `/var/jeux`
-
-Brave, Thunderbird und Discord bleiben in der Prüfung.
 
 Ein Pfad wird unter dem Home des Benutzers des Arbeitsplatzes akzeptiert, unterhalb dieses Homes.
 
@@ -111,13 +110,17 @@ Vorhandene rkhunter-Zeilen bleiben.
 | ------------------------- | ----------------- | ----------------------------------------------- | ------------------ |
 | clamav.sh in boot-scan.sh | /home, /opt, /tmp | Infektionen. Eine saubere Prüfung bleibt still. | Kein Befehlsblock. |
 
-Die Prüfung schneidet die Zugriffspfade ab.
-
-Die Prüfung schneidet die akzeptierten Pfade aus `scan-skip.paths` ab.
+Die Prüfung schneidet `OnAccessExcludePath`-Einträge und die akzeptierten Pfade aus `scan-skip.paths` ab.
 
 Die Prüfung schneidet auch `proc`, `sys`, `dev`, `var/lib/docker`, `var/lib/libvirt`, `libvirt` und `snap-private-tmp` ab.
 
-Die Prüfung liest die Dateien mit `clamscan` in der Start-Unit.
+Dateien über 25M bleiben außen vor.
+
+Die Dateiliste steht unter `/run/high-fortress-user`.
+
+Wenn `/run/clamav/clamd.ctl` existiert, setzt der Lauf `HF_CLAM_MODE=daemon`.
+
+Sonst nutzt er `clamscan`.
 
 Die Unit deckelt diesen Lauf auf 50 % der ganzen Maschine.
 
@@ -131,8 +134,6 @@ Die Kette startet, wenn `multi-user.target` erreicht ist.
 
 Ein fehlgeschlagener Lauf hält den nächsten nicht auf.
 
-Brave, Thunderbird und Discord bleiben in diesem Lauf.
-
 Eine unlesbare Datei ohne Zeile `FOUND` sendet keine Post.
 
 Ein durch ein Signal gestoppter `clamscan` sendet Post.
@@ -145,6 +146,20 @@ Zwei Abstürze nacheinander stoppen den ClamAV-Lauf.
 
 Die Post sagt dann, dass die restlichen Dateien nicht gelesen wurden.
 
+## Periodische ClamAV-Prüfung
+
+| Dienst, der überwacht | Zonen | Was als Alarm geht | Befehl der Post |
+| --- | --- | --- | --- |
+| clamav.sh in hfu-periodic-scan.timer | /home, /opt, /tmp, mit denselben Schnitten wie der Startlauf. | Infektionen. Ein sauberer Lauf bleibt still. | Kein Befehlsblock. |
+
+Der Timer ist `OnBootSec=2h` und `OnUnitActiveSec=2h`, mit `Persistent=false`.
+
+`Nice` ist 19, `IOSchedulingClass` ist `idle`, und `CPUQuota` ist dieselbe Quote wie der Startlauf.
+
+Ein laufendes `lutris`, `heroic` oder `gamescope` überspringt den Lauf.
+
+`/run/high-fortress-user/clamav.lock` hält einen zweiten Lauf an.
+
 ## Verzögerte ClamAV-Prüfung
 
 | Dienst, der prüft                   | Zonen                                                                                                      | Was alarmiert wird                                                                                                              | Postbefehl               |
@@ -155,11 +170,11 @@ Die Post sagt dann, dass die restlichen Dateien nicht gelesen wurden.
 | --- | --- |
 | Timer | `OnUnitActiveSec=1h`, `Persistent=false` |
 | Grenzen | `Nice` 19, `IOSchedulingClass=idle`, `CPUQuota` 50 % der ganzen Maschine |
-| Warten | `steam`, `steamwebhelper`, `lutris`, `heroic`, `wineserver`, `gamescope` |
+| Warten | `lutris`, `heroic`, `gamescope` |
 | übersprungene Verzeichnisse | `shadercache`, `downloading` |
 | Dateien | ausführbare Dateien jeder Größe, und andere Dateien von 25M oder weniger, neuer als `scan-skip.stamp` |
 | Stempel | rückt nur nach einem sauberen Lauf vor |
-| abgedeckt | `/var/jeux`, `$HOME/.steam`, `$HOME/.local/share/Steam` |
+| abgedeckt | `/var/jeux` |
 | nicht abgedeckt | `$HOME/.cache`, `$HOME/snap` |
 
 Ein durch ein Signal gestoppter `clamscan` sendet Post.
@@ -188,11 +203,13 @@ Eine geänderte Zeile unter `/usr/lib/*/perl-base/unicore/` aus dem Paket `perl-
 
 | Dienst, der überwacht | Zonen                                          | Was als Alarm geht                                           | Befehl der Post |
 | --------------------- | ---------------------------------------------- | ------------------------------------------------------------ | --------------- |
-| auditd                | /etc/audit/rules.d/00-high-fortress-user.rules | Keine eigene Post. Der Startlauf sendet keinen auditd-Alarm. | Keine.          |
+| auditd                | /etc/audit/rules.d/00-high-fortress-user.rules | Keine eigene Post. behavior.sh im Startlauf sendet die Post eines exec-tmp-Treffers. | Keine.          |
 
 Eine Überwachung mit dem Schlüssel `account` wird für `.ssh/authorized_keys`, `.bashrc`, `.profile`, `.bash_profile`, `.config/autostart` und `.config/systemd/user` hinzugefügt, wenn dieser Pfad schon existiert.
 
 Ein fehlender Pfad wird übersprungen, damit `augenrules` die Regeln weiter lädt.
+
+`tail.rules` zeichnet ptrace-attach, Laden und Entfernen von Modulen und `execve` unter `/tmp`, `/var/tmp` und `/dev/shm` auf.
 
 ## Fail2Ban
 
@@ -206,11 +223,53 @@ Ein fehlender Pfad wird übersprungen, damit `augenrules` die Regeln weiter läd
 | --------------------- | -------------- | ------------------ | --------------- |
 | crowdsec              | /etc/crowdsec/ | Keine eigene Post. | Keine.          |
 
+Die Sperrdauer ist `HFU_CROWDSEC_BAN_DURATION`, Vorgabe `48h`.
+
+Ein Name aus `config/crowdsec/optional.list` wird nur installiert, wenn der Hub ihn annimmt.
+
 ## UFW
 
 | Dienst, der überwacht | Zonen                                                                       | Was als Alarm geht | Befehl der Post |
 | --------------------- | --------------------------------------------------------------------------- | ------------------ | --------------- |
 | ufw                   | Eingehend verweigert, ausgehend erlaubt, Routing erlaubt, Loopback erlaubt. SSH ist auf direkt verbundene Präfixe begrenzt. | Keine eigene Post. | Keine.          |
+
+## Integrität
+
+| Dienst, der überwacht | Zonen | Was als Alarm geht | Befehl der Post |
+| --- | --- | --- | --- |
+| integrity.sh in boot-scan.sh | `config/integrity/paths.list` | Eine geänderte Prüfsumme. Der erste Lauf schreibt den Stempel und bleibt still. | Kein Befehlsblock. |
+
+Der Lauf folgt auf aide.sh.
+
+Der Stempel ist `/opt/high-fortress-user/cron/integrity.sha256`.
+
+## Verhalten
+
+| Dienst, der überwacht | Zonen | Was als Alarm geht | Befehl der Post |
+| --- | --- | --- | --- |
+| behavior.sh in boot-scan.sh | `execve` unter `/tmp`, `/var/tmp` und `/dev/shm`. | Ein Treffer seit dem vorherigen Stempel. Der erste Lauf schreibt den Stempel und bleibt still. | Kein Befehlsblock. |
+
+Der Lauf folgt auf rkhunter.sh.
+
+auditd bleibt im Dienst.
+
+Der Stempel ist `/opt/high-fortress-user/cron/behavior.stamp`.
+
+## Ausgehendes Journal
+
+| Dienst, der überwacht | Zonen | Was als Alarm geht | Befehl der Post |
+| --- | --- | --- | --- |
+| nftables-Tabelle `inet hfu_egress`, dann egress-watch.sh in boot-scan.sh | Neue ausgehende Flüsse außerhalb der Ports 53, 80 und 443. | Eine Kernelzeile mit Präfix `hfu-egress` seit dem vorherigen Stempel. Der erste Lauf schreibt den Stempel und bleibt still. | Kein Befehlsblock. |
+
+Die Tabelle wird mit Politik accept installiert.
+
+Der Lauf folgt auf debsums.sh.
+
+Der Stempel ist `/opt/high-fortress-user/cron/egress.stamp`.
+
+Eine Erkennung legt die nftables-Tabelle `inet hfu_isolate` für `HFU_NET_ISOLATE_SEC` Sekunden an. Neue ausgehende Flüsse werden abgewiesen. Loopback, DNS und bestehende Flüsse bleiben.
+
+Ausgehend bleibt allow.
 
 ## Lynis
 
@@ -238,7 +297,7 @@ Die Startkette führt diesen Hinweis nach der verzögerten Prüfung aus.
 
 `Nice` ist 19, `IOSchedulingClass` ist `idle`, und `CPUQuota` ist 50 % der ganzen Maschine.
 
-Ein laufendes `steam`, `steamwebhelper`, `lutris`, `heroic`, `wineserver` oder `gamescope` überspringt die Post.
+Ein laufendes `lutris`, `heroic` oder `gamescope` überspringt die Post.
 
 Dieser Lauf lässt `reboot-notice.seen` unverändert.
 

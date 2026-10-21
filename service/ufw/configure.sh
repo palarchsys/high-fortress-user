@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/ufw/configure.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-20
 # Creator    : palarchsys
 # =============================================================================
 
@@ -127,4 +127,5 @@ hf_run_silent ufw --force enable
 if ! LANG=C LC_ALL=C ufw status | grep -qw "Status: active"; then
     hf_log_error "UFW n'est pas actif après enable : $(LANG=C LC_ALL=C ufw status)"
 fi
-hf_log_success "UFW activé (outgoing ALLOW — Steam/Discord/apt/Brave OK)"
+hf_log_success "UFW activé (outgoing ALLOW)"
+bash "${HF_INSTALL_DIRECTORY}/service/ufw/egress.sh" "${HF_INSTALL_DIRECTORY}"

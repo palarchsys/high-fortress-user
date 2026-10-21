@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : test/suites/02_file_graph.sh
-# Updated at : 2026-10-17
+# Updated at : 2026-10-20
 # Creator    : palarchsys
 # =============================================================================
 
@@ -168,15 +168,9 @@ skip_boot="${HFT_ROOT}/service/cron/watchdogs/boot-scan.sh"
 skip_clam="${HFT_ROOT}/service/cron/watchdogs/clamav.sh"
 if [[ -f "${skip_lib}" && -f "${skip_tpl}" && -f "${skip_apply}" && -f "${skip_cmd}" && -f "${skip_idle}" ]] \
    && grep -q '/var/jeux' "${skip_tpl}" \
-   && grep -q '/.steam' "${skip_tpl}" \
-   && grep -q '/.local/share/Steam' "${skip_tpl}" \
+   && grep -q '__HOME__/.cache' "${skip_tpl}" \
+   && grep -q '__HOME__/snap' "${skip_tpl}" \
    && grep -q '__HOME__' "${skip_tpl}" \
-   && ! grep -q 'BraveSoftware' "${skip_tpl}" \
-   && ! grep -q '.config/discord' "${skip_tpl}" \
-   && ! grep -q '.thunderbird' "${skip_tpl}" \
-   && ! grep -q 'BraveSoftware' "${skip_lib}" \
-   && ! grep -q '.config/discord' "${skip_lib}" \
-   && ! grep -q '.thunderbird' "${skip_lib}" \
    && grep -qF "printf '%s\\n' / /home /opt /tmp /etc /usr /var /boot /root" "${skip_lib}" \
    && grep -q '# home=' "${skip_tpl}" \
    && grep -qF '/var/jeux/*' "${skip_lib}" \
@@ -231,9 +225,9 @@ if [[ -f "${skip_lib}" && -f "${skip_tpl}" && -f "${skip_apply}" && -f "${skip_c
    && grep -q 'hfu-idle-scan.timer' "${HFT_ROOT}/service/cron/configure.sh" \
    && grep -q 'High-Fortress User onaccess' "${HFT_ROOT}/config/clamav/onaccess.conf" \
    && ! grep -q 'OnAccessExcludePath' "${HFT_ROOT}/service/clamav/configure.sh"; then
-    hft_pass "graph.scan-skip" "fichier de chemins, commande, passe différée, sans Brave ni Discord ni Thunderbird"
+    hft_pass "graph.scan-skip" "fichier de chemins, commande et passe différée"
 else
-    hft_fail "graph.scan-skip" "les exclusions passent par scan-skip.paths et ne retirent pas Brave, Discord ni Thunderbird"
+    hft_fail "graph.scan-skip" "les exclusions passent par scan-skip.paths"
 fi
 
 hft_section "ordre Unbound et liste chkrootkit"
@@ -268,12 +262,14 @@ grep -qF 'hf_get_cpu_quota_percent' "${root}/service/cron/configure.sh"
 grep -qF 'CPUQuota=${cpu_quota}%' "${root}/config/cron/hfu-boot-scan.service"
 grep -qF 'CPUQuota=${cpu_quota}%' "${root}/config/cron/hfu-idle-scan.service"
 grep -qF 'CPUQuota=${cpu_quota}%' "${root}/config/cron/hfu-reboot-notice.service"
+grep -qF 'CPUQuota=${cpu_quota}%' "${root}/config/cron/hfu-periodic-scan.service"
 ! grep -qF 'CPUQuota=${HF_WATCHDOG_CPU_LIMIT}%' \
     "${root}/service/cron/configure.sh" \
     "${root}/config/cron/hfu-boot-scan.service" \
     "${root}/config/cron/hfu-idle-scan.service" \
     "${root}/config/cron/hfu-reboot-notice.service" \
-    "${root}/config/cron/hfu-boot-chain.service"
+    "${root}/config/cron/hfu-boot-chain.service" \
+    "${root}/config/cron/hfu-periodic-scan.service"
 CPU
 if [[ "${cpu_rc}" -eq 0 ]]; then
     hft_pass "graph.cpu.quota" "20 % de la machine, CPUQuota multiplié par le nombre de CPU"
@@ -315,6 +311,13 @@ grep -q 'systemctl disable --now hfu-boot-scan.timer' "${conf}"
 ! grep -q 'Persistent=true' "${conf}" "${timers}" "${units}"/*.service "${units}"/*.timer
 grep -q 'hfu-boot-chain.timer' "${root}/verify/alerts.sh"
 grep -q 'hfu-boot-chain.timer' "${root}/verify/workstation.sh"
+grep -q 'HFU_PERIODIC_EVERY=2h' "${timers}"
+grep -q 'OnBootSec=${HFU_PERIODIC_ON_BOOT_SEC}' "${root}/config/cron/hfu-periodic-scan.timer"
+grep -q 'OnUnitActiveSec=${HFU_PERIODIC_EVERY}' "${root}/config/cron/hfu-periodic-scan.timer"
+grep -q 'Persistent=${HFU_TIMER_PERSISTENT}' "${root}/config/cron/hfu-periodic-scan.timer"
+grep -q 'hfu-periodic-scan.timer' "${conf}"
+grep -q 'hfu-periodic-scan.timer' "${root}/verify/alerts.sh"
+grep -q 'hfu-periodic-scan.timer' "${root}/verify/workstation.sh"
 grep -q 'boot-check.sh' "${root}/verify/boot.sh"
 test -f "${root}/service/cron/boot-check.sh"
 grep -q '39f53479d3a045ac8e11786248231fbf' "${root}/service/cron/boot-check.sh"
@@ -569,6 +572,62 @@ else
     hft_fail "graph.readme" "le README du poste doit suivre agents/laws/readme.md"
 fi
 
+hft_section "surveillance du poste"
+watch_rc=0
+bash -s -- "${HFT_ROOT}" << 'WATCH' || watch_rc=$?
+set -euo pipefail
+root="$1"
+grep -q 'HFU_ONACCESS_MOUNTS=1' "${root}/config/clamav/onaccess.conf"
+! grep -q 'HFU_CLAMAV_KILL' "${root}/config/clamav/onaccess.conf"
+! grep -q 'HFU_CLAMAV_KILL' "${root}/service/cron/watchdogs/clamav-response.sh"
+grep -q 'kill -TERM' "${root}/service/cron/watchdogs/clamav-response.sh"
+grep -q 'nft add table inet hfu_isolate' "${root}/service/cron/watchdogs/clamav-response.sh"
+grep -q '/var/lib/clamav/quarantine' "${root}/config/clamav/onaccess.conf"
+grep -q 'hfu_add_onaccess_directory /tmp' "${root}/service/clamav/configure.sh"
+grep -q 'hfu_add_onaccess_directory /var/tmp' "${root}/service/clamav/configure.sh"
+grep -q 'hfu_add_onaccess_directory /opt' "${root}/service/clamav/configure.sh"
+! grep -q 'OnAccessIncludePath /' "${root}/service/clamav/configure.sh"
+! grep -q 'OnAccessExcludePath' "${root}/service/clamav/configure.sh"
+grep -q 'HFU_ONACCESS_FIXED_EXCLUDE' "${root}/service/cron/watchdogs/apply-scan-skip.sh"
+grep -q 'mktemp -p /run/high-fortress-user' "${root}/service/cron/watchdogs/clamav.sh"
+grep -q 'HF_CLAM_MODE=daemon' "${root}/service/cron/watchdogs/clamav.sh"
+grep -q 'flock -n 9' "${root}/service/cron/watchdogs/clamav.sh"
+! grep -q 'clamdscan' "${root}/service/cron/watchdogs/clamav.sh"
+grep -q 'detect-and-apply.sh' "${root}/service/apparmor/configure.sh"
+grep -q 'detect-and-apply.sh' "${root}/service/apparmor/userns.sh"
+test -x "${root}/service/apparmor/detect-and-apply.sh"
+grep -q 'HFU_CROWDSEC_BAN_DURATION=48h' "${root}/config/crowdsec/ban.conf"
+grep -q 'hfu_run_check integrity.sh' "${root}/service/cron/watchdogs/boot-scan.sh"
+grep -q 'hfu_run_check behavior.sh' "${root}/service/cron/watchdogs/boot-scan.sh"
+grep -q 'hfu_run_check egress-watch.sh' "${root}/service/cron/watchdogs/boot-scan.sh"
+! grep -q 'HFU_BEHAVIOR_WATCH' "${root}/service/cron/watchdogs/behavior.sh"
+! grep -q 'HFU_EGRESS_LOG' "${root}/service/cron/watchdogs/egress-watch.sh"
+! grep -q 'HFU_EGRESS_LOG' "${root}/service/ufw/egress.sh"
+! grep -q 'HFU_EGRESS_LOG' "${root}/config/ufw/egress.conf"
+grep -q 'nft add table inet hfu_egress' "${root}/service/ufw/egress.sh"
+! grep -q 'HFU_NET_ISOLATE=' "${root}/config/ufw/egress.conf"
+! grep -q 'HFU_NET_ISOLATE:-' "${root}/service/cron/watchdogs/clamav-response.sh"
+grep -q 'HFU_NET_ISOLATE_SEC=120' "${root}/config/ufw/egress.conf"
+deny_out='ufw default'
+deny_out+=' deny'
+deny_out+=' outgoing'
+! grep -Fq "${deny_out}" "${root}/service/ufw/egress.sh"
+grep -q 'ptrace' "${root}/config/auditd/tail.rules"
+grep -q 'init_module' "${root}/config/auditd/tail.rules"
+! grep -q 'kernel.yama.ptrace_scope' "${root}/config/auditd/tail.rules"
+test -f "${root}/config/integrity/paths.list"
+test ! -e "${root}/config/behavior/watch.conf"
+test ! -e "${root}/config/cron/hfu-integrity.timer"
+grep -q 'systemctl disable --now hfu-integrity.timer' "${root}/service/cron/configure.sh"
+grep -q 'systemctl disable --now hfu-behavior.timer' "${root}/service/cron/configure.sh"
+grep -q 'systemctl disable --now hfu-egress-watch.timer' "${root}/service/cron/configure.sh"
+WATCH
+if [[ "${watch_rc}" -eq 0 ]]; then
+    hft_pass "graph.watch" "surveillance continue et contrôles au démarrage"
+else
+    hft_fail "graph.watch" "la table de journal, auditd et les contrôles au démarrage doivent rester actifs"
+fi
+
 hft_section "noms des fichiers de configuration"
 hft_config_name_ok() {
     local rel="$1"
@@ -577,7 +636,6 @@ hft_config_name_ok() {
         global.conf|secrets.conf) return 0 ;;
         aide/aide.conf|fail2ban/jail.local|rkhunter/rkhunter.conf.local) return 0 ;;
         system/pam-configs/faillock|system/pam-configs/faillock-preauth) return 0 ;;
-        apparmor/hfu-brave|apparmor/hfu-discord|apparmor/hfu-steam|apparmor/hfu-thunderbird) return 0 ;;
         ssh/00-high-fortress-user.conf) return 0 ;;
         unattended-upgrades/20auto-upgrades|unattended-upgrades/51high-fortress-user) return 0 ;;
     esac
@@ -611,4 +669,40 @@ if [[ -z "${config_bad}" ]]; then
     hft_pass "graph.config.names" "fichiers de configuration au gabarit"
 else
     hft_fail "graph.config.names" "noms hors gabarit :${config_bad}"
+fi
+
+hft_section "ordre HF HFS HFU"
+hft_check_prefix_order() {
+    local file="$1"
+    awk '
+        /^# Shared$/ { if (!s) s = NR }
+        /^# Server$/ { if (!v) v = NR }
+        /^# Workstation$/ { if (!w) w = NR }
+        /^HF_[A-Z0-9_]+=/ { if (seen >= 2) bad = 1; if (seen < 1) seen = 1 }
+        /^HFS_[A-Z0-9_]+=/ { if (seen >= 3) bad = 1; if (seen < 2) seen = 2 }
+        /^HFU_[A-Z0-9_]+=/ { seen = 3 }
+        END { exit (s && v && w && s < v && v < w && !bad) ? 0 : 1 }
+    ' "${file}"
+}
+prefix_bad=""
+for rel in \
+    config/global.conf \
+    config/secrets.conf \
+    config/clamav/onaccess.conf \
+    config/cron/timers.conf \
+    config/crowdsec/ban.conf \
+    config/ufw/policy.conf \
+    config/ufw/egress.conf
+do
+    if ! hft_check_prefix_order "${HFT_ROOT}/${rel}"; then
+        prefix_bad="${prefix_bad} ${rel}"
+    fi
+done
+if [[ -z "${prefix_bad}" ]] \
+    && grep -q '^HF_CONFIG_BASE_DIRECTORY="/opt/high-fortress-user"$' "${HFT_ROOT}/config/global.conf" \
+    && grep -q '^HFU_PROJECT_SLUG="high-fortress-user"$' "${HFT_ROOT}/config/global.conf" \
+    && ! grep -q 'HFU_PROJECT_SLUG}' "${HFT_ROOT}/config/global.conf"; then
+    hft_pass "graph.prefix.order" "HF puis HFS puis HFU"
+else
+    hft_fail "graph.prefix.order" "ordre des préfixes :${prefix_bad}"
 fi

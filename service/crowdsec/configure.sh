@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/crowdsec/configure.sh
-# Updated at : 2026-10-16
+# Updated at : 2026-10-20
 # Creator    : palarchsys
 # =============================================================================
 
@@ -20,10 +20,28 @@ mapfile -t collections < <(grep -vE '^[[:space:]]*(#|$)' "$(hf_locate_config_fil
 hf_run_silent cscli collections install --force "${collections[@]}"
 hf_log_success "Collections linux, sshd, postfix et liste blanche installées"
 
+hf_log_info "Recherche des collections optionnelles"
+while read -r name; do
+    [[ -n "${name}" && "${name}" != \#* ]] || continue
+    if cscli collections install --force "${name}" >/dev/null 2>&1; then
+        hf_log_info "Collection ${name} présente"
+    else
+        hf_log_warn "Collection ${name} absente du hub"
+    fi
+done < "$(hf_locate_config_file crowdsec/optional.list)"
+hf_log_success "Collections optionnelles traitées"
+
 hf_log_title "Durée de blocage"
 hf_log_info "Configuration de la durée de blocage"
-grep -v '^#' "$(hf_locate_config_file crowdsec/profiles.yaml)" > /etc/crowdsec/profiles.yaml
-hf_log_success "Blocage de 24 h posé"
+# shellcheck disable=SC1091
+source "$(hf_locate_config_file crowdsec/ban.conf)"
+if [[ ! "${HFU_CROWDSEC_BAN_DURATION}" =~ ^[0-9]+[smhd]$ ]]; then
+    hf_log_error "durée de blocage invalide"
+fi
+grep -v '^#' "$(hf_locate_config_file crowdsec/profiles.yaml)" \
+    | sed "s/duration: .*/duration: ${HFU_CROWDSEC_BAN_DURATION}/" \
+    > /etc/crowdsec/profiles.yaml
+hf_log_success "Blocage posé (${HFU_CROWDSEC_BAN_DURATION})"
 
 hf_log_title "Journaux lus par CrowdSec"
 hf_log_info "Configuration des journaux lus par CrowdSec"

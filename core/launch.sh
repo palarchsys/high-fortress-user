@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : core/launch.sh
-# Updated at : 2026-10-05
+# Updated at : 2026-10-20
 # Creator    : palarchsys
 # =============================================================================
 
@@ -36,6 +36,32 @@ Usage : ${root}/hf <commande>
   logs        copie les journaux
   help        cette aide
 EOF
+            if [[ -f "${root}/verify/workstation.sh" ]]; then
+                cat << 'EOF'
+
+Vérification :
+
+  sudo bash verify/alerts.sh [--no-send]
+  sudo bash verify/workstation.sh "$PWD"
+  sudo bash verify/boot.sh
+  sudo bash verify/chkrootkit-fp.sh
+  sudo bash /opt/high-fortress-user/bin/scan-skip.sh list|add|del
+EOF
+            fi
+            if [[ -f "${root}/verify/matrix.sh" ]]; then
+                cat << 'EOF'
+
+  sudo ./hf configure --basic   nom du projet + domaine ; le reste est calculé
+  sudo ./hf configure --avance  toutes les questions, sauf le profil serveur
+
+Vérification :
+
+  sudo bash verify/alerts.sh [--no-send]
+  sudo bash verify/matrix.sh "$PWD" MATRIX
+  sudo bash verify/livekit.sh "$PWD" LIVEKIT
+  sudo bash verify/wireguard.sh "$PWD" WIREGUARD
+EOF
+            fi
             ;;
         *)
             printf 'commande inconnue : %s\n' "${cmd}" >&2

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : system/install.sh
-# Updated at : 2026-10-16
+# Updated at : 2026-10-20
 # Creator    : palarchsys
 # =============================================================================
 
@@ -100,7 +100,7 @@ fi
 hf_log_info "Installation d'Ubuntu Pro"
 hf_log_success "Ubuntu Pro installé (attaché + ESM + livepatch)"
 
-hf_log_title "Multiarch i386 (Steam)"
+hf_log_title "Multiarch i386"
 
 if [[ "$(dpkg --print-architecture)" == "amd64" ]]; then
     hf_log_info "Contrôle de l'architecture i386"
@@ -109,7 +109,7 @@ if [[ "$(dpkg --print-architecture)" == "amd64" ]]; then
     else
         hf_log_info "Activation de l'architecture i386"
         hf_run_silent dpkg --add-architecture i386
-        hf_log_success "Architecture i386 activée (bibliothèques Steam / Proton)"
+        hf_log_success "Architecture i386 activée"
     fi
 else
     hf_log_info "Architecture $(dpkg --print-architecture) — i386 non requis hors amd64"

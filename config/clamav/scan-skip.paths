@@ -1,19 +1,17 @@
 # =============================================================================
 # File       : config/clamav/scan-skip.paths
-# Updated at : 2026-10-15
+# Updated at : 2026-10-20
 # Creator    : palarchsys
 # =============================================================================
 # -----------------------------------------------------------------------------
 # Purpose    : Paths excluded from the blocking scan and the boot pass.
 # Note       : # home=__HOME__
-# Note       : A path under that home, or under /var/jeux. Brave, Thunderbird, and Discord stay scanned.
+# Note       : A path under that home, or under /var/jeux.
 # Note       : sudo bash __HFU_BASE__/bin/scan-skip.sh list
 # Note       : sudo bash __HFU_BASE__/bin/scan-skip.sh add /chemin
 # Note       : sudo bash __HFU_BASE__/bin/scan-skip.sh del /chemin
 # -----------------------------------------------------------------------------
 
-__HOME__/.steam
-__HOME__/.local/share/Steam
 __HOME__/.cache
 __HOME__/snap
 /var/jeux

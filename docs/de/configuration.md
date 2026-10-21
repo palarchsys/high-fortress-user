@@ -10,9 +10,9 @@ Die Namen und Vorgaben unten sind die mitgelieferte `user/config/global.conf` un
 | -------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | HF_CONFIG_PREPARED                | 1                                                                | Muss 1 sein, sonst lehnt die Prüfung die Dateien ab.                                                   |
 | HF_PROJECT_NAME               | High-Fortress User                                               | Steht in der Post. Wird nicht gefragt.                                                                 |
-| HFU_PROJECT_SLUG               | high-fortress-user                                               | Von der Prüfung festgeschrieben. Baut `HF_CONFIG_BASE_DIRECTORY`.                                               |
+| HFU_PROJECT_SLUG               | high-fortress-user                                               | Von der Prüfung festgeschrieben. Name von `/etc/cron.d/high-fortress-user`.                                               |
 | HF_PROJECT_VERSION            | 0.2                                                              | Gespeichert. Wird nicht gefragt.                                                                       |
-| HF_CONFIG_BASE_DIRECTORY            | /opt/high-fortress-user                                          | Laufzeitwurzel. Abgeleitet von `HFU_PROJECT_SLUG`.                                                         |
+| HF_CONFIG_BASE_DIRECTORY            | /opt/high-fortress-user                                          | Laufzeitwurzel.                                                         |
 | HF_SECRET_DIRECTORY                | /opt/high-fortress-user/secrets                                  | Angelegt mit Modus 700. `secrets.conf` wird hier nicht geschrieben.                                    |
 | HF_DEBUG_INSTALL_LOG         | 0                                                                | Steht in der Datei. Installationsjournale gehen immer nach `<source>/logs/`.                           |
 | HF_MODE_TEST                  | 1                                                                | Wird gefragt. `1` überspringt die Entfernungsfrage am Ende. `0` stellt sie.                            |
@@ -54,7 +54,9 @@ Die Datei wird in `config/`, neben `global.conf` geschrieben, Modus `600`, Eigen
 
 | Name                          | Vorgabe                                   | Wirkung                                                                           |
 | ----------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------- |
-| OnAccessIncludePath           | Downloads und Desktop                     | `xdg-user-dir`, oder `$HOME/Downloads` und `$HOME/Desktop`.                       |
+| OnAccessIncludePath           | XDG-Ordner, /tmp, /var/tmp, /opt          | Downloads, Desktop, Dokumente, Musik, Bilder, Videos, /tmp, /var/tmp und /opt. |
+| HFU_ONACCESS_MOUNTS           | 1                                         | 0 lässt /media und /mnt draußen.                                 |
+| Prozesssignal                 | immer                                     | Signalisiert einen unkritischen Prozess, der die Datei hält. pid 1, root, systemd, sshd, unbound, fail2ban und gamescope laufen weiter. |
 | OnAccessExcludePath           | config/clamav/scan-skip.paths             | Akzeptierte Pfade unter dem Home des Benutzers, oder unter `/var/jeux`. |
 | OnAccessExcludeUname          | clamav                                    | Der Scanner-Benutzer ist ausgeschlossen.                                          |
 | OnAccessExcludeRootUID        | yes                                       | Root ist auf diesem Arbeitsplatz von der Zugriffsprüfung ausgeschlossen.          |
@@ -64,6 +66,14 @@ Die Datei wird in `config/`, neben `global.conf` geschrieben, Modus `600`, Eigen
 | hfu-boot-chain.timer          | OnBootSec=0, Persistent=false             | Startet die Kette, wenn `multi-user.target` erreicht ist. Die Sitzung wartet nicht. |
 | hfu-idle-scan.timer           | OnUnitActiveSec=1h, Persistent=false      | Dasselbe Nice, dieselbe idle-Ein-/Ausgabe und dieselbe CPU-Quote wie der Startlauf. Keine feste Wartezeit nach dem Start. |
 | hfu-reboot-notice.timer       | OnUnitActiveSec=6h, Persistent=false      | Dieselbe Quote. Das Skript startet die Maschine nicht neu. |
+| hfu-periodic-scan.timer       | OnBootSec=2h, OnUnitActiveSec=2h          | Startet nur clamav.sh. Dasselbe Nice, dieselbe idle-E/A und dieselbe CPU-Quote. Persistent=false. |
+| integrity.sh                  | boot-scan.sh, nach aide.sh            | Prüfsumme von config/integrity/paths.list. Der erste Lauf schreibt cron/integrity.sha256 und bleibt still. |
+| behavior.sh                   | boot-scan.sh, nach rkhunter.sh        | Liest exec-tmp-Ereignisse seit cron/behavior.stamp. Der erste Lauf schreibt den Stempel und bleibt still. auditd bleibt im Dienst. |
+| inet hfu_egress               | installiert                           | Protokolliert neue ausgehende Flüsse außerhalb der Ports 53, 80 und 443. Politik accept. Ausgehend bleibt allow. |
+| egress-watch.sh               | boot-scan.sh, nach debsums.sh         | Liest Kernelzeilen mit Präfix hfu-egress seit cron/egress.stamp. Der erste Lauf schreibt den Stempel und bleibt still. |
+| Netzisolation                 | immer                                     | Weist nach einem Fund neue ausgehende Flüsse für HFU_NET_ISOLATE_SEC ab. Loopback, DNS und bestehende Flüsse bleiben. Die ausgehende Politik bleibt allow. |
+| HFU_NET_ISOLATE_SEC           | 120                                       | Sekunden bis zum Entfernen dieser Isolation. Minimum 30, Maximum 300. |
+| HFU_CROWDSEC_BAN_DURATION     | 48h                                       | Wird in die CrowdSec-Profile geschrieben. |
 | scan-skip.sh                  | /opt/high-fortress-user/bin/scan-skip.sh  | Startet `clamav-daemon` und `clamonacc` neu, wenn der Ausschlussblock sich ändert. |
 | database_in                   | /var/lib/aide/aide.db                     | `__HF_BASE__` in `config/aide/aide.conf` wird `HF_CONFIG_BASE_DIRECTORY`.                 |
 

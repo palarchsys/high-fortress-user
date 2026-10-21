@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : verify/workstation.sh
-# Updated at : 2026-10-16
+# Updated at : 2026-10-20
 # Creator    : palarchsys
 # =============================================================================
 
@@ -65,24 +65,11 @@ else
     printf '%s\n' "${drift}" >> "${REPORT}"
 fi
 
-for bin in brave-browser thunderbird steam discord; do
-    if command -v "${bin}" >/dev/null 2>&1; then
-        mode="$(stat -c '%a' "$(command -v "${bin}")" 2>/dev/null || echo '?')"
-        if [[ "${mode}" == "700" || "${mode}" == "750" ]]; then
-            hfu_report_fail "${bin} n'est pas exécutable par l'utilisateur (mode ${mode})"
-        else
-            hfu_report_pass "${bin} présent (mode ${mode})"
-        fi
-    else
-        hf_log_info "${bin} non installé — skip"
-    fi
-done
-
 for b in gcc g++ cc make; do
     if command -v "${b}" >/dev/null 2>&1; then
         mode="$(stat -c '%a' "$(command -v "${b}")")"
         if [[ "${mode}" == "700" ]]; then
-            hfu_report_fail "compilateur ${b} en 700 (Proton cassé)"
+            hfu_report_fail "compilateur ${b} en 700"
         else
             hfu_report_pass "compilateur ${b} mode ${mode}"
         fi
@@ -127,7 +114,7 @@ else
     if ufw status verbose | grep -qi 'Outgoing: allow'; then
         hfu_report_pass "UFW outgoing ALLOW"
     else
-        hfu_report_fail "UFW outgoing n'est pas allow — Steam/Discord cassés"
+        hfu_report_fail "UFW outgoing n'est pas allow"
     fi
 fi
 ufw_rules="$(LANG=C LC_ALL=C ufw status 2>/dev/null || true)"
@@ -139,7 +126,7 @@ fi
 
 tmp_opts="$(findmnt -no OPTIONS /tmp 2>/dev/null || true)"
 if echo "${tmp_opts}" | grep -qw noexec; then
-    hfu_report_fail "/tmp est noexec (Electron/Steam/Firefox/Brave)"
+    hfu_report_fail "/tmp est noexec"
 else
     hfu_report_pass "/tmp sans noexec"
 fi
@@ -161,7 +148,7 @@ else
 fi
 if [[ -n "$(sysctl -n kernel.unprivileged_userns_clone 2>/dev/null || true)" \
     && "$(sysctl -n kernel.unprivileged_userns_clone 2>/dev/null || echo 1)" == "0" ]]; then
-    hfu_report_fail "unprivileged_userns_clone=0 (sandbox navigateurs / Steam)"
+    hfu_report_fail "unprivileged_userns_clone=0"
 else
     hfu_report_pass "user namespaces non désactivés par sysctl"
 fi
@@ -172,9 +159,9 @@ else
 fi
 if [[ "$(dpkg --print-architecture)" == "amd64" ]]; then
     if dpkg --print-foreign-architectures | grep -qx i386; then
-        hfu_report_pass "architecture i386 activée (Steam)"
+        hfu_report_pass "architecture i386 activée"
     else
-        hfu_report_fail "i386 absent — Steam ne peut pas installer ses bibliothèques 32 bits"
+        hfu_report_fail "architecture i386 absente"
     fi
 fi
 if [[ -f /etc/sudoers.d/high-fortress-user-umask ]] \
@@ -245,6 +232,90 @@ if systemctl is-enabled --quiet hfu-reboot-notice.timer 2>/dev/null; then
     hfu_report_pass "avis de redémarrage planifié"
 else
     hfu_report_fail "timer d'avis de redémarrage absent"
+fi
+if systemctl is-enabled --quiet hfu-periodic-scan.timer 2>/dev/null; then
+    hfu_report_pass "analyse ClamAV toutes les 2 h"
+else
+    hfu_report_fail "timer d'analyse ClamAV périodique absent"
+fi
+boot_bin="${HF_CONFIG_BASE_DIRECTORY}/cron/bin/boot-scan.sh"
+if [[ -f "${boot_bin}" ]] \
+    && grep -q 'integrity.sh' "${boot_bin}" \
+    && grep -q 'behavior.sh' "${boot_bin}" \
+    && grep -q 'egress-watch.sh' "${boot_bin}"; then
+    hfu_report_pass "intégrité, audit et journal sortant dans la chaîne de démarrage"
+else
+    hfu_report_fail "chaîne de démarrage sans intégrité, audit ou journal sortant"
+fi
+clam_conf="/etc/clamav/clamd.conf"
+if [[ -f "${clam_conf}" ]] \
+    && grep -q '^OnAccessIncludePath /tmp$' "${clam_conf}" \
+    && grep -q '^OnAccessIncludePath /var/tmp$' "${clam_conf}" \
+    && grep -q '^OnAccessIncludePath /opt$' "${clam_conf}" \
+    && ! grep -q '^OnAccessIncludePath /$' "${clam_conf}" \
+    && ! grep -q '^OnAccessIncludePath /home$' "${clam_conf}"; then
+    hfu_report_pass "surveillance continue sur /tmp, /var/tmp et /opt"
+else
+    hfu_report_fail "surveillance continue incomplète"
+fi
+if [[ -f "${clam_conf}" ]] \
+    && grep -q '/var/lib/clamav/quarantine' "${clam_conf}" \
+    && grep -q '/var/lib/clamav/tmp' "${clam_conf}" \
+    && grep -q '/var/log' "${clam_conf}" \
+    && grep -q '/opt/high-fortress-user' "${clam_conf}"; then
+    hfu_report_pass "exclusions minimales présentes"
+else
+    hfu_report_fail "exclusions minimales absentes"
+fi
+# shellcheck disable=SC1091
+source "${HF_INSTALL_DIRECTORY}/config/clamav/onaccess.conf"
+if [[ "${HFU_ONACCESS_MOUNTS}" == "1" ]]; then
+    mount_ok=1
+    if [[ -d /media ]] && ! grep -q '^OnAccessIncludePath /media$' "${clam_conf}"; then
+        mount_ok=0
+    fi
+    if [[ -d /mnt ]] && ! grep -q '^OnAccessIncludePath /mnt$' "${clam_conf}"; then
+        mount_ok=0
+    fi
+    if [[ "${mount_ok}" == "1" ]]; then
+        hfu_report_pass "surveillance continue de /media et /mnt"
+    else
+        hfu_report_fail "/media ou /mnt absents de la surveillance continue"
+    fi
+elif grep -q '^OnAccessIncludePath /media$' "${clam_conf}" \
+    || grep -q '^OnAccessIncludePath /mnt$' "${clam_conf}"; then
+    hfu_report_fail "/media ou /mnt surveillés alors que HFU_ONACCESS_MOUNTS=0"
+else
+    hfu_report_pass "montages hors surveillance continue"
+fi
+# shellcheck disable=SC1091
+source "${HF_INSTALL_DIRECTORY}/config/ufw/egress.conf"
+response="${HF_CONFIG_BASE_DIRECTORY}/cron/bin/clamav-response.sh"
+if [[ -f "${response}" ]] \
+    && grep -q 'kill -TERM' "${response}" \
+    && ! grep -q 'HFU_CLAMAV_KILL' "${response}" \
+    && grep -q 'inet hfu_isolate' "${response}" \
+    && ! grep -q 'HFU_NET_ISOLATE:-' "${response}"; then
+    hfu_report_pass "signal et isolation après une détection (${HFU_NET_ISOLATE_SEC}s)"
+else
+    hfu_report_fail "signal ou isolation absent de clamav-response.sh"
+fi
+if [[ -x "${HF_INSTALL_DIRECTORY}/service/apparmor/detect-and-apply.sh" ]]; then
+    hfu_report_pass "détection AppArmor exécutable"
+else
+    hfu_report_fail "detect-and-apply.sh absent ou non exécutable"
+fi
+if command -v cscli >/dev/null 2>&1; then
+    crowd_list="$(cscli collections list 2>/dev/null || true)"
+    for crowd_name in crowdsecurity/linux crowdsecurity/sshd crowdsecurity/postfix; do
+        if grep -Fq "${crowd_name}" <<< "${crowd_list}"; then
+            hfu_report_pass "collection ${crowd_name}"
+        else
+            hfu_report_fail "collection ${crowd_name} absente"
+        fi
+    done
+else
+    hfu_report_fail "cscli absent"
 fi
 usb_mod="usb-storage"
 if grep -RqsE "^[[:space:]]*(install|blacklist)[[:space:]]+${usb_mod}([[:space:]]|$)" /etc/modprobe.d /etc/modprobe.conf 2>/dev/null; then
@@ -369,28 +440,6 @@ fi
 
 hf_log_title "Logiciels du poste"
 
-if command -v brave-browser >/dev/null 2>&1 || [[ -x /opt/brave.com/brave/brave ]]; then
-    hf_log_info "Brave présent"
-else
-    hf_log_info "Brave absent"
-fi
-if dpkg-query -W -f '${Status}' discord 2>/dev/null | grep -q 'install ok'; then
-    hf_log_info "Discord présent"
-else
-    hf_log_info "Discord absent"
-fi
-vencord_marker="$(find "${CURRENT_HOME}/.config/discord" -path '*/resources/_app.asar' -print -quit 2>/dev/null || true)"
-if [[ -d "${CURRENT_HOME}/.config/Vencord" || -n "${vencord_marker}" ]]; then
-    hf_log_info "Vencord présent"
-else
-    hf_log_info "Vencord absent"
-fi
-if dpkg-query -W -f '${Status}' thunderbird 2>/dev/null | grep -q 'install ok' \
-    || { command -v snap >/dev/null 2>&1 && snap list thunderbird >/dev/null 2>&1; }; then
-    hf_log_info "Thunderbird présent"
-else
-    hf_log_info "Thunderbird absent"
-fi
 if dpkg-query -W -f '${Status}' snapd 2>/dev/null | grep -q 'install ok'; then
     hfu_report_pass "snapd installé"
 else

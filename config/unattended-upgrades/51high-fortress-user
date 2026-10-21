@@ -1,6 +1,6 @@
 # =============================================================================
 # File       : config/unattended-upgrades/51high-fortress-user
-# Updated at : 2026-10-15
+# Updated at : 2026-10-20
 # Creator    : palarchsys
 # =============================================================================
 
@@ -9,7 +9,6 @@ Unattended-Upgrade::Allowed-Origins {
         "${distro_id}:${distro_codename}-security";
         "${distro_id}ESMApps:${distro_codename}-apps-security";
         "${distro_id}ESM:${distro_codename}-infra-security";
-        "thunderbird-deb:thunderbird-deb";
 };
 Unattended-Upgrade::Package-Blacklist {
 };

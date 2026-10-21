@@ -46,7 +46,7 @@ The local file is filled only by the command from the mail, and only for lines y
 
 | Service that watches            | Zones                  | What is alerted                            | Mail command                       |
 | ------------------------------- | ---------------------- | ------------------------------------------ | ---------------------------------- |
-| clamonacc, then clamav-event.sh | Downloads and Desktop. | A real detection. Lock files do not alert. | `sudo ls -la -- <quarantine path>` |
+| clamonacc, then clamav-event.sh | XDG dirs, /tmp, /var/tmp, /opt. | A real detection. Lock files do not alert. | `sudo ls -la -- <quarantine path>` |
 
 | Exclusion | Rule |
 | --- | --- |
@@ -54,16 +54,15 @@ The local file is filled only by the command from the mail, and only for lines y
 | user `clamav` | `OnAccessExcludeUname clamav` |
 | root | `OnAccessExcludeRootUID yes` |
 | size | Files over 25M. |
+| /var/lib/snapd, /snap | Fixed exclude. |
+| /var/lib/clamav/quarantine, /var/lib/clamav/tmp | Fixed exclude. |
+| /opt/high-fortress-user, /var/log | Fixed exclude. |
 
 The shipped file lists:
 
-- `$HOME/.steam`
-- `$HOME/.local/share/Steam`
 - `$HOME/.cache`
 - `$HOME/snap`
 - `/var/jeux`
-
-Brave, Thunderbird and Discord stay in the scan.
 
 A path is accepted under the workstation user's home, below that home.
 
@@ -111,13 +110,17 @@ Existing rkhunter lines stay.
 | ------------------------- | ----------------- | -------------------------------------- | ----------------- |
 | clamav.sh in boot-scan.sh | /home, /opt, /tmp | Infections. A clean scan stays silent. | No command block. |
 
-The scan prunes the on-access directories.
-
-It prunes the accepted paths from `scan-skip.paths`.
+The scan prunes `OnAccessExcludePath` entries and the accepted paths from `scan-skip.paths`.
 
 It also prunes `proc`, `sys`, `dev`, `var/lib/docker`, `var/lib/libvirt`, `libvirt` and `snap-private-tmp`.
 
-It reads files with `clamscan` inside the boot unit.
+Files larger than 25M are left out.
+
+The file list is written under `/run/high-fortress-user`.
+
+When `/run/clamav/clamd.ctl` exists, the pass sets `HF_CLAM_MODE=daemon`.
+
+Otherwise it uses `clamscan`.
 
 The unit caps that pass at 50% of the whole machine.
 
@@ -131,8 +134,6 @@ The chain starts when `multi-user.target` is reached.
 
 A failure of one pass does not stop the next one.
 
-Brave, Thunderbird and Discord stay in this pass.
-
 A file that cannot be read, with no `FOUND` line, does not send mail.
 
 A `clamscan` process stopped by a signal sends mail.
@@ -145,6 +146,20 @@ Two crashes in a row stop the ClamAV pass.
 
 The mail then says that the remaining files were not read.
 
+## ClamAV periodic scan
+
+| Service that watches | Zones | What is alerted | Mail command |
+| --- | --- | --- | --- |
+| clamav.sh in hfu-periodic-scan.timer | /home, /opt, /tmp, with the same prunes as the boot scan. | Infections. A clean pass stays silent. | No command block. |
+
+The timer is `OnBootSec=2h` and `OnUnitActiveSec=2h`, with `Persistent=false`.
+
+`Nice` is 19, `IOSchedulingClass` is `idle`, and `CPUQuota` matches the boot pass.
+
+A running `lutris`, `heroic` or `gamescope` skips the pass.
+
+`/run/high-fortress-user/clamav.lock` stops a second pass from starting.
+
 ## ClamAV idle scan
 
 | Service that watches                 | Zones                                                                                                              | What is alerted                                                                                          | Mail command      |
@@ -155,11 +170,11 @@ The mail then says that the remaining files were not read.
 | --- | --- |
 | timer | `OnUnitActiveSec=1h`, `Persistent=false` |
 | limits | `Nice` 19, `IOSchedulingClass=idle`, `CPUQuota` 50% of the whole machine |
-| wait | `steam`, `steamwebhelper`, `lutris`, `heroic`, `wineserver`, `gamescope` |
+| wait | `lutris`, `heroic`, `gamescope` |
 | skipped directories | `shadercache`, `downloading` |
 | files | executables of any size, and other files of 25M or less newer than `scan-skip.stamp` |
 | stamp | advances only after a clean pass |
-| covered | `/var/jeux`, `$HOME/.steam`, `$HOME/.local/share/Steam` |
+| covered | `/var/jeux` |
 | not covered | `$HOME/.cache`, `$HOME/snap` |
 
 A `clamscan` process stopped by a signal sends mail.
@@ -188,11 +203,13 @@ A changed line under `/usr/lib/*/perl-base/unicore/` from the package `perl-base
 
 | Service that watches | Zones                                          | What is alerted                                                  | Mail command |
 | -------------------- | ---------------------------------------------- | ---------------------------------------------------------------- | ------------ |
-| auditd               | /etc/audit/rules.d/00-high-fortress-user.rules | No mail of its own. The boot pass does not send an auditd alert. | None.        |
+| auditd               | /etc/audit/rules.d/00-high-fortress-user.rules | No mail of its own. behavior.sh in the boot pass mails an exec-tmp hit. | None.        |
 
 A watch with key `account` is added for `.ssh/authorized_keys`, `.bashrc`, `.profile`, `.bash_profile`, `.config/autostart` and `.config/systemd/user` when that path already exists.
 
 A missing path is skipped, so `augenrules` still loads.
+
+`tail.rules` records ptrace attach, module load and deletion, and `execve` under `/tmp`, `/var/tmp` and `/dev/shm`.
 
 ## Fail2Ban
 
@@ -206,11 +223,53 @@ A missing path is skipped, so `augenrules` still loads.
 | -------------------- | -------------- | ------------------- | ------------ |
 | crowdsec             | /etc/crowdsec/ | No mail of its own. | None.        |
 
+The ban duration is `HFU_CROWDSEC_BAN_DURATION`, default `48h`.
+
+A name in `config/crowdsec/optional.list` is installed only when the hub accepts it.
+
 ## UFW
 
 | Service that watches | Zones                                                                | What is alerted     | Mail command |
 | -------------------- | -------------------------------------------------------------------- | ------------------- | ------------ |
 | ufw                  | Incoming denied, outgoing allowed, routed allowed, loopback allowed. SSH is limited to directly connected prefixes. | No mail of its own. | None.        |
+
+## Integrity
+
+| Service that watches | Zones | What is alerted | Mail command |
+| --- | --- | --- | --- |
+| integrity.sh in boot-scan.sh | `config/integrity/paths.list` | A hash change. The first pass writes the stamp and stays silent. | No command block. |
+
+The pass runs after aide.sh.
+
+The stamp is `/opt/high-fortress-user/cron/integrity.sha256`.
+
+## Behavior
+
+| Service that watches | Zones | What is alerted | Mail command |
+| --- | --- | --- | --- |
+| behavior.sh in boot-scan.sh | `execve` under `/tmp`, `/var/tmp` and `/dev/shm`. | A hit since the previous stamp. The first pass writes the stamp and stays silent. | No command block. |
+
+The pass runs after rkhunter.sh.
+
+auditd stays running.
+
+The stamp is `/opt/high-fortress-user/cron/behavior.stamp`.
+
+## Outbound journal
+
+| Service that watches | Zones | What is alerted | Mail command |
+| --- | --- | --- | --- |
+| nftables table `inet hfu_egress`, then egress-watch.sh in boot-scan.sh | New outbound flows outside ports 53, 80 and 443. | A kernel line prefixed `hfu-egress` since the previous stamp. The first pass writes the stamp and stays silent. | No command block. |
+
+The table is installed with policy accept.
+
+The pass runs after debsums.sh.
+
+The stamp is `/opt/high-fortress-user/cron/egress.stamp`.
+
+A detection adds nftables table `inet hfu_isolate` for `HFU_NET_ISOLATE_SEC` seconds. New outbound flows are rejected. Loopback, DNS and established flows stay.
+
+Outgoing stays allow.
 
 ## Lynis
 
@@ -238,7 +297,7 @@ The boot chain runs this notice after the deferred scan.
 
 `Nice` is 19, `IOSchedulingClass` is `idle`, and `CPUQuota` is 50% of the whole machine.
 
-A running `steam`, `steamwebhelper`, `lutris`, `heroic`, `wineserver` or `gamescope` skips the mail.
+A running `lutris`, `heroic` or `gamescope` skips the mail.
 
 That run leaves `reboot-notice.seen` unchanged.
 

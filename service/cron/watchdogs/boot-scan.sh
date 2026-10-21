@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/boot-scan.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-20
 # Creator    : palarchsys
 # =============================================================================
 
@@ -32,7 +32,10 @@ hfu_run_check() {
 
 hfu_run_check apply-scan-skip.sh "préparation des exclusions"
 hfu_run_check aide.sh "AIDE"
+hfu_run_check integrity.sh "intégrité"
 hfu_run_check rkhunter.sh "rkhunter"
+hfu_run_check behavior.sh "audit"
 hfu_run_check chkrootkit.sh "chkrootkit"
 hfu_run_check clamav.sh "ClamAV"
 hfu_run_check debsums.sh "debsums"
+hfu_run_check egress-watch.sh "journal sortant"

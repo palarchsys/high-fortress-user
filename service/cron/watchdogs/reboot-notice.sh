@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/reboot-notice.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-20
 # Creator    : palarchsys
 # =============================================================================
 
@@ -17,7 +17,7 @@ MODULE_NAME="reboot"
 hf_arm_crash_mail "avis de redémarrage"
 
 busy=""
-for name in steam steamwebhelper lutris heroic wineserver gamescope; do
+for name in lutris heroic gamescope; do
     if pgrep -x "${name}" >/dev/null 2>&1; then
         busy="${name}"
         break

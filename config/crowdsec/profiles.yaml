@@ -1,6 +1,6 @@
 # =============================================================================
 # File       : config/crowdsec/profiles.yaml
-# Updated at : 2026-10-15
+# Updated at : 2026-10-20
 # Creator    : palarchsys
 # =============================================================================
 
@@ -9,7 +9,7 @@ filters:
   - Alert.Remediation == true && Alert.GetScope() == "Ip"
 decisions:
   - type: ban
-    duration: 24h
+    duration: 48h
 on_success: break
 ---
 name: default_range_remediation
@@ -17,5 +17,5 @@ filters:
   - Alert.Remediation == true && Alert.GetScope() == "Range"
 decisions:
   - type: ban
-    duration: 24h
+    duration: 48h
 on_success: break

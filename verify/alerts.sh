@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : verify/alerts.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-20
 # Creator    : palarchsys
 # =============================================================================
 
@@ -95,10 +95,16 @@ printf '%-36s %s\n' "hfu-boot-chain.timer" "${timer_word}"
 idle_word="$(hfu_check_unit_word hfu-idle-scan.timer)"
 printf '%-36s %s\n' "hfu-idle-scan.timer" "${idle_word}"
 [[ "${idle_word}" == "OK" ]] || hfu_record_fail "timer de passe différée ${idle_word}"
-if [[ -x "${BIN}/boot-scan.sh" ]]; then
-    hfu_record_pass "boot-scan.sh exécutable"
+periodic_word="$(hfu_check_unit_word hfu-periodic-scan.timer)"
+printf '%-36s %s\n' "hfu-periodic-scan.timer" "${periodic_word}"
+[[ "${periodic_word}" == "OK" ]] || hfu_record_fail "timer d'analyse ClamAV périodique ${periodic_word}"
+if [[ -x "${BIN}/boot-scan.sh" ]] \
+    && grep -q 'integrity.sh' "${BIN}/boot-scan.sh" \
+    && grep -q 'behavior.sh' "${BIN}/boot-scan.sh" \
+    && grep -q 'egress-watch.sh' "${BIN}/boot-scan.sh"; then
+    hfu_record_pass "boot-scan.sh exécutable, avec intégrité, audit et journal sortant"
 else
-    hfu_record_fail "boot-scan.sh absent de ${BIN}"
+    hfu_record_fail "boot-scan.sh absent ou incomplet dans ${BIN}"
 fi
 if [[ -x "${BIN}/idle-scan.sh" ]]; then
     hfu_record_pass "idle-scan.sh exécutable"
@@ -131,6 +137,25 @@ if [[ -x "${BIN}/clamav-event.sh" ]] && grep -q 'clamav-event.sh' /etc/clamav/cl
 else
     hfu_record_fail "ClamAV à l'accès : VirusEvent ou clamav-event.sh absent"
 fi
+if [[ -x "${BIN}/clamav-response.sh" ]]; then
+    hfu_record_pass "réponse ClamAV exécutable"
+else
+    hfu_record_fail "clamav-response.sh absent de ${BIN}"
+fi
+if grep -q '^OnAccessIncludePath /tmp$' /etc/clamav/clamd.conf 2>/dev/null \
+    && grep -q '^OnAccessIncludePath /var/tmp$' /etc/clamav/clamd.conf 2>/dev/null \
+    && ! grep -q '^OnAccessIncludePath /$' /etc/clamav/clamd.conf 2>/dev/null \
+    && ! grep -q '^OnAccessIncludePath /home$' /etc/clamav/clamd.conf 2>/dev/null; then
+    hfu_record_pass "surveillance continue sur /tmp et /var/tmp, sans / ni /home"
+else
+    hfu_record_fail "surveillance continue incomplète"
+fi
+if grep -q '/var/lib/clamav/quarantine' /etc/clamav/clamd.conf 2>/dev/null \
+    && grep -q '/var/lib/clamav/tmp' /etc/clamav/clamd.conf 2>/dev/null; then
+    hfu_record_pass "quarantaine et temporaire ClamAV exclus"
+else
+    hfu_record_fail "quarantaine ou temporaire ClamAV non exclus"
+fi
 
 hfu_report_section "SERVICES"
 clam_unit="clamav-clamonacc.service"
@@ -159,7 +184,7 @@ else
     hfu_record_warn "la passe de démarrage n'a pas encore de résultat systemd"
 fi
 printf '%-16s %-12s %s\n' "Module" "Journal" "Modifié"
-for name in aide rkhunter chkrootkit clamav debsums; do
+for name in aide integrity rkhunter behavior chkrootkit clamav debsums egress; do
     file="$(find "${LOG_DIR}" -name "${name}-*.log" -type f 2>/dev/null | sort | tail -1 || true)"
     if [[ -n "${file}" ]]; then
         when="$(date -d "@$(stat -c %Y "${file}")" '+%Y-%m-%d %H:%M' 2>/dev/null || stat -c %y "${file}")"

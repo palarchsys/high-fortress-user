@@ -28,6 +28,13 @@ Chaque ligne est un fichier que l'installeur écrit, avec le mode que le script 
 | /etc/systemd/system/hfu-idle-scan.timer                 | Relance cette analyse toutes les heures après la chaîne.                                                         | 644                          |
 | /etc/systemd/system/hfu-reboot-notice.service           | Avis lorsqu'un redémarrage est utile. Le script ne redémarre pas la machine.                             | 644                          |
 | /etc/systemd/system/hfu-reboot-notice.timer             | Relance cet avis toutes les 6 heures après la chaîne.                                                    | 644                          |
+| /etc/systemd/system/hfu-periodic-scan.service           | Passe ClamAV toutes les 2 heures. Mêmes limites CPU et E/S que la passe de démarrage.                    | 644                          |
+| /etc/systemd/system/hfu-periodic-scan.timer             | Lance cette passe 2 heures après le démarrage, puis toutes les 2 heures.                                 | 644                          |
+| /opt/high-fortress-user/cron/integrity.sha256           | Cachet d'empreinte écrit par integrity.sh pendant la passe de démarrage.                                | 600                          |
+| /opt/high-fortress-user/cron/behavior.stamp             | Cachet de fenêtre d'audit écrit par behavior.sh pendant la passe de démarrage.                  | 600                          |
+| /opt/high-fortress-user/cron/egress.stamp               | Cachet de fenêtre du journal sortant écrit par egress-watch.sh pendant la passe de démarrage.   | 600                          |
+| /opt/high-fortress-user/cron/bin/clamav-response.sh     | Quarantaine, signal de processus et isolation courte après une détection.                       | 750                          |
+| /opt/high-fortress-user/src/service/apparmor/detect-and-apply.sh | Charge un profil hfu seulement si le programme existe.                                            | 755                          |
 | /opt/high-fortress-user/bin/scan-skip.sh                | Liste, ajoute ou retire un chemin exclu, puis relance ClamAV lorsque le bloc change.                             | 755                          |
 | /opt/high-fortress-user/bin/boot-check.sh               | Vérifie que les services de sécurité du démarrage ont fini cette session.                                        | 755                          |
 | /opt/high-fortress-user/src/config/clamav/scan-skip.paths | Chemins exclus. Le modèle est rempli seulement lorsque le fichier est encore absent.                              | 644                          |

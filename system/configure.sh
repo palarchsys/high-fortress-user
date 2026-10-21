@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : system/configure.sh
-# Updated at : 2026-10-16
+# Updated at : 2026-10-20
 # Creator    : palarchsys
 # =============================================================================
 
@@ -137,7 +137,7 @@ hf_run_silent systemctl restart systemd-journald
 hf_log_success "Journald rendu persistant"
 
 hf_log_title "Sysctl workstation"
-hf_log_info "Navigateurs et Steam : IPv6 et user namespaces actifs."
+hf_log_info "IPv6 et user namespaces actifs."
 
 ip_forward=1
 rp_filter=2

@@ -46,7 +46,7 @@ El archivo local se llena solo con la orden del correo, y solo para líneas que 
 
 | Servicio que vigila             | Zonas                   | Qué sale en alerta                           | Orden del correo                   |
 | ------------------------------- | ----------------------- | -------------------------------------------- | ---------------------------------- |
-| clamonacc, then clamav-event.sh | Descargas y Escritorio. | Una detección real. Los cerrojos no alertan. | `sudo ls -la -- <quarantine path>` |
+| clamonacc, then clamav-event.sh | Carpetas XDG, /tmp, /var/tmp, /opt. | Una detección real. Los cerrojos no alertan. | `sudo ls -la -- <quarantine path>` |
 
 | Exclusión | Regla |
 | --- | --- |
@@ -54,16 +54,15 @@ El archivo local se llena solo con la orden del correo, y solo para líneas que 
 | usuario `clamav` | `OnAccessExcludeUname clamav` |
 | root | `OnAccessExcludeRootUID yes` |
 | tamaño | Archivos de más de 25M. |
+| /var/lib/snapd, /snap | Exclusión fija. |
+| /var/lib/clamav/quarantine, /var/lib/clamav/tmp | Exclusión fija. |
+| /opt/high-fortress-user, /var/log | Exclusión fija. |
 
 El archivo entregado lista:
 
-- `$HOME/.steam`
-- `$HOME/.local/share/Steam`
 - `$HOME/.cache`
 - `$HOME/snap`
 - `/var/jeux`
-
-Brave, Thunderbird y Discord siguen en el análisis.
 
 Una ruta se acepta bajo el home del usuario del puesto, por debajo de ese home.
 
@@ -111,13 +110,17 @@ Las líneas rkhunter ya presentes se quedan.
 | ------------------------- | ----------------- | ------------------------------------------------------ | -------------------- |
 | clamav.sh in boot-scan.sh | /home, /opt, /tmp | Infecciones. Un análisis limpio permanece en silencio. | Sin bloque de orden. |
 
-El análisis poda los directorios del acceso.
-
-El análisis poda las rutas aceptadas de `scan-skip.paths`.
+El análisis poda las entradas `OnAccessExcludePath` y las rutas aceptadas de `scan-skip.paths`.
 
 El análisis poda también `proc`, `sys`, `dev`, `var/lib/docker`, `var/lib/libvirt`, `libvirt` y `snap-private-tmp`.
 
-El análisis lee los archivos con `clamscan`, en la unidad de arranque.
+Los archivos de más de 25M quedan fuera.
+
+La lista de archivos se escribe bajo `/run/high-fortress-user`.
+
+Cuando existe `/run/clamav/clamd.ctl`, la pasada pone `HF_CLAM_MODE=daemon`.
+
+Si no, usa `clamscan`.
 
 La unidad limita esta pasada al 50 % de la máquina.
 
@@ -131,8 +134,6 @@ La cadena arranca cuando `multi-user.target` está alcanzado.
 
 Un fallo de una pasada no detiene la siguiente.
 
-Brave, Thunderbird y Discord permanecen en esta pasada.
-
 Un archivo ilegible, sin línea `FOUND`, no envía correo.
 
 Un proceso `clamscan` detenido por una señal envía correo.
@@ -145,6 +146,20 @@ Dos fallos seguidos detienen la pasada de ClamAV.
 
 El correo dice entonces que los archivos restantes no se leyeron.
 
+## Análisis ClamAV periódico
+
+| Servicio que vigila | Zonas | Qué sale en alerta | Orden del correo |
+| --- | --- | --- | --- |
+| clamav.sh en hfu-periodic-scan.timer | /home, /opt, /tmp, con las mismas podas que la pasada de arranque. | Infecciones. Una pasada limpia permanece en silencio. | Sin bloque de orden. |
+
+El temporizador es `OnBootSec=2h` y `OnUnitActiveSec=2h`, con `Persistent=false`.
+
+`Nice` vale 19, `IOSchedulingClass` vale `idle`, y `CPUQuota` es la misma cuota que la pasada de arranque.
+
+Un `lutris`, `heroic` o `gamescope` en marcha omite la pasada.
+
+`/run/high-fortress-user/clamav.lock` impide que arranque una segunda pasada.
+
 ## Análisis ClamAV diferido
 
 | Servicio que vigila                  | Zonas                                                                                                         | Qué se alerta                                                                                                                    | Orden del correo         |
@@ -155,11 +170,11 @@ El correo dice entonces que los archivos restantes no se leyeron.
 | --- | --- |
 | temporizador | `OnUnitActiveSec=1h`, `Persistent=false` |
 | límites | `Nice` 19, `IOSchedulingClass=idle`, `CPUQuota` 50 % de la máquina |
-| espera | `steam`, `steamwebhelper`, `lutris`, `heroic`, `wineserver`, `gamescope` |
+| espera | `lutris`, `heroic`, `gamescope` |
 | directorios saltados | `shadercache`, `downloading` |
 | archivos | ejecutables de cualquier tamaño, y los demás archivos de 25M o menos más recientes que `scan-skip.stamp` |
 | sello | avanza solo tras una pasada limpia |
-| cubiertas | `/var/jeux`, `$HOME/.steam`, `$HOME/.local/share/Steam` |
+| cubiertas | `/var/jeux` |
 | no cubiertas | `$HOME/.cache`, `$HOME/snap` |
 
 Un proceso `clamscan` detenido por una señal envía correo.
@@ -188,11 +203,13 @@ Una línea modificada bajo `/usr/lib/*/perl-base/unicore/` del paquete `perl-bas
 
 | Servicio que vigila | Zonas                                          | Qué sale en alerta                                                   | Orden del correo |
 | ------------------- | ---------------------------------------------- | -------------------------------------------------------------------- | ---------------- |
-| auditd              | /etc/audit/rules.d/00-high-fortress-user.rules | Sin correo propio. La pasada de arranque no envía una alerta auditd. | Ninguna.         |
+| auditd              | /etc/audit/rules.d/00-high-fortress-user.rules | Sin correo propio. behavior.sh en la pasada de arranque envía el correo de un exec-tmp. | Ninguna.         |
 
 Una vigilancia con la clave `account` se añade para `.ssh/authorized_keys`, `.bashrc`, `.profile`, `.bash_profile`, `.config/autostart` y `.config/systemd/user` cuando esa ruta ya existe.
 
 Una ruta ausente se omite, así `augenrules` sigue cargando las reglas.
+
+`tail.rules` registra el attach de ptrace, la carga y la retirada de módulos, y `execve` bajo `/tmp`, `/var/tmp` y `/dev/shm`.
 
 ## Fail2Ban
 
@@ -206,11 +223,53 @@ Una ruta ausente se omite, así `augenrules` sigue cargando las reglas.
 | ------------------- | -------------- | ------------------ | ---------------- |
 | crowdsec            | /etc/crowdsec/ | Sin correo propio. | Ninguna.         |
 
+La duración del bloqueo es `HFU_CROWDSEC_BAN_DURATION`, por defecto `48h`.
+
+Un nombre de `config/crowdsec/optional.list` se instala solo si el hub lo acepta.
+
 ## UFW
 
 | Servicio que vigila | Zonas                                                                                | Qué sale en alerta | Orden del correo |
 | ------------------- | ------------------------------------------------------------------------------------ | ------------------ | ---------------- |
 | ufw                 | Entrada denegada, salida permitida, encaminamiento permitido, bucle local permitido. SSH queda limitado a los prefijos directamente conectados. | Sin correo propio. | Ninguna.         |
+
+## Integridad
+
+| Servicio que vigila | Zonas | Qué sale en alerta | Orden del correo |
+| --- | --- | --- | --- |
+| integrity.sh en boot-scan.sh | `config/integrity/paths.list` | Un cambio de huella. La primera pasada escribe el sello y permanece en silencio. | Sin bloque de orden. |
+
+La pasada sigue a aide.sh.
+
+El sello es `/opt/high-fortress-user/cron/integrity.sha256`.
+
+## Comportamiento
+
+| Servicio que vigila | Zonas | Qué sale en alerta | Orden del correo |
+| --- | --- | --- | --- |
+| behavior.sh en boot-scan.sh | `execve` bajo `/tmp`, `/var/tmp` y `/dev/shm`. | Un evento desde el sello anterior. La primera pasada escribe el sello y permanece en silencio. | Sin bloque de orden. |
+
+La pasada sigue a rkhunter.sh.
+
+auditd sigue en servicio.
+
+El sello es `/opt/high-fortress-user/cron/behavior.stamp`.
+
+## Diario saliente
+
+| Servicio que vigila | Zonas | Qué sale en alerta | Orden del correo |
+| --- | --- | --- | --- |
+| tabla nftables `inet hfu_egress`, luego egress-watch.sh en boot-scan.sh | Flujos salientes nuevos fuera de los puertos 53, 80 y 443. | Una línea del núcleo con prefijo `hfu-egress` desde el sello anterior. La primera pasada escribe el sello y permanece en silencio. | Sin bloque de orden. |
+
+La tabla se instala con política accept.
+
+La pasada sigue a debsums.sh.
+
+El sello es `/opt/high-fortress-user/cron/egress.stamp`.
+
+Una detección añade la tabla nftables `inet hfu_isolate` durante `HFU_NET_ISOLATE_SEC` segundos. Los flujos salientes nuevos se rechazan. El bucle local, el DNS y los flujos establecidos permanecen.
+
+La salida permanece allow.
 
 ## Lynis
 
@@ -238,7 +297,7 @@ La cadena de arranque lanza este aviso después del análisis diferido.
 
 `Nice` vale 19, `IOSchedulingClass` vale `idle`, y `CPUQuota` vale 50 % de la máquina.
 
-Un `steam`, `steamwebhelper`, `lutris`, `heroic`, `wineserver` o `gamescope` en marcha omite el correo.
+Un `lutris`, `heroic` o `gamescope` en marcha omite el correo.
 
 Esa pasada deja `reboot-notice.seen` sin cambios.
 

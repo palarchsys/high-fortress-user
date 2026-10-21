@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/apply-scan-skip.sh
-# Updated at : 2026-10-16
+# Updated at : 2026-10-20
 # Creator    : palarchsys
 # =============================================================================
+# -----------------------------------------------------------------------------
+# Note       : Fixed excludes from onaccess.conf join the same block.
+# Note       : The temporary file is created under /run/high-fortress-user.
+# -----------------------------------------------------------------------------
 
 set -euo pipefail
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -27,6 +31,35 @@ if [[ -n "${HFU_SCAN_SKIP_HOME:-}" ]]; then
     hfu_ensure_scan_skip_file "${HFU_SCAN_SKIP_HOME}"
 fi
 
+hfu_load_onaccess_exclude() {
+    local candidate found=""
+    HFU_ONACCESS_FIXED_EXCLUDE="${HFU_ONACCESS_FIXED_EXCLUDE:-/var/lib/snapd /snap /var/lib/clamav/quarantine /var/lib/clamav/tmp /opt/high-fortress-user /var/log}"
+    for candidate in \
+        "${HF_INSTALL_DIRECTORY:-}/config/clamav/onaccess.conf" \
+        "${HFU_BASE}/src/config/clamav/onaccess.conf" \
+        "/opt/high-fortress-user/src/config/clamav/onaccess.conf"
+    do
+        [[ -f "${candidate}" ]] || continue
+        found="${candidate}"
+        break
+    done
+    if [[ -n "${found}" ]]; then
+        # shellcheck disable=SC1090
+        source "${found}"
+    fi
+    HFU_ONACCESS_FIXED=()
+    local path
+    # shellcheck disable=SC2086
+    for path in ${HFU_ONACCESS_FIXED_EXCLUDE}; do
+        [[ -n "${path}" ]] || continue
+        HFU_ONACCESS_FIXED+=("${path}")
+    done
+    if [[ -n "${HFU_BASE:-}" ]]; then
+        HFU_ONACCESS_FIXED+=("${HFU_BASE}")
+    fi
+}
+
+hfu_load_onaccess_exclude
 hfu_collect_scan_skip_path
 if [[ ${#HFU_SCAN_SKIP_BAD[@]} -gt 0 ]]; then
     install -d -m 750 "${HFU_BASE}/cron/security_logs"
@@ -37,15 +70,23 @@ fi
 
 conf="/etc/clamav/clamd.conf"
 if [[ -f "${conf}" ]]; then
-    tmp="$(mktemp)"
+    install -d -m 755 /run/high-fortress-user
+    tmp="$(mktemp -p /run/high-fortress-user)"
     trap 'rm -f "${tmp}"' EXIT
-    changed="$(python3 - "${conf}" "${tmp}" "${HFU_SCAN_SKIP_VALID[@]}" << 'PY'
+    changed="$(python3 - "${conf}" "${tmp}" "${#HFU_ONACCESS_FIXED[@]}" "${HFU_ONACCESS_FIXED[@]}" "${HFU_SCAN_SKIP_VALID[@]}" << 'PY'
 import sys
 from pathlib import Path
 
 conf = Path(sys.argv[1])
 dest = Path(sys.argv[2])
-paths = sys.argv[3:]
+count = int(sys.argv[3])
+fixed = sys.argv[4:4 + count]
+paths = sys.argv[4 + count:]
+seen = []
+for path in list(fixed) + list(paths):
+    if path and path not in seen:
+        seen.append(path)
+paths = seen
 text = conf.read_text(errors="replace")
 begin = "# BEGIN High-Fortress User scan-skip"
 end = "# END High-Fortress User scan-skip"

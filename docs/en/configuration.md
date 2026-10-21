@@ -10,9 +10,9 @@ Names and defaults below are the shipped `user/config/global.conf` and `hfu_set_
 | -------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | HF_CONFIG_PREPARED                | 1                                                                | Must be 1 or the check refuses the files.                                                   |
 | HF_PROJECT_NAME               | High-Fortress User                                               | Shown in mail. Not asked.                                                                   |
-| HFU_PROJECT_SLUG               | high-fortress-user                                               | Fixed by the check. Builds `HF_CONFIG_BASE_DIRECTORY`.                                               |
+| HFU_PROJECT_SLUG               | high-fortress-user                                               | Fixed by the check. Names `/etc/cron.d/high-fortress-user`.                                  |
 | HF_PROJECT_VERSION            | 0.2                                                              | Recorded. Not asked.                                                                        |
-| HF_CONFIG_BASE_DIRECTORY            | /opt/high-fortress-user                                          | Runtime root. Derived from `HFU_PROJECT_SLUG`.                                                  |
+| HF_CONFIG_BASE_DIRECTORY            | /opt/high-fortress-user                                          | Runtime root.                                                                               |
 | HF_SECRET_DIRECTORY                | /opt/high-fortress-user/secrets                                  | Created mode 700. `secrets.conf` is not written here.                                       |
 | HF_DEBUG_INSTALL_LOG         | 0                                                                | Present in the file. Install journals always go to `<source>/logs/`.                        |
 | HF_MODE_TEST                  | 1                                                                | Asked. `1` skips the removal question at the end. `0` asks it.                              |
@@ -54,7 +54,9 @@ The file is written in `config/`, next to `global.conf`, mode `600`, owner root.
 
 | Name                          | Default                                   | Impact                                                               |
 | ----------------------------- | ----------------------------------------- | -------------------------------------------------------------------- |
-| OnAccessIncludePath           | Downloads and Desktop                     | `xdg-user-dir`, or `$HOME/Downloads` and `$HOME/Desktop`.            |
+| OnAccessIncludePath           | XDG dirs, /tmp, /var/tmp, /opt            | Downloads, Desktop, Documents, Music, Pictures, Videos, /tmp, /var/tmp and /opt. |
+| HFU_ONACCESS_MOUNTS           | 1                                         | 0 leaves /media and /mnt out.                                        |
+| process signal                | always                                    | Signals one non-critical process that holds the detected file. pid 1, root, systemd, sshd, unbound, fail2ban and gamescope stay running. |
 | OnAccessExcludePath           | config/clamav/scan-skip.paths             | Accepted paths under the workstation user's home, or under `/var/jeux`. |
 | OnAccessExcludeUname          | clamav                                    | The scanner user is excluded.                                        |
 | OnAccessExcludeRootUID        | yes                                       | Root is excluded from on-access scan on this workstation.            |
@@ -64,6 +66,14 @@ The file is written in `config/`, next to `global.conf`, mode `600`, owner root.
 | hfu-boot-chain.timer          | OnBootSec=0, Persistent=false             | Starts the chain when `multi-user.target` is reached. The session does not wait. |
 | hfu-idle-scan.timer           | OnUnitActiveSec=1h, Persistent=false      | Same Nice, idle I/O and CPU quota as the boot pass. No fixed delay after boot. |
 | hfu-reboot-notice.timer       | OnUnitActiveSec=6h, Persistent=false      | Same quota. The script does not reboot the machine. |
+| hfu-periodic-scan.timer       | OnBootSec=2h, OnUnitActiveSec=2h          | Runs clamav.sh only. Same Nice, idle I/O and CPU quota. Persistent=false. |
+| integrity.sh                  | boot-scan.sh, after aide.sh           | Hashes config/integrity/paths.list. The first pass writes cron/integrity.sha256 and stays silent. |
+| behavior.sh                   | boot-scan.sh, after rkhunter.sh       | Reads exec-tmp events since cron/behavior.stamp. The first pass writes the stamp and stays silent. auditd stays running. |
+| inet hfu_egress               | installed                             | Logs new outbound flows outside ports 53, 80 and 443. Policy accept. Outgoing stays allow. |
+| egress-watch.sh               | boot-scan.sh, after debsums.sh        | Reads kernel lines prefixed hfu-egress since cron/egress.stamp. The first pass writes the stamp and stays silent. |
+| network isolation             | always                                    | After a detection, rejects new outbound flows for HFU_NET_ISOLATE_SEC. Loopback, DNS and established flows stay. Outgoing policy stays allow. |
+| HFU_NET_ISOLATE_SEC           | 120                                       | Seconds before that isolation is removed. Minimum 30, maximum 300. |
+| HFU_CROWDSEC_BAN_DURATION     | 48h                                       | Written into the CrowdSec profiles. |
 | scan-skip.sh                  | /opt/high-fortress-user/bin/scan-skip.sh  | Restarts `clamav-daemon` and `clamonacc` when the exclude block changes. |
 | database_in                   | /var/lib/aide/aide.db                     | `__HF_BASE__` in `config/aide/aide.conf` becomes `HF_CONFIG_BASE_DIRECTORY`. |
 

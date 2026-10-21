@@ -1,6 +1,6 @@
 # =============================================================================
 # File       : config/auditd/watches.list
-# Updated at : 2026-10-15
+# Updated at : 2026-10-20
 # Creator    : palarchsys
 # =============================================================================
 
@@ -17,3 +17,5 @@ any /etc/ufw ufw-config
 any /root root-activity
 any /etc/localtime time-change
 virt /etc/libvirt libvirt-config
+any /etc/cron.d cron-config
+any /etc/systemd/system systemd-config

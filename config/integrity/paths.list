@@ -1,0 +1,18 @@
+# =============================================================================
+# File       : config/integrity/paths.list
+# Updated at : 2026-10-20
+# Creator    : palarchsys
+# =============================================================================
+# -----------------------------------------------------------------------------
+# Purpose    : Files hashed once a day beside the AIDE baseline.
+# Note       : A missing path is skipped.
+# -----------------------------------------------------------------------------
+
+/etc/passwd
+/etc/shadow
+/etc/sudoers
+/etc/ssh/sshd_config
+/etc/ufw/ufw.conf
+/usr/bin/sudo
+/usr/bin/passwd
+/usr/sbin/sshd

@@ -31,4 +31,4 @@ Este es el árbol creado bajo `/opt/high-fortress-user` después de la instalaci
 
 `secrets.conf` y `global.conf` permanecen en `config/`, bajo el directorio de las fuentes. `HF_SECRET_DIRECTORY` se crea sin esos dos archivos. Los scripts shell copiados a `cron/bin` están en modo `750`. `mail.html` está en modo `644`. `src/config/chkrootkit/patterns.ignore` conserva el modo del archivo entregado, `664`.
 
-Scripts en `cron/bin`: `aide.sh`, `apply-scan-skip.sh`, `boot-scan.sh`, `chkrootkit.sh`, `clamav.sh`, `clamav-event.sh`, `common.sh`, `debsums.sh`, `idle-scan.sh`, `record-mirrors.sh`, `reboot-notice.sh`, `rkhunter.sh`, `scan-skip-lib.sh`, `send.sh`, `watchdog.sh`, `mail.sh`.
+Scripts en `cron/bin`: `aide.sh`, `apply-scan-skip.sh`, `behavior.sh`, `boot-scan.sh`, `chkrootkit.sh`, `clamav.sh`, `clamav-event.sh`, `clamav-response.sh`, `common.sh`, `debsums.sh`, `egress-watch.sh`, `idle-scan.sh`, `integrity.sh`, `record-mirrors.sh`, `reboot-notice.sh`, `rkhunter.sh`, `scan-skip-lib.sh`, `send.sh`, `watchdog.sh`, `mail.sh`.

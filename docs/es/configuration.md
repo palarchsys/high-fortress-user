@@ -10,9 +10,9 @@ Los nombres y los valores de abajo son el `user/config/global.conf` entregado y 
 | -------------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | HF_CONFIG_PREPARED                | 1                                                                | Debe valer 1, si no el control rechaza los archivos.                                               |
 | HF_PROJECT_NAME               | High-Fortress User                                               | Aparece en el correo. No se pregunta.                                                              |
-| HFU_PROJECT_SLUG               | high-fortress-user                                               | Fijado por el control. Construye `HF_CONFIG_BASE_DIRECTORY`.                                                |
+| HFU_PROJECT_SLUG               | high-fortress-user                                               | Fijado por el control. Nombra `/etc/cron.d/high-fortress-user`.                                                |
 | HF_PROJECT_VERSION            | 0.2                                                              | Registrada. No se pregunta.                                                                        |
-| HF_CONFIG_BASE_DIRECTORY            | /opt/high-fortress-user                                          | Raíz de ejecución. Derivada de `HFU_PROJECT_SLUG`.                                                     |
+| HF_CONFIG_BASE_DIRECTORY            | /opt/high-fortress-user                                          | Raíz de ejecución.                                                     |
 | HF_SECRET_DIRECTORY                | /opt/high-fortress-user/secrets                                  | Creado en modo 700. `secrets.conf` no se escribe aquí.                                             |
 | HF_DEBUG_INSTALL_LOG         | 0                                                                | Presente en el archivo. Los diarios de instalación van siempre a `<source>/logs/`.                |
 | HF_MODE_TEST                  | 1                                                                | Se pregunta. `1` omite la pregunta de retirada al final. `0` la hace.                              |
@@ -54,7 +54,9 @@ El archivo se escribe en `config/`, junto a `global.conf`, modo `600`, propietar
 
 | Nombre                        | Valor por defecto                         | Efecto                                                                       |
 | ----------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------- |
-| OnAccessIncludePath           | Descargas y Escritorio                    | `xdg-user-dir`, o `$HOME/Downloads` y `$HOME/Desktop`.                       |
+| OnAccessIncludePath           | Carpetas XDG, /tmp, /var/tmp, /opt        | Descargas, Escritorio, Documentos, Música, Imágenes, Vídeos, /tmp, /var/tmp y /opt. |
+| HFU_ONACCESS_MOUNTS           | 1                                         | 0 deja /media y /mnt fuera.                                      |
+| señal de proceso              | siempre                                   | Señala un proceso no crítico que tiene el archivo detectado. El pid 1, root, systemd, sshd, unbound, fail2ban y gamescope siguen en marcha. |
 | OnAccessExcludePath           | config/clamav/scan-skip.paths             | Rutas aceptadas bajo el home del usuario, o bajo `/var/jeux`. |
 | OnAccessExcludeUname          | clamav                                    | El usuario del analizador está excluido.                                     |
 | OnAccessExcludeRootUID        | yes                                       | Root está excluido del análisis al acceso en este puesto.                    |
@@ -64,6 +66,14 @@ El archivo se escribe en `config/`, junto a `global.conf`, modo `600`, propietar
 | hfu-boot-chain.timer          | OnBootSec=0, Persistent=false             | Lanza la cadena cuando `multi-user.target` está alcanzado. La sesión no espera. |
 | hfu-idle-scan.timer           | OnUnitActiveSec=1h, Persistent=false      | El mismo Nice, la misma E/S idle y la misma cuota de CPU que la pasada de arranque. Sin espera fija tras el arranque. |
 | hfu-reboot-notice.timer       | OnUnitActiveSec=6h, Persistent=false      | La misma cuota. El script no reinicia la máquina. |
+| hfu-periodic-scan.timer       | OnBootSec=2h, OnUnitActiveSec=2h          | Lanza solo clamav.sh. El mismo Nice, la misma E/S idle y la misma cuota de CPU. Persistent=false. |
+| integrity.sh                  | boot-scan.sh, tras aide.sh            | Huella de config/integrity/paths.list. La primera pasada escribe cron/integrity.sha256 y permanece en silencio. |
+| behavior.sh                   | boot-scan.sh, tras rkhunter.sh        | Lee los eventos exec-tmp desde cron/behavior.stamp. La primera pasada escribe el sello y permanece en silencio. auditd sigue en servicio. |
+| inet hfu_egress               | instalada                             | Registra los flujos salientes nuevos fuera de los puertos 53, 80 y 443. Política accept. La salida permanece allow. |
+| egress-watch.sh               | boot-scan.sh, tras debsums.sh         | Lee las líneas del núcleo con prefijo hfu-egress desde cron/egress.stamp. La primera pasada escribe el sello y permanece en silencio. |
+| aislamiento de red            | siempre                                   | Tras una detección, rechaza los flujos salientes nuevos durante HFU_NET_ISOLATE_SEC. El bucle local, el DNS y los flujos establecidos permanecen. La política saliente permanece allow. |
+| HFU_NET_ISOLATE_SEC           | 120                                       | Segundos antes de retirar ese aislamiento. Mínimo 30, máximo 300. |
+| HFU_CROWDSEC_BAN_DURATION     | 48h                                       | Escrito en los perfiles de CrowdSec. |
 | scan-skip.sh                  | /opt/high-fortress-user/bin/scan-skip.sh  | Reinicia `clamav-daemon` y `clamonacc` cuando el bloque de exclusión cambia. |
 | database_in                   | /var/lib/aide/aide.db                     | `__HF_BASE__` en `config/aide/aide.conf` se convierte en `HF_CONFIG_BASE_DIRECTORY`. |
 

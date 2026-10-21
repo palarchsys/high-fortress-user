@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/boot-check.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-20
 # Creator    : palarchsys
 # =============================================================================
 
@@ -242,7 +242,7 @@ hfu_get_latest_log() {
         | sort -n | tail -1 | cut -d' ' -f2-
 }
 
-for name in aide rkhunter chkrootkit clamav debsums idle-scan reboot-notice; do
+for name in aide integrity rkhunter behavior chkrootkit clamav debsums egress idle-scan reboot-notice; do
     log_file="$(hfu_get_latest_log "${name}")"
     if [[ -z "${log_file}" ]]; then
         if [[ "${chain_state}" == "active" || "${chain_state}" == "activating" ]]; then

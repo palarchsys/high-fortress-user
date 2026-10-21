@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/idle-scan.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-20
 # Creator    : palarchsys
 # =============================================================================
 
@@ -18,7 +18,7 @@ ALERT_FILE="${ALERT_DIR}/idle-scan-${STAMP}.txt"
 hf_arm_crash_mail "analyse différée"
 
 busy=""
-for name in steam steamwebhelper lutris heroic wineserver gamescope; do
+for name in lutris heroic gamescope; do
     if pgrep -x "${name}" >/dev/null 2>&1; then
         busy="${name}"
         break
@@ -35,7 +35,8 @@ if ! command -v clamscan >/dev/null; then
 fi
 
 hfu_collect_scan_skip_path
-file_list="$(mktemp)"
+install -d -m 755 /run/high-fortress-user
+file_list="$(mktemp -p /run/high-fortress-user)"
 trap 'st=$?; rm -f "${file_list}"; hf_send_crash_mail "${st}"' EXIT
 stamp="${HFU_BASE}/cron/scan-skip.stamp"
 if [[ ${#HFU_SCAN_SKIP_VALID[@]} -gt 0 ]]; then
