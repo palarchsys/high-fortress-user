@@ -18,7 +18,7 @@ Les noms et les défauts ci-dessous sont le `user/config/global.conf` livré et 
 | HF_MODE_TEST                  | 1                                                                | Demandé. `1` saute la question de retrait à la fin. `0` la pose.                                   |
 | HF_LYNIS_MIN_SCORE            | 80                                                               | Indice de durcissement minimum accepté. Non demandé.                                               |
 | HFU_OS_ID                  | ubuntu                                                           | Fixé par le contrôle.                                                                              |
-| HFU_OS_VERSION             | 26.04                                                            | Fixé par le contrôle.                                                                              |
+| HFU_OS_VERSION             | 26.04                                                            | La machine doit être cette version ou une plus récente.                             |
 | HF_BANNER_MESSAGE             | text in global.conf                                              | Écrit dans `/etc/ssh/sshd_banner`. Non demandé.                                                    |
 | HF_SSH_BANNER_PATH            | /etc/ssh/sshd_banner                                             | Fichier de bannière. Non demandé.                                                                  |
 | HF_SSH_SERVICE_NAME           | ssh                                                              | Nom du service. Non demandé.                                                                       |
@@ -71,7 +71,7 @@ Le fichier est écrit dans `config/`, à côté de `global.conf`, mode `600`, pr
 | integrity.sh                  | boot-scan.sh, après aide.sh           | Empreinte de config/integrity/paths.list. La première passe écrit cron/integrity.sha256 et reste silencieuse. |
 | behavior.sh                   | boot-scan.sh, après rkhunter.sh       | Lit les événements exec-tmp depuis cron/behavior.stamp. La première passe écrit le cachet et reste silencieuse. auditd reste en service. |
 | inet hfu_egress               | installée                             | Journalise les flux sortants nouveaux hors des ports 53, 80 et 443. Politique accept. Le sortant reste allow. |
-| egress-watch.sh               | boot-scan.sh, après debsums.sh        | Lit les lignes noyau préfixées hfu-egress depuis cron/egress.stamp. La première passe écrit le cachet et reste silencieuse. |
+| egress-watch.sh               | boot-scan.sh, après debsums.sh        | Lit les lignes noyau préfixées hfu-egress depuis cron/egress.stamp, puis le processus de la clé audit hfu-egress. La première passe écrit le cachet et reste silencieuse. Ce contrôle n'isole pas. |
 | isolation réseau              | toujours                                  | Après une détection, refuse les nouveaux flux sortants pendant HFU_NET_ISOLATE_SEC. La boucle locale, le DNS et les flux établis restent. La politique sortante reste allow. |
 | HFU_NET_ISOLATE_SEC           | 120                                       | Secondes avant le retrait de cette isolation. Minimum 30, maximum 300. |
 | HFU_CROWDSEC_BAN_DURATION     | 48h                                       | Écrit dans les profils CrowdSec. |

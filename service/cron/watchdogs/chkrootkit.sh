@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/chkrootkit.sh
-# Updated at : 2026-10-16
+# Updated at : 2026-10-22
 # Creator    : palarchsys
 # =============================================================================
 
@@ -98,9 +98,20 @@ while i < len(kept):
 Path(log_path).write_text(("\n".join(out) + "\n") if out else "")
 PY
 fi
+HF_CONFIRMED_COUNT=0
+confirmed_tmp="$(mktemp)"
+hf_quarantine_confirmed_log chkrootkit "${LOG_FILE}" systemd sshd unbound fail2ban gamescope > "${confirmed_tmp}" || true
+if [[ -s "${confirmed_tmp}" ]]; then
+    cat "${confirmed_tmp}" >> "${LOG_FILE}"
+fi
+rm -f "${confirmed_tmp}"
 if [[ -s "${LOG_FILE}" ]]; then
-    HFU_CHKROOTKIT_IGNORE=1 \
+    if [[ "${HF_CONFIRMED_COUNT:-0}" -eq 0 ]]; then
+        HFU_CHKROOTKIT_IGNORE=1 \
+            hf_log_alert "chkrootkit a produit une sortie (voir ${LOG_FILE})"
+    else
         hf_log_alert "chkrootkit a produit une sortie (voir ${LOG_FILE})"
+    fi
 elif [[ "${crashed}" -eq 0 ]]; then
     hfu_log_pass "chkrootkit silencieux (OK)"
 fi

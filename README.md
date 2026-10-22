@@ -1,6 +1,6 @@
 # High-Fortress User
 
-High-Fortress User prepares an Ubuntu 26.04 workstation. It installs the local DNS resolver, the firewall, and the security checks.
+High-Fortress User prepares an Ubuntu 26.04 or newer workstation. It installs the local DNS resolver, the firewall, and the security checks.
 
 The Ubuntu account already created on the machine is not replaced. The installer does not create a second account.
 

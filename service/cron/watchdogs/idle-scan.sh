@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/idle-scan.sh
-# Updated at : 2026-10-20
+# Updated at : 2026-10-22
 # Creator    : palarchsys
 # =============================================================================
 
@@ -37,7 +37,8 @@ fi
 hfu_collect_scan_skip_path
 install -d -m 755 /run/high-fortress-user
 file_list="$(mktemp -p /run/high-fortress-user)"
-trap 'st=$?; rm -f "${file_list}"; hf_send_crash_mail "${st}"' EXIT
+fresh_list=""
+trap 'st=$?; rm -f "${file_list}"; if [[ -n "${fresh_list}" ]]; then rm -f "${fresh_list}"; fi; hf_send_crash_mail "${st}"' EXIT
 stamp="${HFU_BASE}/cron/scan-skip.stamp"
 if [[ ${#HFU_SCAN_SKIP_VALID[@]} -gt 0 ]]; then
     for path in "${HFU_SCAN_SKIP_VALID[@]}"; do
@@ -93,7 +94,8 @@ if [[ "${kind}" == "error" ]]; then
     exit 0
 fi
 if [[ "${kind}" == "infected" ]]; then
-    new_count="$(python3 - "${LOG_FILE}" "${seen}" << 'PY'
+    fresh_list="$(mktemp -p /run/high-fortress-user)"
+    python3 - "${LOG_FILE}" "${seen}" > "${fresh_list}" << 'PY'
 import sys
 from pathlib import Path
 
@@ -118,10 +120,25 @@ if fresh:
     with seen_path.open("a", encoding="utf-8") as handle:
         for key in fresh:
             handle.write(key + "\n")
-print(len(fresh))
+    for key in fresh:
+        print(key)
 PY
-)"
     chmod 600 "${seen}" 2>/dev/null || true
+    new_count=0
+    if [[ -s "${fresh_list}" ]]; then
+        response="${HERE}/clamav-response.sh"
+        [[ -x "${HFU_BASE}/cron/bin/clamav-response.sh" ]] && response="${HFU_BASE}/cron/bin/clamav-response.sh"
+        while IFS=$'\t' read -r sig origin; do
+            [[ -n "${sig}" && -n "${origin}" ]] || continue
+            new_count=$((new_count + 1))
+            HFU_CLAMAV_EVENT_FILE="${origin}" \
+            HFU_CLAMAV_EVENT_VIRUS="${sig}" \
+            HFU_CLAMAV_EVENT_KIND=idle \
+            HFU_CLAMAV_EVENT_MAIL=0 \
+            HFU_CLAMAV_RESPONSE_STAMP="${STAMP}-$$-${new_count}" \
+                bash "${response}" || true
+        done < "${fresh_list}"
+    fi
     if [[ "${new_count}" -gt 0 ]]; then
         hf_log_alert "clamscan : infection(s) (voir ${LOG_FILE})"
     else

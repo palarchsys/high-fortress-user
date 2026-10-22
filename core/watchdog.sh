@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : core/watchdog.sh
-# Updated at : 2026-10-17
+# Updated at : 2026-10-22
 # Creator    : palarchsys
 # =============================================================================
 
@@ -199,7 +199,7 @@ def format_named(name, text):
             if re.match(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T", stripped):
                 keep = False
                 continue
-            if re.search(r"warning|infected|rootkit|suspect", line, re.I):
+            if re.search(r"warning|infected|rootkit|suspect|quarantaine", line, re.I):
                 keep = True
                 picked.append(line)
                 continue
@@ -589,6 +589,363 @@ PY
     printf '%s' "${summary}"
 }
 
+hf_record_quarantine_origin() {
+    local source="$1"
+    local origin="$2"
+    local stored="$3"
+    local signature="${4:-}"
+    local base dir registry id moment quoted
+    [[ -n "${stored}" && "${stored}" != "absent" && "${stored}" != "inconnue" ]] || return 0
+    [[ "${origin}" == /* && "${origin}" != "${stored}" ]] || return 0
+    id="$(basename -- "${stored}")"
+    [[ "${id}" =~ ^[0-9]{8}-[0-9]{6}-[0-9]+- ]] || return 0
+    base="$(hf_get_product_base)"
+    dir="${base}/cron"
+    registry="${dir}/quarantine.registry"
+    if [[ ! -d "${dir}" ]]; then
+        mkdir -p "${dir}" 2>/dev/null || return 0
+    fi
+    [[ -w "${dir}" ]] || return 0
+    source="${source//$'\t'/ }"
+    origin="${origin//$'\t'/ }"
+    stored="${stored//$'\t'/ }"
+    signature="${signature//$'\t'/ }"
+    signature="${signature//$'\n'/ }"
+    moment="$(date -Iseconds 2>/dev/null || date '+%Y-%m-%dT%H:%M:%S%z')"
+    printf '%s\t%s\t%s\t%s\t%s\t%s\n' \
+        "${id}" "${moment}" "${source}" "${origin}" "${stored}" "${signature}" \
+        >> "${registry}" || return 0
+    chmod 600 "${registry}" 2>/dev/null || true
+    quoted="$(printf '%q' "${id}")"
+    printf '%s\n' "sudo bash ${base}/bin/quarantine-restore.sh ${quoted}" >> "${dir}/quarantine.pending" || return 0
+    chmod 600 "${dir}/quarantine.pending" 2>/dev/null || true
+    return 0
+}
+
+hf_queue_existing_restore() {
+    local stored="$1"
+    local base registry id quoted
+    [[ -n "${stored}" && "${stored}" == /* ]] || return 0
+    base="$(hf_get_product_base)"
+    registry="${base}/cron/quarantine.registry"
+    [[ -f "${registry}" && -r "${registry}" ]] || return 0
+    id="$(awk -F '\t' -v want="${stored}" '$5 == want { print $1; exit }' "${registry}" 2>/dev/null || true)"
+    [[ -n "${id}" ]] || return 0
+    [[ -w "${base}/cron" ]] || return 0
+    quoted="$(printf '%q' "${id}")"
+    printf '%s\n' "sudo bash ${base}/bin/quarantine-restore.sh ${quoted}" >> "${base}/cron/quarantine.pending" || return 0
+    chmod 600 "${base}/cron/quarantine.pending" 2>/dev/null || true
+    return 0
+}
+
+hf_take_quarantine_note() {
+    local pending body
+    pending="$(hf_get_product_base)/cron/quarantine.pending"
+    [[ -s "${pending}" ]] || return 1
+    body="$(cat "${pending}" 2>/dev/null || true)"
+    [[ -n "${body}" ]] || return 1
+    NOTE="Pour remettre chaque fichier à son emplacement d'origine, copiez la commande correspondante."
+    NOTE_CMD="${body}"
+    rm -f "${pending}" 2>/dev/null || true
+    return 0
+}
+
+hf_read_quarantine_holder() {
+    local target="$1"
+    local pid=""
+    if command -v lsof >/dev/null 2>&1; then
+        pid="$(lsof -t -- "${target}" 2>/dev/null | head -n 1 || true)"
+    fi
+    if [[ -z "${pid}" ]] && command -v fuser >/dev/null 2>&1; then
+        pid="$(fuser -- "${target}" 2>/dev/null | awk '{print $1; exit}' || true)"
+    fi
+    printf '%s\n' "${pid}"
+}
+
+hf_quarantine_holder_block() {
+    local target="$1"
+    shift
+    local pid="" comm="" uid="" name=""
+    HF_QUARANTINE_PID=""
+    HF_QUARANTINE_COMM=""
+    pid="$(hf_read_quarantine_holder "${target}")"
+    [[ -n "${pid}" && "${pid}" =~ ^[0-9]+$ ]] || return 1
+    if [[ "${pid}" == "1" ]]; then
+        printf '%s\n' "pid 1"
+        return 0
+    fi
+    uid="$(stat -c '%u' "/proc/${pid}" 2>/dev/null || true)"
+    if [[ -z "${uid}" || "${uid}" == "0" ]]; then
+        printf '%s\n' "uid 0"
+        return 0
+    fi
+    comm="$(cat "/proc/${pid}/comm" 2>/dev/null || true)"
+    if [[ -z "${comm}" ]]; then
+        printf '%s\n' "nom absent"
+        return 0
+    fi
+    for name in "$@"; do
+        if [[ "${comm}" == "${name}" || "${comm}" == "${name}"* ]]; then
+            printf '%s\n' "${comm}"
+            return 0
+        fi
+    done
+    HF_QUARANTINE_PID="${pid}"
+    HF_QUARANTINE_COMM="${comm}"
+    return 1
+}
+
+hf_move_quarantine_file() {
+    local origin="$1"
+    local quarantine base stamp dest
+    quarantine="${HFU_CLAMAV_QUARANTINE_DIR:-/var/lib/clamav/quarantine}"
+    HF_MOVE_ACTION="déplacement refusé"
+    HF_MOVE_STORED="${origin}"
+    base="$(basename -- "${origin}")"
+    [[ -n "${base}" && "${base}" != "/" && "${base}" != "." ]] || base="inconnu"
+    if [[ ! -d "${quarantine}" ]]; then
+        if id clamav >/dev/null 2>&1; then
+            install -d -m 750 -o clamav -g clamav "${quarantine}" 2>/dev/null || true
+        else
+            install -d -m 750 "${quarantine}" 2>/dev/null || true
+        fi
+    fi
+    if [[ ! -d "${quarantine}" || ! -w "${quarantine}" ]]; then
+        return 0
+    fi
+    if [[ ! -e "${origin}" ]]; then
+        HF_MOVE_ACTION="fichier déjà absent"
+        HF_MOVE_STORED="absent"
+        return 0
+    fi
+    if [[ ! -f "${origin}" || -L "${origin}" ]]; then
+        return 0
+    fi
+    stamp="$(date +%Y%m%d-%H%M%S-%N)"
+    dest="${quarantine}/${stamp}-${base}"
+    if mv -- "${origin}" "${dest}"; then
+        HF_MOVE_ACTION="déplacé en quarantaine"
+        HF_MOVE_STORED="${dest}"
+    else
+        HF_MOVE_STORED="${origin}"
+    fi
+    return 0
+}
+
+hf_signal_quarantine_holder() {
+    local origin="$1"
+    local stored="$2"
+    shift 2
+    local target pid comm reason
+    for target in "${origin}" "${stored}"; do
+        [[ -n "${target}" && "${target}" != "absent" && -e "${target}" ]] || continue
+        if reason="$(hf_quarantine_holder_block "${target}" "$@")"; then
+            printf '%s\n' "processus non arrêté : ${reason}"
+            return 0
+        fi
+        pid="${HF_QUARANTINE_PID:-}"
+        comm="${HF_QUARANTINE_COMM:-}"
+        [[ -n "${pid}" ]] || continue
+        if kill -TERM "${pid}" 2>/dev/null; then
+            printf '%s\n' "processus ${pid} (${comm}) arrêté"
+        else
+            printf '%s\n' "processus ${pid} non arrêté : signal refusé"
+        fi
+        return 0
+    done
+    printf '%s\n' "processus non arrêté : aucun détenteur"
+}
+
+hf_quarantine_confirmed_log() {
+    local source="$1"
+    local log="$2"
+    shift 2
+    local path reason phrase quarantine
+    HF_CONFIRMED_COUNT=0
+    HF_MOVED_COUNT=0
+    [[ -n "${log}" && -f "${log}" ]] || return 0
+    quarantine="${HFU_CLAMAV_QUARANTINE_DIR:-/var/lib/clamav/quarantine}"
+    while IFS= read -r path; do
+        [[ -n "${path}" ]] || continue
+        case "${path}" in
+            "${quarantine}"|"${quarantine}"/*) continue ;;
+        esac
+        [[ -f "${path}" && ! -L "${path}" ]] || continue
+        HF_CONFIRMED_COUNT=$((HF_CONFIRMED_COUNT + 1))
+        case "${path}" in
+            /etc/passwd|/etc/shadow|/etc/sudoers|/etc/ssh/sshd_config|/etc/ufw/ufw.conf|/usr/bin/sudo|/usr/bin/passwd|/usr/sbin/sshd)
+                printf '%s\n' "non mis en quarantaine : ${path}"
+                continue
+                ;;
+        esac
+        if reason="$(hf_quarantine_holder_block "${path}" "$@")"; then
+            printf '%s\n' "non mis en quarantaine : ${reason}"
+            continue
+        fi
+        hf_move_quarantine_file "${path}"
+        if [[ "${HF_MOVE_ACTION}" != "déplacé en quarantaine" ]]; then
+            printf '%s\n' "${HF_MOVE_ACTION} : ${path}"
+            continue
+        fi
+        hf_record_quarantine_origin "${source}" "${path}" "${HF_MOVE_STORED}" "${source}" || true
+        phrase="$(hf_signal_quarantine_holder "${path}" "${HF_MOVE_STORED}" "$@")"
+        printf '%s\n' "déplacé en quarantaine : ${path} ; ${phrase} ; quarantaine ${HF_MOVE_STORED}"
+        HF_MOVED_COUNT=$((HF_MOVED_COUNT + 1))
+    done < <(python3 - "${source}" "${log}" << 'PY'
+import re
+import sys
+from pathlib import Path
+
+source = sys.argv[1]
+log_path = Path(sys.argv[2])
+text = log_path.read_text(errors="replace") if log_path.is_file() else ""
+path_re = re.compile(r"(/[^\s<>|,;]+)")
+seen = []
+for raw in text.splitlines():
+    line = raw.rstrip()
+    if source == "rkhunter":
+        if "Rootkit Hunter" in line:
+            hit = "INFECTED" in line
+        else:
+            hit = ("INFECTED" in line) or ("Rootkit" in line)
+    else:
+        hit = "INFECTED" in line
+    if not hit:
+        continue
+    for match in path_re.findall(line):
+        path = match.rstrip(".,:)")
+        if path not in seen:
+            seen.append(path)
+if seen:
+    sys.stdout.write("\n".join(seen) + "\n")
+PY
+    )
+    return 0
+}
+
+hf_format_egress_body() {
+    local kernel="$1"
+    local audit="${2:-}"
+    HF_EGRESS_AUDIT_FILE="${audit}" python3 - "${kernel}" << 'PY'
+import os
+import re
+import sys
+from pathlib import Path
+
+kernel_path = Path(sys.argv[1])
+audit_path = os.environ.get("HF_EGRESS_AUDIT_FILE", "")
+kernel_lines = []
+seen = set()
+if kernel_path.is_file():
+    for raw in kernel_path.read_text(errors="replace").splitlines():
+        line = raw.rstrip("\n")
+        if not line.strip() or line in seen:
+            continue
+        seen.add(line)
+        kernel_lines.append(line)
+
+audit_text = ""
+if audit_path and Path(audit_path).is_file():
+    audit_text = Path(audit_path).read_text(errors="replace")
+
+def parse_sockaddr(token):
+    token = token.strip().strip('"')
+    if token.lower().startswith("saddr="):
+        token = token.split("=", 1)[1]
+    host = re.search(r"host:([0-9A-Fa-f:.]+)", token)
+    serv = re.search(r"serv:([0-9]+)", token)
+    if host and serv:
+        return host.group(1), serv.group(1)
+    if not re.fullmatch(r"[0-9A-Fa-f]+", token) or len(token) < 16 or len(token) % 2:
+        return None
+    raw = bytes.fromhex(token)
+    if len(raw) < 8:
+        return None
+    family = int.from_bytes(raw[0:2], "little")
+    port = str(int.from_bytes(raw[2:4], "big"))
+    if family == 2 and len(raw) >= 8:
+        ip = ".".join(str(b) for b in raw[4:8])
+        return ip, port
+    return None
+
+events = {}
+order = []
+for raw in audit_text.splitlines():
+    line = raw.strip()
+    msg = re.search(r"msg=audit\(([^)]+)\):", line)
+    if not msg:
+        continue
+    key = msg.group(1)
+    if key not in events:
+        events[key] = {}
+        order.append(key)
+    event = events[key]
+    if line.startswith("type=SYSCALL"):
+        comm = re.search(r'comm="([^"]+)"', line) or re.search(r"comm=(\S+)", line)
+        pid = re.search(r"\bpid=([0-9]+)", line)
+        uid = re.search(r"\buid=([0-9]+)", line)
+        if comm:
+            event["comm"] = comm.group(1)
+        if pid:
+            event["pid"] = pid.group(1)
+        if uid:
+            event["uid"] = uid.group(1)
+    if "saddr=" in line or "host:" in line:
+        sock = re.search(r"saddr=(\S+)", line)
+        parsed = parse_sockaddr(sock.group(1) if sock else line)
+        if parsed:
+            event["dst"] = parsed
+
+flows = {}
+for key in order:
+    event = events[key]
+    dst = event.get("dst")
+    if not dst or "pid" not in event:
+        continue
+    flows[dst] = (event.get("comm") or "inconnu", event["pid"], event.get("uid") or "0")
+
+def emit_plain(lines):
+    chosen = lines[:40]
+    if chosen:
+        sys.stdout.write("\n".join(chosen) + "\n")
+
+if not flows:
+    emit_plain(kernel_lines)
+    raise SystemExit(0)
+
+groups = []
+index = {}
+unmatched = []
+for line in kernel_lines:
+    dst = re.search(r"\bDST=(\S+)", line)
+    dpt = re.search(r"\bDPT=([0-9]+)", line)
+    proc = None
+    if dst and dpt:
+        proc = flows.get((dst.group(1), dpt.group(1)))
+    if proc is None:
+        unmatched.append(line)
+        continue
+    label = "Processus : %s (pid %s) uid %s" % (proc[0], proc[1], proc[2])
+    if label not in index:
+        if len(groups) >= 40:
+            continue
+        index[label] = len(groups)
+        groups.append([label, []])
+    groups[index[label]][1].append(line)
+
+if unmatched and len(groups) < 40:
+    groups.append(["Processus : non associé", unmatched])
+
+blocks = []
+for label, lines in groups:
+    blocks.append(label)
+    for line in lines:
+        blocks.append(" → " + line)
+if blocks:
+    sys.stdout.write("\n".join(blocks) + "\n")
+PY
+}
+
 hf_log_alert() {
     local summary="$*"
     local excerpt="" module log alert line send base note="" note_cmd=""
@@ -609,7 +966,10 @@ hf_log_alert() {
     fi
     module="${module:-contrôle}"
     base="$(hf_get_product_base)"
-    if [[ "${HFU_AIDE_REFRESH:-}" == "1" ]]; then
+    if hf_take_quarantine_note; then
+        note=""
+        note_cmd=""
+    elif [[ "${HFU_AIDE_REFRESH:-}" == "1" ]]; then
         note="Si ce journal correspond à des changements attendus (une mise à jour, un logiciel que vous avez installé, un fichier que vous avez modifié) et qu'il ne révèle pas d'anomalie, exécutez la commande ci-dessous. Elle recalcule la base de référence AIDE à partir du disque actuel."
         note_cmd="sudo bash ${base}/bin/aide-refresh-db.sh"
     elif [[ "${HFU_RKHUNTER_REFRESH:-}" == "1" ]]; then
@@ -622,9 +982,6 @@ hf_log_alert() {
     elif [[ "${HFU_DEBSUMS_IGNORE:-}" == "1" && -n "${log}" ]]; then
         note="Si les lignes de ce journal sont des faux positifs que vous reconnaissez, et qu'aucune ne révèle une anomalie, exécutez la commande ci-dessous. Elle enregistre ces fichiers. Le prochain contrôle de debsums ne les signalera plus."
         note_cmd="sudo bash ${base}/bin/debsums-ignore-log.sh '${log}'"
-    elif [[ -n "${HFU_CLAMAV_QUARANTINE:-}" ]]; then
-        note="Le fichier a été retiré de son emplacement d'origine. Pour l'afficher sans le remettre en place, copiez la commande ci-dessous."
-        note_cmd="$(python3 -c 'import shlex, sys; print("sudo ls -la -- " + shlex.quote(sys.argv[1]))' "${HFU_CLAMAV_QUARANTINE}")"
     fi
     if [[ -z "${NOTE:-}" && -n "${note}" ]]; then
         NOTE="${note}"

@@ -2,6 +2,12 @@
 
 # Vigilancia
 
+Una línea de diario en un correo de alerta permanece en una sola línea.
+
+El correo de alerta mide 450px de ancho.
+
+Una línea larga del diario se desplaza dentro del bloque de diario.
+
 ## AIDE
 
 | Servicio que vigila     | Zonas                                               | Qué sale en alerta                                                   | Orden del correo                                           |
@@ -9,6 +15,12 @@
 | aide.sh in boot-scan.sh | /etc/aide/aide.conf, database /var/lib/aide/aide.db | Cambios, o un código distinto de cero que no es un resultado limpio. | `sudo bash /opt/high-fortress-user/bin/aide-refresh-db.sh` |
 
 Las rutas volátiles, los diarios, las cachés y los directorios de informes cron están excluidos en `config/aide/aide.conf` para que la base no sea reescrita por esos archivos.
+
+El archivo `/etc/crowdsec/hub/.index.json` está excluido.
+
+Es el catálogo que descarga `cscli hub update`.
+
+Los demás archivos bajo `/etc/crowdsec/` se vigilan.
 
 El bloque de la cuenta se añade después de `!/home/`.
 
@@ -24,13 +36,41 @@ Las rutas vigiladas son `.ssh/authorized_keys`, `.bashrc`, `.profile`, `.bash_pr
 | --------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------- | -------------------- |
 | rkhunter.sh in boot-scan.sh | Alcance del paquete, más la base de propiedades. | Avisos, una actualización fallida, o `mirrors.dat modifié hors rkhunter --update`. | `sudo bash /opt/high-fortress-user/bin/rkhunter-refresh-db.sh` |
 
-La orden del correo va en el correo de avisos. La línea de huella y un fallo de actualización no la añaden.
+La orden de recálculo va en el correo de avisos cuando ningún archivo confirmado fue movido. La línea de huella y un fallo de actualización no la añaden.
 
 `/var/lib/rkhunter/db/mirrors.dat` no se ignora como archivo. La huella `/opt/high-fortress-user/cron/rkhunter-mirrors.sha256` se escribe solo después de un `rkhunter --update` que devuelve 0 o 2. Un hash distinto es una alerta. El control ocurre antes del `--update` siguiente.
 
 Los archivos de `/dev/shm` y el socket `/dev/log` están permitidos.
 
 No producen el aviso `Suspicious file types found in /dev`.
+
+Una línea restante que contiene `INFECTED`, o `Rootkit` y una ruta absoluta de archivo regular, es una detección confirmada.
+
+Una línea que contiene `Rootkit Hunter` se omite, salvo que también contenga `INFECTED`.
+
+Ese archivo va a `/var/lib/clamav/quarantine`.
+
+Un titular que no está protegido recibe `TERM`.
+
+Los titulares protegidos son el pid 1, el uid 0, un nombre vacío, `systemd`, `sshd`, `unbound`, `fail2ban` y `gamescope`.
+
+La misma regla cubre `/etc/passwd`, `/etc/shadow`, `/etc/sudoers`, `/etc/ssh/sshd_config`, `/etc/ufw/ufw.conf`, `/usr/bin/sudo`, `/usr/bin/passwd` y `/usr/sbin/sshd`.
+
+Una ruta o un titular protegido permanece en su sitio.
+
+El correo dice `non mis en quarantaine`.
+
+Cada archivo movido añade una orden de restauración.
+
+```bash
+sudo bash /opt/high-fortress-user/bin/quarantine-restore.sh <id>
+```
+
+El registro es `/opt/high-fortress-user/cron/quarantine.registry`.
+
+La línea de éxito es `fichier remis en place`.
+
+Un aviso que no está confirmado permanece como correo.
 
 ## chkrootkit
 
@@ -42,11 +82,15 @@ Las líneas conocidas están en `src/config/chkrootkit/patterns.ignore` y en `cr
 
 El archivo local se llena solo con la orden del correo, y solo para líneas que usted reconoce.
 
+Una detección confirmada usa el mismo desplazamiento y la misma regla `TERM` que rkhunter.
+
+La orden de registro se adjunta solo cuando ningún archivo confirmado fue movido.
+
 ## ClamAV al acceso
 
 | Servicio que vigila             | Zonas                   | Qué sale en alerta                           | Orden del correo                   |
 | ------------------------------- | ----------------------- | -------------------------------------------- | ---------------------------------- |
-| clamonacc, then clamav-event.sh | Carpetas XDG, /tmp, /var/tmp, /opt. | Una detección real. Los cerrojos no alertan. | `sudo ls -la -- <quarantine path>` |
+| clamonacc, then clamav-event.sh | Carpetas XDG, /tmp, /var/tmp, /opt. | Una detección real. Los cerrojos no alertan. | `sudo bash /opt/high-fortress-user/bin/quarantine-restore.sh <id>` |
 
 | Exclusión | Regla |
 | --- | --- |
@@ -108,7 +152,7 @@ Las líneas rkhunter ya presentes se quedan.
 
 | Servicio que vigila       | Zonas             | Qué sale en alerta                                     | Orden del correo     |
 | ------------------------- | ----------------- | ------------------------------------------------------ | -------------------- |
-| clamav.sh in boot-scan.sh | /home, /opt, /tmp | Infecciones. Un análisis limpio permanece en silencio. | Sin bloque de orden. |
+| clamav.sh in boot-scan.sh | /home, /opt, /tmp | Infecciones. Un análisis limpio permanece en silencio. | `sudo bash /opt/high-fortress-user/bin/quarantine-restore.sh <id>` |
 
 El análisis poda las entradas `OnAccessExcludePath` y las rutas aceptadas de `scan-skip.paths`.
 
@@ -150,7 +194,7 @@ El correo dice entonces que los archivos restantes no se leyeron.
 
 | Servicio que vigila | Zonas | Qué sale en alerta | Orden del correo |
 | --- | --- | --- | --- |
-| clamav.sh en hfu-periodic-scan.timer | /home, /opt, /tmp, con las mismas podas que la pasada de arranque. | Infecciones. Una pasada limpia permanece en silencio. | Sin bloque de orden. |
+| clamav.sh en hfu-periodic-scan.timer | /home, /opt, /tmp, con las mismas podas que la pasada de arranque. | Infecciones. Una pasada limpia permanece en silencio. | `sudo bash /opt/high-fortress-user/bin/quarantine-restore.sh <id>` |
 
 El temporizador es `OnBootSec=2h` y `OnUnitActiveSec=2h`, con `Persistent=false`.
 
@@ -176,7 +220,7 @@ La pasada de arranque lanza estos cuatro controles.
 
 | Servicio que vigila                  | Zonas                                                                                                         | Qué se alerta                                                                                                                    | Orden del correo         |
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| idle-scan.sh in hfu-idle-scan.timer | Rutas aceptadas, salvo `.cache` y `snap`. | Una infección nueva. Un par ya guardado en `scan-skip.seen` no vuelve a enviar correo. | Sin bloque de orden. |
+| idle-scan.sh in hfu-idle-scan.timer | Rutas aceptadas, salvo `.cache` y `snap`. | Una infección nueva. Un par ya guardado en `scan-skip.seen` no vuelve a enviar correo. | `sudo bash /opt/high-fortress-user/bin/quarantine-restore.sh <id>` |
 
 | Ajuste | Valor |
 | --- | --- |
@@ -188,6 +232,12 @@ La pasada de arranque lanza estos cuatro controles.
 | sello | avanza solo tras una pasada limpia |
 | cubiertas | `/var/jeux` |
 | no cubiertas | `$HOME/.cache`, `$HOME/snap` |
+
+Una infección nueva llama a `clamav-response.sh`.
+
+El archivo se mueve a `/var/lib/clamav/quarantine`. Un titular recibe TERM. El pid 1, el uid 0, un nombre vacío y los nombres systemd, sshd, unbound, fail2ban y gamescope quedan. Los flujos salientes nuevos se aíslan durante 120 segundos.
+
+Un par conocido de firma y ruta no llama a esa respuesta.
 
 Un proceso `clamscan` detenido por una señal envía correo.
 
@@ -279,7 +329,13 @@ La pasada sigue a debsums.sh.
 
 El sello es `/opt/high-fortress-user/cron/egress.stamp`.
 
-Una detección añade la tabla nftables `inet hfu_isolate` durante `HFU_NET_ISOLATE_SEC` segundos. Los flujos salientes nuevos se rechazan. El bucle local, el DNS y los flujos establecidos permanecen.
+Este control no aísla la red.
+
+A la línea del núcleo le siguen el proceso, el pid y el uid.
+
+La clave de audit es `hfu-egress`.
+
+La política de la tabla permanece accept.
 
 La salida permanece allow.
 

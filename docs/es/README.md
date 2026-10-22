@@ -2,7 +2,7 @@
 
 ## Descripción
 
-High-Fortress User prepara un puesto Ubuntu 26.04. Instala el resolutor DNS local, el cortafuegos y los controles de seguridad.
+High-Fortress User prepara un puesto Ubuntu 26.04 o posterior. Instala el resolutor DNS local, el cortafuegos y los controles de seguridad.
 
 La cuenta Ubuntu ya creada en la máquina no se sustituye. El instalador no crea una segunda cuenta.
 
@@ -12,7 +12,7 @@ La cuenta Ubuntu ya creada en la máquina no se sustituye. El instalador no crea
 
 ### Sistema
 
-Ubuntu 26.04. Una instalación nueva es preferible. Use una consola local o la sesión gráfica ya abierta. La máquina necesita Internet.
+Ubuntu 26.04 o posterior. Una instalación nueva es preferible. Use una consola local o la sesión gráfica ya abierta. La máquina necesita Internet.
 
 ### Acceso
 
@@ -136,6 +136,10 @@ sudo bash /opt/high-fortress-user/bin/chkrootkit-ignore-log.sh '/opt/high-fortre
 
 La orden registra las líneas de ese diario en `/opt/high-fortress-user/cron/chkrootkit.local.ignore`. La línea de éxito es `Aucune nouvelle détection à enregistrer.` cuando no hay nada nuevo, o `N détection(s) enregistrée(s) dans /opt/high-fortress-user/cron/chkrootkit.local.ignore`.
 
+Una detección confirmada mueve el archivo y adjunta la orden de restauración en su lugar.
+
+La orden de registro permanece solo cuando ningún archivo confirmado fue movido.
+
 ### debsums
 
 El mensaje contiene el resumen y el extracto del diario. No añade un bloque de orden. El control reinstala cada paquete que sigue señalado con `apt-get install --reinstall`. El correo nombra cada paquete restablecido. La línea de éxito es `La somme correspond.`
@@ -150,19 +154,27 @@ El archivo que entrega Ubuntu no coincide con la suma de ese paquete.
 
 ### ClamAV al acceso
 
-El mensaje contiene la firma, el nombre del archivo, la ruta de origen y la ruta de cuarentena, después la nota y una orden `sudo ls`.
+El mensaje contiene la firma, el nombre del archivo, la ruta de origen y la ruta de cuarentena, después la nota y una orden de restauración por archivo movido.
 
-El mismo diario indica la hora, el tipo de detección, las acciones aplicadas y una recomendación breve. La orden se construye para el archivo en cuarentena nombrado en el correo. Un archivo cuyo nombre coincide con `.clamav-quarantine-lock.*` no envía correo. El script sale con 0 antes del diario y antes de `hf_log_alert`.
+El mismo diario indica la hora, el tipo de detección, las acciones aplicadas y una recomendación breve. Un archivo cuyo nombre coincide con `.clamav-quarantine-lock.*` no envía correo. El script sale con 0 antes del diario y antes de `hf_log_alert`.
 
 ```bash
-sudo ls -la -- /var/lib/clamav/quarantine/<file>
+sudo bash /opt/high-fortress-user/bin/quarantine-restore.sh <id>
 ```
 
-El ejemplo muestra la forma. El correo contiene la ruta real, entre comillas. La orden lista ese archivo y no lo devuelve a su sitio. `ls` muestra la entrada. No hay línea de éxito del instalador.
+El ejemplo muestra la forma. El correo contiene el identificador real. La orden devuelve ese archivo a su ubicación de origen. La línea de éxito es `fichier remis en place`.
+
+El registro es `/opt/high-fortress-user/cron/quarantine.registry`.
 
 ### Análisis ClamAV al arranque
 
-El mensaje contiene el resumen y el extracto del diario. Este correo no añade un bloque de orden. La forma del diario es `/opt/high-fortress-user/cron/security_logs/clamav-YYYYMMDD-HHMMSS.log`.
+El mensaje contiene el resumen y el extracto del diario.
+
+Cuando un archivo fue movido, el correo añade una orden de restauración por archivo.
+
+La orden es la misma que la del correo de acceso.
+
+La forma del diario es `/opt/high-fortress-user/cron/security_logs/clamav-YYYYMMDD-HHMMSS.log`.
 
 Un archivo ilegible, sin línea `FOUND`, no envía correo.
 
@@ -182,7 +194,9 @@ El correo dice entonces que los archivos restantes no se leyeron.
 
 El mensaje contiene el resumen y el extracto del diario.
 
-Este correo no añade un bloque de orden.
+Cuando un archivo fue movido, el correo añade una orden de restauración por archivo.
+
+La orden es la misma que la del correo de acceso.
 
 Una firma y una ruta ya guardadas en `/opt/high-fortress-user/cron/scan-skip.seen` no vuelven a enviar correo.
 
@@ -209,6 +223,10 @@ sudo bash /opt/high-fortress-user/bin/rkhunter-refresh-db.sh
 ```
 
 La orden recalcula la base de propiedades de rkhunter a partir del disco actual. La línea de éxito es `Base de propriétés rkhunter enregistrée.`
+
+Una detección confirmada mueve el archivo y adjunta la orden de restauración en su lugar.
+
+La orden de recálculo permanece solo cuando ningún archivo confirmado fue movido.
 
 Los archivos de `/dev/shm` y el socket `/dev/log` están permitidos en `rkhunter.conf.local`.
 

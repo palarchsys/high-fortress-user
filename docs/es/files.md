@@ -35,6 +35,8 @@ Cada fila es un archivo que el instalador escribe, con el modo que el script fij
 | /opt/high-fortress-user/cron/integrity.sha256           | Sello de huella escrito por integrity.sh durante la pasada de arranque.                                 | 600                          |
 | /opt/high-fortress-user/cron/behavior.stamp             | Sello de ventana de auditoría escrito por behavior.sh durante la pasada de arranque.            | 600                          |
 | /opt/high-fortress-user/cron/egress.stamp               | Sello de ventana del diario saliente escrito por egress-watch.sh durante la pasada de arranque. | 600                          |
+| /opt/high-fortress-user/cron/quarantine.registry        | Ubicación de origen de cada archivo en cuarentena.                                                       | 600                          |
+| /opt/high-fortress-user/bin/quarantine-restore.sh       | Devuelve un archivo registrado a su ubicación de origen.                                                 | 755                          |
 | /opt/high-fortress-user/cron/bin/clamav-response.sh     | Cuarentena, señal de proceso y aislamiento corto tras una detección.                            | 750                          |
 | /opt/high-fortress-user/src/service/apparmor/detect-and-apply.sh | Carga un perfil hfu solo si el programa existe.                                                   | 755                          |
 | /opt/high-fortress-user/bin/scan-skip.sh                | Lista, añade o quita una ruta excluida y reinicia ClamAV cuando el bloque cambia.                         | 755                          |

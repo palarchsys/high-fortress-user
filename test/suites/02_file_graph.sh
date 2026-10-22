@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : test/suites/02_file_graph.sh
-# Updated at : 2026-10-20
+# Updated at : 2026-10-22
 # Creator    : palarchsys
 # =============================================================================
 
@@ -461,6 +461,11 @@ fi
 grep -q 'authorized_keys' "${HFT_ROOT}/service/aide/configure.sh" || daily_ok=0
 grep -q '!/home/' "${HFT_ROOT}/config/aide/aide.conf" || daily_ok=0
 awk '
+    $1 == "/etc" { etc = NR }
+    $0 == "!/etc/crowdsec/hub/.index.json" { ex = NR }
+    END { exit !(etc && ex && ex > etc) }
+' "${HFT_ROOT}/config/aide/aide.conf" || daily_ok=0
+awk '
     /out\.extend/ { ext = NR }
     /path\.write_text/ { wr = NR }
     END { exit !(ext && wr && wr > ext) }
@@ -611,6 +616,16 @@ grep -q 're.escape' "${root}/service/cron/watchdogs/apply-scan-skip.sh"
 grep -q 'HFU_BASE}/src' "${root}/service/cron/watchdogs/apply-scan-skip.sh"
 grep -qF 'sub(/^\^/' "${root}/service/cron/watchdogs/clamav.sh"
 grep -q 'mktemp -p /run/high-fortress-user' "${root}/service/cron/watchdogs/clamav.sh"
+grep -q 'HFU_CLAMAV_EVENT_KIND=idle' "${root}/service/cron/watchdogs/idle-scan.sh"
+grep -q 'HFU_CLAMAV_EVENT_MAIL=0' "${root}/service/cron/watchdogs/idle-scan.sh"
+grep -q 'clamav-response.sh' "${root}/service/cron/watchdogs/idle-scan.sh"
+grep -q 'idle) kind_label="passe différée"' "${root}/service/cron/watchdogs/clamav-response.sh"
+awk '
+    /== "infected"/ { inf = NR }
+    /HFU_CLAMAV_EVENT_KIND=idle/ { if (!call) call = NR; last = NR }
+    /infections déjà signalées/ { known = NR }
+    END { exit !(inf && call && known && inf < call && last < known) }
+' "${root}/service/cron/watchdogs/idle-scan.sh"
 grep -q 'HF_CLAM_MODE=daemon' "${root}/service/cron/watchdogs/clamav.sh"
 grep -q 'flock -n 9' "${root}/service/cron/watchdogs/clamav.sh"
 ! grep -q 'clamdscan' "${root}/service/cron/watchdogs/clamav.sh"
@@ -628,6 +643,7 @@ grep -q 'hfu_run_check egress-watch.sh' "${root}/service/cron/watchdogs/boot-sca
 grep -q 'nft add table inet hfu_egress' "${root}/service/ufw/egress.sh"
 grep -q 'hfu-egress-table.service' "${root}/service/ufw/egress.sh"
 grep -q 'config/integrity/paths.list' "${root}/service/cron/configure.sh"
+grep -Fq 'hf_run_silent bash "${HF_CONFIG_BASE_DIRECTORY}/cron/bin/integrity.sh"' "${root}/service/cron/configure.sh"
 grep -Fq '${HF_CONFIG_BASE_DIRECTORY}/config/global.conf' "${root}/service/cron/configure.sh"
 ! grep -q 'HFU_NET_ISOLATE=' "${root}/config/ufw/egress.conf"
 ! grep -q 'HFU_NET_ISOLATE:-' "${root}/service/cron/watchdogs/clamav-response.sh"
@@ -645,6 +661,23 @@ test ! -e "${root}/config/cron/hfu-integrity.timer"
 grep -q 'systemctl disable --now hfu-integrity.timer' "${root}/service/cron/configure.sh"
 grep -q 'systemctl disable --now hfu-behavior.timer' "${root}/service/cron/configure.sh"
 grep -q 'systemctl disable --now hfu-egress-watch.timer' "${root}/service/cron/configure.sh"
+grep -q -- '-S connect' "${root}/config/auditd/tail.rules"
+grep -q -- '-k hfu-egress' "${root}/config/auditd/tail.rules"
+grep -q 'ausearch' "${root}/service/cron/watchdogs/egress-watch.sh"
+grep -q 'flux sortants hors des ports 53, 80 et 443' "${root}/service/cron/watchdogs/egress-watch.sh"
+! grep -q 'reject' "${root}/service/cron/watchdogs/egress-watch.sh"
+grep -q 'hf_record_quarantine_origin' "${root}/../core/watchdog.sh"
+grep -q 'quarantine-restore.sh' "${root}/../core/watchdog.sh"
+grep -q 'hf_quarantine_confirmed_log' "${root}/service/cron/watchdogs/rkhunter.sh"
+grep -q 'hf_quarantine_confirmed_log' "${root}/service/cron/watchdogs/chkrootkit.sh"
+grep -q 'non mis en quarantaine' "${root}/../core/watchdog.sh"
+! grep -q 'pre-wrap' "${root}/template/mail.html"
+! grep -q 'width:840px' "${root}/template/mail.html"
+! grep -q 'max-content' "${root}/template/mail.html"
+! grep -q 'min-width:100%' "${root}/template/mail.html"
+grep -q 'min-width:450px' "${root}/template/mail.html"
+grep -q 'white-space:pre' "${root}/template/mail.html"
+grep -q 'quarantine-restore.sh' "${root}/service/cron/configure.sh"
 WATCH
 if [[ "${watch_rc}" -eq 0 ]]; then
     hft_pass "graph.watch" "surveillance continue et contrôles au démarrage"

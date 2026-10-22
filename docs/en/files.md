@@ -35,6 +35,8 @@ Each row is a file the installer writes, with the mode the script sets. Files in
 | /opt/high-fortress-user/cron/integrity.sha256           | Hash stamp written by integrity.sh during the boot scan.                                        | 600                          |
 | /opt/high-fortress-user/cron/behavior.stamp             | Audit window stamp written by behavior.sh during the boot scan.                                 | 600                          |
 | /opt/high-fortress-user/cron/egress.stamp               | Outbound window stamp written by egress-watch.sh during the boot scan.                          | 600                          |
+| /opt/high-fortress-user/cron/quarantine.registry        | Original path of each quarantined file.                                                          | 600                          |
+| /opt/high-fortress-user/bin/quarantine-restore.sh       | Puts one registered file back at its original path.                                             | 755                          |
 | /opt/high-fortress-user/cron/bin/clamav-response.sh     | Quarantine, process signal, and short isolation after a detection.                              | 750                          |
 | /opt/high-fortress-user/src/service/apparmor/detect-and-apply.sh | Loads an hfu profile only when the program exists.                               | 755                          |
 | /opt/high-fortress-user/bin/scan-skip.sh                | Lists, adds or removes an excluded path, then restarts ClamAV when the block changes.            | 755                          |

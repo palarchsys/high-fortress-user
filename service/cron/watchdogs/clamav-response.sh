@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/clamav-response.sh
-# Updated at : 2026-10-20
+# Updated at : 2026-10-22
 # Creator    : palarchsys
 # =============================================================================
 # -----------------------------------------------------------------------------
@@ -28,6 +28,7 @@ virus="${HFU_CLAMAV_EVENT_VIRUS:-${CLAM_VIRUSEVENT_VIRUSNAME:-inconnu}}"
 kind="${HFU_CLAMAV_EVENT_KIND:-onaccess}"
 case "${kind}" in
     periodic) kind_label="scan périodique" ;;
+    idle) kind_label="passe différée" ;;
     *) kind_label="accès" ;;
 esac
 action_quarantine="quarantaine non appliquée"
@@ -169,6 +170,16 @@ hfu_apply_net_isolate() {
 }
 
 hfu_apply_clamav_quarantine
+if declare -F hf_record_quarantine_origin >/dev/null 2>&1; then
+    case "${action_quarantine}" in
+        "déplacé en quarantaine"|"renommé en quarantaine")
+            hf_record_quarantine_origin clamav "${file}" "${stored}" "${virus}" || true
+            ;;
+        "déjà en quarantaine")
+            hf_queue_existing_restore "${stored}" || true
+            ;;
+    esac
+fi
 hfu_signal_clamav_holder
 hfu_apply_net_isolate
 

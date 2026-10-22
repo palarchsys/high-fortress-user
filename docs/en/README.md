@@ -2,7 +2,7 @@
 
 ## Description
 
-High-Fortress User prepares an Ubuntu 26.04 workstation. It installs the local DNS resolver, the firewall, and the security checks.
+High-Fortress User prepares an Ubuntu 26.04 or newer workstation. It installs the local DNS resolver, the firewall, and the security checks.
 
 The Ubuntu account already created on the machine is not replaced. The installer does not create a second account.
 
@@ -12,7 +12,7 @@ The Ubuntu account already created on the machine is not replaced. The installer
 
 ### System
 
-Ubuntu 26.04. A fresh installation is preferred. Use a local console or the existing graphical session. The machine needs Internet access.
+Ubuntu 26.04 or newer. A fresh installation is preferred. Use a local console or the existing graphical session. The machine needs Internet access.
 
 ### Access
 
@@ -136,6 +136,10 @@ sudo bash /opt/high-fortress-user/bin/chkrootkit-ignore-log.sh '/opt/high-fortre
 
 The command records the lines of that journal into `/opt/high-fortress-user/cron/chkrootkit.local.ignore`. The success line is `Aucune nouvelle détection à enregistrer.` when nothing new is added, or `N détection(s) enregistrée(s) dans /opt/high-fortress-user/cron/chkrootkit.local.ignore`.
 
+A confirmed detection moves the file and attaches the restore command instead.
+
+The ignore command stays only when no confirmed file was moved.
+
 ### debsums
 
 The message contains the summary and the journal excerpt. It does not add a command block. The check reinstalls each package still listed with `apt-get install --reinstall`. The mail names each restored package. The success line is `La somme correspond.`
@@ -150,19 +154,27 @@ The file shipped by Ubuntu does not match that package checksum.
 
 ### ClamAV on access
 
-The message contains the signature, the file name, the original path and the quarantine path, then the note and a `sudo ls` command.
+The message contains the signature, the file name, the original path and the quarantine path, then the note and one restore command per moved file.
 
-The same journal names the time, the kind of detection, the actions taken and a short recommendation. The command is built for the quarantined file named in the mail. A file whose basename matches `.clamav-quarantine-lock.*` does not send mail. The script exits 0 before the journal and before `hf_log_alert`.
+The same journal names the time, the kind of detection, the actions taken and a short recommendation. A file whose basename matches `.clamav-quarantine-lock.*` does not send mail. The script exits 0 before the journal and before `hf_log_alert`.
 
 ```bash
-sudo ls -la -- /var/lib/clamav/quarantine/<file>
+sudo bash /opt/high-fortress-user/bin/quarantine-restore.sh <id>
 ```
 
-The example shows the form. The mail contains the real path, quoted. The command lists that file and does not put it back. `ls` prints the directory entry. There is no installer success line.
+The example shows the form. The mail contains the real id. The command puts that file back at its original path. The success line is `fichier remis en place`.
+
+The registry is `/opt/high-fortress-user/cron/quarantine.registry`.
 
 ### ClamAV boot scan
 
-The message contains the summary and the journal excerpt. This mail does not add a command block. The journal form is `/opt/high-fortress-user/cron/security_logs/clamav-YYYYMMDD-HHMMSS.log`.
+The message contains the summary and the journal excerpt.
+
+When a file was moved, the mail adds one restore command per file.
+
+The command is the same as the on-access mail.
+
+The journal form is `/opt/high-fortress-user/cron/security_logs/clamav-YYYYMMDD-HHMMSS.log`.
 
 A file that cannot be read, with no `FOUND` line, does not send mail.
 
@@ -182,7 +194,9 @@ The mail then says that the remaining files were not read.
 
 The message contains the summary and the journal excerpt.
 
-This mail does not add a command block.
+When a file was moved, the mail adds one restore command per file.
+
+The command is the same as the on-access mail.
 
 A signature and path already stored in `/opt/high-fortress-user/cron/scan-skip.seen` do not send mail again.
 
@@ -209,6 +223,10 @@ sudo bash /opt/high-fortress-user/bin/rkhunter-refresh-db.sh
 ```
 
 The command rebuilds the rkhunter property baseline from the current disk. The success line is `Base de propriétés rkhunter enregistrée.`
+
+A confirmed detection moves the file and attaches the restore command instead.
+
+The refresh command stays only when no confirmed file was moved.
 
 Files in `/dev/shm` and the socket `/dev/log` are allowed in `rkhunter.conf.local`.
 

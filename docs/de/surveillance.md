@@ -2,6 +2,12 @@
 
 # Überwachung
 
+Eine Journalzeile in einer Alarmpost bleibt auf einer Zeile.
+
+Die Alarmpost ist 450px breit.
+
+Eine lange Journalzeile läuft im Journalblock weiter.
+
 ## AIDE
 
 | Dienst, der überwacht   | Zonen                                               | Was als Alarm geht                                                       | Befehl der Post                                            |
@@ -9,6 +15,12 @@
 | aide.sh in boot-scan.sh | /etc/aide/aide.conf, database /var/lib/aide/aide.db | Änderungen, oder ein Code ungleich null, der kein sauberes Ergebnis ist. | `sudo bash /opt/high-fortress-user/bin/aide-refresh-db.sh` |
 
 Flüchtige Pfade, Journale, Caches und die Cron-Berichtverzeichnisse sind in `config/aide/aide.conf` ausgeschlossen, damit die Basis nicht von diesen Dateien neu geschrieben wird.
+
+Die Datei `/etc/crowdsec/hub/.index.json` ist ausgeschlossen.
+
+Sie ist der Katalog, den `cscli hub update` herunterlädt.
+
+Die anderen Dateien unter `/etc/crowdsec/` werden überwacht.
 
 Der Kontenblock wird nach `!/home/` angehängt.
 
@@ -24,13 +36,41 @@ Die überwachten Pfade sind `.ssh/authorized_keys`, `.bashrc`, `.profile`, `.bas
 | --------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------ |
 | rkhunter.sh in boot-scan.sh | Prüfumfang des Pakets, plus die Eigenschaftsbasis. | Warnungen, ein fehlgeschlagenes Update, oder `mirrors.dat modifié hors rkhunter --update`. | `sudo bash /opt/high-fortress-user/bin/rkhunter-refresh-db.sh` |
 
-Der Postbefehl steht in der Warnpost. Die Stempelzeile und ein fehlgeschlagenes Update fügen ihn nicht hinzu.
+Der Neuberechnungsbefehl steht in der Warnpost, wenn keine bestätigte Datei verschoben wurde. Die Stempelzeile und ein fehlgeschlagenes Update fügen ihn nicht hinzu.
 
 `/var/lib/rkhunter/db/mirrors.dat` wird nicht als Datei ignoriert. Der Stempel `/opt/high-fortress-user/cron/rkhunter-mirrors.sha256` wird nur geschrieben, wenn `rkhunter --update` 0 oder 2 zurückgibt. Ein anderer Hash ist ein Alarm. Die Prüfung läuft vor dem nächsten `--update`.
 
 Dateien unter `/dev/shm` und der Socket `/dev/log` sind erlaubt.
 
 Sie erzeugen nicht die Warnung `Suspicious file types found in /dev`.
+
+Eine verbleibende Zeile, die `INFECTED` enthält, oder `Rootkit` und einen absoluten Pfad einer regulären Datei, ist ein bestätigter Fund.
+
+Eine Zeile, die `Rootkit Hunter` enthält, wird übersprungen, außer sie enthält auch `INFECTED`.
+
+Diese Datei geht nach `/var/lib/clamav/quarantine`.
+
+Ein Halter, der nicht geschützt ist, erhält `TERM`.
+
+Geschützte Halter sind pid 1, uid 0, ein leerer Name, `systemd`, `sshd`, `unbound`, `fail2ban` und `gamescope`.
+
+Dieselbe Regel gilt für `/etc/passwd`, `/etc/shadow`, `/etc/sudoers`, `/etc/ssh/sshd_config`, `/etc/ufw/ufw.conf`, `/usr/bin/sudo`, `/usr/bin/passwd` und `/usr/sbin/sshd`.
+
+Ein geschützter Pfad oder Halter bleibt an seinem Ort.
+
+Die Post sagt `non mis en quarantaine`.
+
+Jede verschobene Datei fügt einen Wiederherstellungsbefehl hinzu.
+
+```bash
+sudo bash /opt/high-fortress-user/bin/quarantine-restore.sh <id>
+```
+
+Das Register ist `/opt/high-fortress-user/cron/quarantine.registry`.
+
+Die Erfolgszeile ist `fichier remis en place`.
+
+Eine Warnung, die nicht bestätigt ist, bleibt eine Post.
 
 ## chkrootkit
 
@@ -42,11 +82,15 @@ Bekannte Zeilen stehen in `src/config/chkrootkit/patterns.ignore` und in `cron/c
 
 Die lokale Datei wird nur durch den Befehl aus der Post gefüllt, und nur für Zeilen, die Sie erkennen.
 
+Ein bestätigter Fund nutzt dieselbe Verschiebung und dieselbe `TERM`-Regel wie rkhunter.
+
+Der Ignorierbefehl wird nur angehängt, wenn keine bestätigte Datei verschoben wurde.
+
 ## ClamAV beim Zugriff
 
 | Dienst, der überwacht           | Zonen                  | Was als Alarm geht                              | Befehl der Post                    |
 | ------------------------------- | ---------------------- | ----------------------------------------------- | ---------------------------------- |
-| clamonacc, then clamav-event.sh | XDG-Ordner, /tmp, /var/tmp, /opt. | Ein echter Fund. Sperrdateien alarmieren nicht. | `sudo ls -la -- <quarantine path>` |
+| clamonacc, then clamav-event.sh | XDG-Ordner, /tmp, /var/tmp, /opt. | Ein echter Fund. Sperrdateien alarmieren nicht. | `sudo bash /opt/high-fortress-user/bin/quarantine-restore.sh <id>` |
 
 | Ausschluss | Regel |
 | --- | --- |
@@ -108,7 +152,7 @@ Vorhandene rkhunter-Zeilen bleiben.
 
 | Dienst, der überwacht     | Zonen             | Was als Alarm geht                              | Befehl der Post    |
 | ------------------------- | ----------------- | ----------------------------------------------- | ------------------ |
-| clamav.sh in boot-scan.sh | /home, /opt, /tmp | Infektionen. Eine saubere Prüfung bleibt still. | Kein Befehlsblock. |
+| clamav.sh in boot-scan.sh | /home, /opt, /tmp | Infektionen. Eine saubere Prüfung bleibt still. | `sudo bash /opt/high-fortress-user/bin/quarantine-restore.sh <id>` |
 
 Die Prüfung schneidet `OnAccessExcludePath`-Einträge und die akzeptierten Pfade aus `scan-skip.paths` ab.
 
@@ -150,7 +194,7 @@ Die Post sagt dann, dass die restlichen Dateien nicht gelesen wurden.
 
 | Dienst, der überwacht | Zonen | Was als Alarm geht | Befehl der Post |
 | --- | --- | --- | --- |
-| clamav.sh in hfu-periodic-scan.timer | /home, /opt, /tmp, mit denselben Schnitten wie der Startlauf. | Infektionen. Ein sauberer Lauf bleibt still. | Kein Befehlsblock. |
+| clamav.sh in hfu-periodic-scan.timer | /home, /opt, /tmp, mit denselben Schnitten wie der Startlauf. | Infektionen. Ein sauberer Lauf bleibt still. | `sudo bash /opt/high-fortress-user/bin/quarantine-restore.sh <id>` |
 
 Der Timer ist `OnBootSec=2h` und `OnUnitActiveSec=2h`, mit `Persistent=false`.
 
@@ -176,7 +220,7 @@ Der Startlauf startet diese vier Kontrollen.
 
 | Dienst, der prüft                   | Zonen                                                                                                      | Was alarmiert wird                                                                                                              | Postbefehl               |
 | ----------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| idle-scan.sh in hfu-idle-scan.timer | Akzeptierte Pfade, außer `.cache` und `snap`. | Ein neuer Fund. Ein bekanntes Paar in `scan-skip.seen` sendet keine Post mehr. | Kein Befehlsblock. |
+| idle-scan.sh in hfu-idle-scan.timer | Akzeptierte Pfade, außer `.cache` und `snap`. | Ein neuer Fund. Ein bekanntes Paar in `scan-skip.seen` sendet keine Post mehr. | `sudo bash /opt/high-fortress-user/bin/quarantine-restore.sh <id>` |
 
 | Einstellung | Wert |
 | --- | --- |
@@ -188,6 +232,12 @@ Der Startlauf startet diese vier Kontrollen.
 | Stempel | rückt nur nach einem sauberen Lauf vor |
 | abgedeckt | `/var/jeux` |
 | nicht abgedeckt | `$HOME/.cache`, `$HOME/snap` |
+
+Ein neuer Fund ruft `clamav-response.sh` auf.
+
+Die Datei wird nach `/var/lib/clamav/quarantine` verschoben. Ein Halter erhält TERM. pid 1, uid 0, ein leerer Name und die Namen systemd, sshd, unbound, fail2ban und gamescope bleiben. Neue ausgehende Flüsse werden für 120 Sekunden isoliert.
+
+Ein bekanntes Paar aus Signatur und Pfad ruft diese Antwort nicht auf.
 
 Ein durch ein Signal gestoppter `clamscan` sendet Post.
 
@@ -279,7 +329,13 @@ Der Lauf folgt auf debsums.sh.
 
 Der Stempel ist `/opt/high-fortress-user/cron/egress.stamp`.
 
-Eine Erkennung legt die nftables-Tabelle `inet hfu_isolate` für `HFU_NET_ISOLATE_SEC` Sekunden an. Neue ausgehende Flüsse werden abgewiesen. Loopback, DNS und bestehende Flüsse bleiben.
+Diese Prüfung isoliert das Netz nicht.
+
+Auf die Kernelzeile folgen der Prozess, die pid und die uid.
+
+Der Audit-Schlüssel ist `hfu-egress`.
+
+Die Tabellenpolitik bleibt accept.
 
 Ausgehend bleibt allow.
 

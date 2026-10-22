@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : test/suites/09_watchdog_branches.sh
-# Updated at : 2026-10-20
+# Updated at : 2026-10-22
 # Creator    : palarchsys
 # =============================================================================
 # -----------------------------------------------------------------------------
@@ -517,6 +517,81 @@ export HFU_CLAMAV_EVENT_VIRUS=Eicar"
 hft_check_user_sec branch.usr.response.clamp-low 10 120
 hft_check_user_sec branch.usr.response.clamp-high 400 120
 hft_check_user_sec branch.usr.response.sec 45 45
+
+hft_prepare_user egress-watch.sh
+cat > "${work}/probe.sh" << EOF
+#!/usr/bin/env bash
+set +e
+export HFU_BASE="${base}"
+export HFU_CLAMAV_QUARANTINE_DIR="${work}/quarantine"
+source "${parent}/core/watchdog.sh"
+result="${work}/quarantine-result.txt"
+: > "\${result}"
+sample="${work}/samples/plain.txt"
+printf 'plain\n' > "\${sample}"
+log="${work}/warn.log"
+printf '%s\n' "Rootkit Hunter version 1.4.6" "Warning: The file properties have changed" "\${sample}" > "\${log}"
+: > "${work}/holder.pid"
+hf_quarantine_confirmed_log rkhunter "\${log}" systemd sshd unbound fail2ban gamescope > "${work}/warn.out"
+if [[ "\${HF_CONFIRMED_COUNT}" -eq 0 ]] && [[ ! -e "${base}/cron/quarantine.registry" ]] && [[ -f "\${sample}" ]]; then
+    printf '%s\n' "warn-ok" >> "\${result}"
+fi
+evil="${work}/samples/evil.bin"
+printf 'evil\n' > "\${evil}"
+printf '%s\n' "INFECTED: \${evil}" > "\${log}"
+hf_quarantine_confirmed_log rkhunter "\${log}" systemd sshd unbound fail2ban gamescope > "${work}/move.out"
+if [[ ! -e "\${evil}" ]] && grep -q "\${evil}" "${base}/cron/quarantine.registry" && grep -q 'quarantine-restore.sh' "${base}/cron/quarantine.pending"; then
+    printf '%s\n' "move-ok" >> "\${result}"
+fi
+hf_take_quarantine_note
+if printf '%s\n' "\${NOTE_CMD}" | grep -q 'quarantine-restore.sh' && [[ ! -e "${base}/cron/quarantine.pending" ]]; then
+    printf '%s\n' "take-ok" >> "\${result}"
+fi
+printf '%s\n' "INFECTED: /etc/passwd" > "\${log}"
+hf_quarantine_confirmed_log rkhunter "\${log}" systemd sshd unbound fail2ban gamescope > "${work}/prot.out"
+if [[ -f /etc/passwd ]] && grep -q 'non mis en quarantaine' "${work}/prot.out" && ! grep -q '/etc/passwd' "${base}/cron/quarantine.registry"; then
+    printf '%s\n' "prot-ok" >> "\${result}"
+fi
+held="${work}/samples/held.bin"
+printf 'held\n' > "\${held}"
+printf '1\n' > "${work}/holder.pid"
+printf '%s\n' "Rootkit \${held}" > "\${log}"
+hf_quarantine_confirmed_log rkhunter "\${log}" systemd sshd unbound fail2ban gamescope > "${work}/pid.out"
+if [[ -f "\${held}" ]] && grep -q 'non mis en quarantaine : pid 1' "${work}/pid.out"; then
+    printf '%s\n' "pid-ok" >> "\${result}"
+fi
+printf '%s\n' 'oct. 22 06:20:42 host kernel: hfu-egress IN= OUT=eth0 SRC=10.0.0.1 DST=74.125.206.109 PROTO=TCP SPT=34730 DPT=587' 'oct. 22 06:20:42 host kernel: hfu-egress IN= OUT=eth0 SRC=10.0.0.1 DST=74.125.206.109 PROTO=TCP SPT=34730 DPT=587' 'oct. 22 06:20:43 host kernel: hfu-egress IN= OUT=eth0 SRC=10.0.0.1 DST=1.2.3.4 PROTO=TCP SPT=9 DPT=9' > "${work}/kern.txt"
+printf '%s\n' 'type=SYSCALL msg=audit(1.1:1): arch=c000003e syscall=42 success=yes comm="curl" pid=1842 uid=1000' 'type=SOCKADDR msg=audit(1.1:1): saddr=0200024B4A7DCE6D' > "${work}/audit.txt"
+hf_format_egress_body "${work}/kern.txt" "${work}/audit.txt" > "${work}/egress.out"
+if grep -q 'Processus : curl (pid 1842) uid 1000' "${work}/egress.out" && grep -q 'Processus : non associé' "${work}/egress.out" && [[ "\$(grep -c 'DPT=587' "${work}/egress.out")" -eq 1 ]]; then
+    printf '%s\n' "egress-ok" >> "\${result}"
+fi
+hf_format_egress_body "${work}/kern.txt" "" > "${work}/egress-plain.out"
+if grep -q 'hfu-egress' "${work}/egress-plain.out" && ! grep -q 'Processus' "${work}/egress-plain.out"; then
+    printf '%s\n' "plain-ok" >> "\${result}"
+fi
+restore_out="\$(bash "${parent}/core/quarantine-restore.sh" 20261022-010101-1-evil 2>&1)"
+restore_rc=\$?
+if [[ "\${restore_rc}" -eq 1 ]] && printf '%s\n' "\${restore_out}" | grep -Eq 'root requis|identifiant absent du registre'; then
+    printf '%s\n' "restore-ok" >> "\${result}"
+fi
+exit 0
+EOF
+chmod 755 "${work}/probe.sh"
+hft_run_user "${work}/probe.sh"
+if [[ "$(hft_got_status)" == "0" ]] \
+    && grep -qx 'warn-ok' "${work}/quarantine-result.txt" \
+    && grep -qx 'move-ok' "${work}/quarantine-result.txt" \
+    && grep -qx 'take-ok' "${work}/quarantine-result.txt" \
+    && grep -qx 'prot-ok' "${work}/quarantine-result.txt" \
+    && grep -qx 'pid-ok' "${work}/quarantine-result.txt" \
+    && grep -qx 'egress-ok' "${work}/quarantine-result.txt" \
+    && grep -qx 'plain-ok' "${work}/quarantine-result.txt" \
+    && grep -qx 'restore-ok' "${work}/quarantine-result.txt"; then
+    hft_pass "branch.usr.quarantine" "registre, chemin protégé et processus du flux"
+else
+    hft_fail "branch.usr.quarantine" "statut $(hft_got_status) $(tr '\n' ' ' < "${work}/quarantine-result.txt" 2>/dev/null || true) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
+fi
 
 hft_stop_holder
 

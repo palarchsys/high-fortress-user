@@ -18,7 +18,7 @@ Die Namen und Vorgaben unten sind die mitgelieferte `user/config/global.conf` un
 | HF_MODE_TEST                  | 1                                                                | Wird gefragt. `1` überspringt die Entfernungsfrage am Ende. `0` stellt sie.                            |
 | HF_LYNIS_MIN_SCORE            | 80                                                               | Mindestens akzeptierter Härtungsindex. Wird nicht gefragt.                                             |
 | HFU_OS_ID                  | ubuntu                                                           | Von der Prüfung festgeschrieben.                                                                       |
-| HFU_OS_VERSION             | 26.04                                                            | Von der Prüfung festgeschrieben.                                                                       |
+| HFU_OS_VERSION             | 26.04                                                            | Das laufende System muss diese Version oder eine neuere sein.                       |
 | HF_BANNER_MESSAGE             | text in global.conf                                              | Wird nach `/etc/ssh/sshd_banner` geschrieben. Wird nicht gefragt.                                      |
 | HF_SSH_BANNER_PATH            | /etc/ssh/sshd_banner                                             | Bannerdatei. Wird nicht gefragt.                                                                       |
 | HF_SSH_SERVICE_NAME           | ssh                                                              | Dienstname. Wird nicht gefragt.                                                                        |
@@ -71,7 +71,7 @@ Die Datei wird in `config/`, neben `global.conf` geschrieben, Modus `600`, Eigen
 | integrity.sh                  | boot-scan.sh, nach aide.sh            | Prüfsumme von config/integrity/paths.list. Der erste Lauf schreibt cron/integrity.sha256 und bleibt still. |
 | behavior.sh                   | boot-scan.sh, nach rkhunter.sh        | Liest exec-tmp-Ereignisse seit cron/behavior.stamp. Der erste Lauf schreibt den Stempel und bleibt still. auditd bleibt im Dienst. |
 | inet hfu_egress               | installiert                           | Protokolliert neue ausgehende Flüsse außerhalb der Ports 53, 80 und 443. Politik accept. Ausgehend bleibt allow. |
-| egress-watch.sh               | boot-scan.sh, nach debsums.sh         | Liest Kernelzeilen mit Präfix hfu-egress seit cron/egress.stamp. Der erste Lauf schreibt den Stempel und bleibt still. |
+| egress-watch.sh               | boot-scan.sh, nach debsums.sh         | Liest Kernelzeilen mit Präfix hfu-egress seit cron/egress.stamp, dann den Prozess aus dem Audit-Schlüssel hfu-egress. Der erste Lauf schreibt den Stempel und bleibt still. Diese Prüfung isoliert nicht. |
 | Netzisolation                 | immer                                     | Weist nach einem Fund neue ausgehende Flüsse für HFU_NET_ISOLATE_SEC ab. Loopback, DNS und bestehende Flüsse bleiben. Die ausgehende Politik bleibt allow. |
 | HFU_NET_ISOLATE_SEC           | 120                                       | Sekunden bis zum Entfernen dieser Isolation. Minimum 30, Maximum 300. |
 | HFU_CROWDSEC_BAN_DURATION     | 48h                                       | Wird in die CrowdSec-Profile geschrieben. |

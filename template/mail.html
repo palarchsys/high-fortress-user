@@ -12,18 +12,18 @@
 <title>${HF_PROJECT_NAME} • ${HOSTNAME} • ${DATE}</title>
 </head>
 <body style="margin:0;background:#0f172a;font-family:system-ui,sans-serif;">
-<div style="width:840px;margin:20px auto;background:#111827;border-radius:12px;overflow:hidden;">
+<div style="width:450px;min-width:450px;margin:20px auto;background:#111827;border-radius:12px;box-sizing:border-box;">
     <div style="padding:20px 25px;border-bottom:1px solid #334155;">
         <h1 style="font-size:22px;color:#f8fafc;margin:0;">${TITLE}</h1>
         <div style="font-size:13px;color:#94a3b8;margin-top:4px;">${HF_PROJECT_NAME} • ${HOSTNAME} • ${DATE}</div>
     </div>
-    <div style="padding:25px;">
-        <p style="color:#cbd5e1;font-size:13px;"><strong>Module :</strong> ${MODULE_NAME}</p>
-        <pre style="background:#020617;border:1px solid #334155;border-radius:8px;padding:16px;color:#e2e8f0;white-space:pre-wrap;font-size:12px;">${CONTENT}</pre>
+    <div style="padding:25px 0;">
+        <p style="color:#cbd5e1;font-size:13px;padding:0 25px;"><strong>Module :</strong> ${MODULE_NAME}</p>
+        <pre style="box-sizing:border-box;display:block;width:450px;min-width:450px;max-width:450px;background:#020617;border:1px solid #334155;border-radius:8px;padding:16px;color:#e2e8f0;white-space:pre;overflow-x:auto;font-size:12px;">${CONTENT}</pre>
         <!--NOTE_START-->
-        <div style="margin-top:18px;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:16px;">
+        <div style="margin:18px 25px 0;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:16px;">
             <p style="color:#e2e8f0;font-size:13px;line-height:1.55;margin:0 0 12px;">${NOTE}</p>
-            <pre style="background:#020617;border:1px solid #334155;border-radius:8px;padding:12px;color:#86efac;white-space:pre;overflow-x:auto;font-size:12px;margin:0;">${NOTE_CMD}</pre>
+            <pre style="background:#020617;border:1px solid #334155;border-radius:8px;padding:12px;color:#86efac;white-space:pre;overflow-x:auto;max-width:100%;font-size:12px;margin:0;">${NOTE_CMD}</pre>
         </div>
         <!--NOTE_END-->
     </div>

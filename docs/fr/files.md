@@ -35,6 +35,8 @@ Chaque ligne est un fichier que l'installeur écrit, avec le mode que le script 
 | /opt/high-fortress-user/cron/integrity.sha256           | Cachet d'empreinte écrit par integrity.sh pendant la passe de démarrage.                                | 600                          |
 | /opt/high-fortress-user/cron/behavior.stamp             | Cachet de fenêtre d'audit écrit par behavior.sh pendant la passe de démarrage.                  | 600                          |
 | /opt/high-fortress-user/cron/egress.stamp               | Cachet de fenêtre du journal sortant écrit par egress-watch.sh pendant la passe de démarrage.   | 600                          |
+| /opt/high-fortress-user/cron/quarantine.registry        | Emplacement d'origine de chaque fichier mis en quarantaine.                                      | 600                          |
+| /opt/high-fortress-user/bin/quarantine-restore.sh       | Remet un fichier enregistré à son emplacement d'origine.                                         | 755                          |
 | /opt/high-fortress-user/cron/bin/clamav-response.sh     | Quarantaine, signal de processus et isolation courte après une détection.                       | 750                          |
 | /opt/high-fortress-user/src/service/apparmor/detect-and-apply.sh | Charge un profil hfu seulement si le programme existe.                                            | 755                          |
 | /opt/high-fortress-user/bin/scan-skip.sh                | Liste, ajoute ou retire un chemin exclu, puis relance ClamAV lorsque le bloc change.                             | 755                          |

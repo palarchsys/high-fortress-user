@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/configure.sh
-# Updated at : 2026-10-21
+# Updated at : 2026-10-22
 # Creator    : palarchsys
 # =============================================================================
 
@@ -134,6 +134,8 @@ fi
 install -d -m 755 "${HF_CONFIG_BASE_DIRECTORY}/bin"
 install -m 755 "${DIR_SCRIPT_PATH}/scan-skip.sh" "${HF_CONFIG_BASE_DIRECTORY}/bin/scan-skip.sh"
 install -m 755 "${DIR_SCRIPT_PATH}/boot-check.sh" "${HF_CONFIG_BASE_DIRECTORY}/bin/boot-check.sh"
+install -m 755 "$(readlink -f "${HF_INSTALL_DIRECTORY}/core/quarantine-restore.sh")" \
+    "${HF_CONFIG_BASE_DIRECTORY}/bin/quarantine-restore.sh"
 bash "${HF_CONFIG_BASE_DIRECTORY}/cron/bin/apply-scan-skip.sh"
 
 install -d -m 755 "${HF_CONFIG_BASE_DIRECTORY}/config/integrity"
@@ -144,7 +146,7 @@ install -m 644 \
     "${HF_INSTALL_DIRECTORY}/config/global.conf" \
     "${HF_CONFIG_BASE_DIRECTORY}/config/global.conf"
 export HFU_BASE="${HF_CONFIG_BASE_DIRECTORY}"
-bash "${HF_CONFIG_BASE_DIRECTORY}/cron/bin/integrity.sh"
+hf_run_silent bash "${HF_CONFIG_BASE_DIRECTORY}/cron/bin/integrity.sh"
 
 hf_log_info "crontab utilisateur : non touché (pas de cron.allow)."
 hf_log_success "Watchdogs installés dans ${HF_CONFIG_BASE_DIRECTORY}/cron/bin"

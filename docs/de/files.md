@@ -35,6 +35,8 @@ Jede Zeile ist eine Datei, die das Installationsprogramm schreibt, mit dem Modus
 | /opt/high-fortress-user/cron/integrity.sha256           | Prüfsummenstempel, den integrity.sh während der Startprüfung schreibt.                                  | 600                          |
 | /opt/high-fortress-user/cron/behavior.stamp             | Audit-Fensterstempel, den behavior.sh während der Startprüfung schreibt.                        | 600                          |
 | /opt/high-fortress-user/cron/egress.stamp               | Stempel des ausgehenden Fensters, den egress-watch.sh während der Startprüfung schreibt.        | 600                          |
+| /opt/high-fortress-user/cron/quarantine.registry        | Ursprungsort jeder in Quarantäne gelegten Datei.                                                         | 600                          |
+| /opt/high-fortress-user/bin/quarantine-restore.sh       | Legt eine registrierte Datei an ihren Ursprungsort zurück.                                               | 755                          |
 | /opt/high-fortress-user/cron/bin/clamav-response.sh     | Quarantäne, Prozesssignal und kurze Isolation nach einem Fund.                                  | 750                          |
 | /opt/high-fortress-user/src/service/apparmor/detect-and-apply.sh | Lädt ein hfu-Profil nur, wenn das Programm vorhanden ist.                                         | 755                          |
 | /opt/high-fortress-user/bin/scan-skip.sh                | Listet, fügt hinzu oder entfernt einen ausgeschlossenen Pfad und startet ClamAV neu, wenn der Block sich ändert. | 755                          |

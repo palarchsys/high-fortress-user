@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : core/lib.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-22
 # Creator    : palarchsys
 # =============================================================================
 
@@ -313,6 +313,26 @@ hf_get_current_user() {
     export CURRENT_USER CURRENT_GROUP CURRENT_HOME
 }
 
+# Compare major.minor as integers. A third component on the detected release is ignored.
+hf_os_version_at_least() {
+    local found="$1"
+    local floor="$2"
+    local found_major found_minor floor_major floor_minor
+    [[ "${found}" =~ ^([0-9]+)\.([0-9]+) ]] || return 1
+    found_major="${BASH_REMATCH[1]}"
+    found_minor="${BASH_REMATCH[2]}"
+    [[ "${floor}" =~ ^([0-9]+)\.([0-9]+)$ ]] || return 1
+    floor_major="${BASH_REMATCH[1]}"
+    floor_minor="${BASH_REMATCH[2]}"
+    if (( 10#${found_major} > 10#${floor_major} )); then
+        return 0
+    fi
+    if (( 10#${found_major} < 10#${floor_major} )); then
+        return 1
+    fi
+    (( 10#${found_minor} >= 10#${floor_minor} ))
+}
+
 hf_get_operating_system() {
     # shellcheck disable=SC1091
     source /etc/os-release
@@ -320,8 +340,18 @@ hf_get_operating_system() {
     OS_VERSION_ID="${VERSION_ID:-}"
     OS_PRETTY="${PRETTY_NAME:-}"
     export OS_ID OS_VERSION_ID OS_PRETTY
-    if [[ "${OS_ID}" != "ubuntu" || "${OS_VERSION_ID}" != "26.04" ]]; then
-        hf_log_error "Ubuntu 26.04 requis (installation fraîche). Détecté : ${OS_PRETTY:-inconnu}."
+    local min_id min_ver
+    if [[ -n "${HFS_OS_VERSION:-}" ]]; then
+        min_id="${HFS_OS_ID:-}"
+        min_ver="${HFS_OS_VERSION}"
+    else
+        min_id="${HFU_OS_ID:-}"
+        min_ver="${HFU_OS_VERSION:-}"
+    fi
+    if [[ -z "${min_id}" || -z "${min_ver}" ]] \
+        || [[ "${OS_ID}" != "${min_id}" ]] \
+        || ! hf_os_version_at_least "${OS_VERSION_ID}" "${min_ver}"; then
+        hf_log_error "Ubuntu ${min_ver:-inconnu} ou plus récent requis. Détecté : ${OS_PRETTY:-inconnu}."
     fi
 }
 

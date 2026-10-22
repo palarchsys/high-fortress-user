@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/egress-watch.sh
-# Updated at : 2026-10-20
+# Updated at : 2026-10-22
 # Creator    : palarchsys
 # =============================================================================
 # -----------------------------------------------------------------------------
@@ -40,7 +40,8 @@ fi
 
 install -d -m 755 /run/high-fortress-user
 found="$(mktemp -p /run/high-fortress-user)"
-trap 'rm -f "${found}"' EXIT
+audit_tmp="$(mktemp -p /run/high-fortress-user)"
+trap 'rm -f "${found}" "${audit_tmp}"' EXIT
 start="$(head -n 1 "${stamp}")"
 journalctl -k --since "${start}" -g 'hfu-egress' --no-pager > "${found}" 2>/dev/null || true
 hfu_record_egress_stamp
@@ -48,6 +49,17 @@ if ! grep -q 'hfu-egress' "${found}"; then
     hfu_log_pass "aucun flux sortant inattendu"
     exit 0
 fi
-head -n 40 "${found}" >> "${LOG_FILE}"
+if command -v ausearch >/dev/null 2>&1; then
+    formatted="$(date -d "${start}" '+%m/%d/%Y %H:%M:%S' 2>/dev/null || true)"
+    if [[ -n "${formatted}" ]]; then
+        # shellcheck disable=SC2086
+        ausearch -k hfu-egress --start ${formatted} > "${audit_tmp}" 2>/dev/null || true
+    fi
+fi
+if declare -F hf_format_egress_body >/dev/null 2>&1; then
+    hf_format_egress_body "${found}" "${audit_tmp}" >> "${LOG_FILE}" || true
+else
+    head -n 40 "${found}" >> "${LOG_FILE}"
+fi
 hf_log_alert "flux sortants hors des ports 53, 80 et 443"
 exit 0

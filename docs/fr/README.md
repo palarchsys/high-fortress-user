@@ -2,7 +2,7 @@
 
 ## Description
 
-High-Fortress User prépare un poste Ubuntu 26.04. Il installe le résolveur DNS local, le pare-feu et les contrôles de sécurité.
+High-Fortress User prépare un poste Ubuntu 26.04 ou plus récent. Il installe le résolveur DNS local, le pare-feu et les contrôles de sécurité.
 
 Le compte Ubuntu déjà créé sur la machine n'est pas remplacé. L'installeur ne crée pas un second compte.
 
@@ -12,7 +12,7 @@ Le compte Ubuntu déjà créé sur la machine n'est pas remplacé. L'installeur 
 
 ### Système
 
-Ubuntu 26.04. Une installation neuve est préférable. Utilisez une console locale ou la session graphique déjà ouverte. La machine a besoin d'Internet.
+Ubuntu 26.04 ou plus récent. Une installation neuve est préférable. Utilisez une console locale ou la session graphique déjà ouverte. La machine a besoin d'Internet.
 
 ### Accès
 
@@ -136,6 +136,10 @@ sudo bash /opt/high-fortress-user/bin/chkrootkit-ignore-log.sh '/opt/high-fortre
 
 La commande enregistre les lignes de ce journal dans `/opt/high-fortress-user/cron/chkrootkit.local.ignore`. La ligne de succès est `Aucune nouvelle détection à enregistrer.` lorsqu'il n'y a rien de nouveau, ou `N détection(s) enregistrée(s) dans /opt/high-fortress-user/cron/chkrootkit.local.ignore`.
 
+Une détection avérée déplace le fichier et joint la commande de restauration à la place.
+
+La commande d'enregistrement reste seulement lorsqu'aucun fichier avéré n'a été déplacé.
+
 ### debsums
 
 Le message contient le résumé et l'extrait du journal. Il n'ajoute pas de bloc de commande. Le contrôle réinstalle chaque paquet encore signalé avec `apt-get install --reinstall`. Le courrier nomme chaque paquet rétabli. La ligne de succès est `La somme correspond.`
@@ -150,19 +154,27 @@ Le fichier livré par Ubuntu ne correspond pas à la somme de ce paquet.
 
 ### ClamAV à l'accès
 
-Le message contient la signature, le nom du fichier, le chemin d'origine et le chemin de quarantaine, puis la note et une commande `sudo ls`.
+Le message contient la signature, le nom du fichier, le chemin d'origine et le chemin de quarantaine, puis la note et une commande de restauration par fichier déplacé.
 
-Le même journal indique l'heure, le type de détection, les actions appliquées et une recommandation courte. La commande est construite pour le fichier en quarantaine nommé dans le courrier. Un fichier dont le nom correspond à `.clamav-quarantine-lock.*` n'envoie pas de courrier. Le script sort en 0 avant le journal et avant `hf_log_alert`.
+Le même journal indique l'heure, le type de détection, les actions appliquées et une recommandation courte. Un fichier dont le nom correspond à `.clamav-quarantine-lock.*` n'envoie pas de courrier. Le script sort en 0 avant le journal et avant `hf_log_alert`.
 
 ```bash
-sudo ls -la -- /var/lib/clamav/quarantine/<file>
+sudo bash /opt/high-fortress-user/bin/quarantine-restore.sh <id>
 ```
 
-L'exemple montre la forme. Le courrier contient le chemin réel, cité. La commande liste ce fichier et ne le remet pas en place. `ls` affiche l'entrée. Il n'y a pas de ligne de succès de l'installeur.
+L'exemple montre la forme. Le courrier contient l'identifiant réel. La commande remet ce fichier à son emplacement d'origine. La ligne de succès est `fichier remis en place`.
+
+Le registre est `/opt/high-fortress-user/cron/quarantine.registry`.
 
 ### Analyse ClamAV au démarrage
 
-Le message contient le résumé et l'extrait du journal. Ce courrier n'ajoute pas de bloc de commande. La forme du journal est `/opt/high-fortress-user/cron/security_logs/clamav-YYYYMMDD-HHMMSS.log`.
+Le message contient le résumé et l'extrait du journal.
+
+Lorsqu'un fichier a été déplacé, le courrier ajoute une commande de restauration par fichier.
+
+La commande est la même que celle du courrier à l'accès.
+
+La forme du journal est `/opt/high-fortress-user/cron/security_logs/clamav-YYYYMMDD-HHMMSS.log`.
 
 Un fichier illisible, sans ligne `FOUND`, n'envoie pas de courrier.
 
@@ -182,7 +194,9 @@ Le courrier dit alors que les fichiers restants n'ont pas été lus.
 
 Le message contient le résumé et l'extrait du journal.
 
-Ce courrier n'ajoute pas de bloc de commande.
+Lorsqu'un fichier a été déplacé, le courrier ajoute une commande de restauration par fichier.
+
+La commande est la même que celle du courrier à l'accès.
 
 Une signature et un chemin déjà enregistrés dans `/opt/high-fortress-user/cron/scan-skip.seen` ne renvoient pas de courrier.
 
@@ -209,6 +223,10 @@ sudo bash /opt/high-fortress-user/bin/rkhunter-refresh-db.sh
 ```
 
 La commande recalcule la base de propriétés rkhunter à partir du disque actuel. La ligne de succès est `Base de propriétés rkhunter enregistrée.`
+
+Une détection avérée déplace le fichier et joint la commande de restauration à la place.
+
+La commande de recalcul reste seulement lorsqu'aucun fichier avéré n'a été déplacé.
 
 Les fichiers de `/dev/shm` et la socket `/dev/log` sont autorisés dans `rkhunter.conf.local`.
 

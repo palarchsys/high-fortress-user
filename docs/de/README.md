@@ -2,7 +2,7 @@
 
 ## Beschreibung
 
-High-Fortress User bereitet einen Ubuntu-26.04-Arbeitsplatz vor. Es installiert den lokalen DNS-Resolver, die Firewall und die Sicherheitskontrollen.
+High-Fortress User bereitet einen Ubuntu-Arbeitsplatz 26.04 oder neuer vor. Es installiert den lokalen DNS-Resolver, die Firewall und die Sicherheitskontrollen.
 
 Das bereits angelegte Ubuntu-Konto auf der Maschine wird nicht ersetzt. Das Installationsprogramm legt kein zweites Konto an.
 
@@ -12,7 +12,7 @@ Das bereits angelegte Ubuntu-Konto auf der Maschine wird nicht ersetzt. Das Inst
 
 ### System
 
-Ubuntu 26.04. Eine Neuinstallation ist vorzuziehen. Benutzen Sie eine lokale Konsole oder die bereits geöffnete grafische Sitzung. Die Maschine braucht Internetzugang.
+Ubuntu 26.04 oder neuer. Eine Neuinstallation ist vorzuziehen. Benutzen Sie eine lokale Konsole oder die bereits geöffnete grafische Sitzung. Die Maschine braucht Internetzugang.
 
 ### Zugang
 
@@ -136,6 +136,10 @@ sudo bash /opt/high-fortress-user/bin/chkrootkit-ignore-log.sh '/opt/high-fortre
 
 Der Befehl speichert die Zeilen dieses Journals in `/opt/high-fortress-user/cron/chkrootkit.local.ignore`. Die Erfolgszeile ist `Aucune nouvelle détection à enregistrer.`, wenn nichts Neues hinzukommt, oder `N détection(s) enregistrée(s) dans /opt/high-fortress-user/cron/chkrootkit.local.ignore`.
 
+Ein bestätigter Fund verschiebt die Datei und hängt stattdessen den Wiederherstellungsbefehl an.
+
+Der Ignorierbefehl bleibt nur, wenn keine bestätigte Datei verschoben wurde.
+
 ### debsums
 
 Die Nachricht enthält die Zusammenfassung und den Journalauszug. Sie fügt keinen Befehlsblock hinzu. Die Prüfung installiert jedes noch genannte Paket mit `apt-get install --reinstall` neu. Die Post nennt jedes wiederhergestellte Paket. Die Erfolgszeile ist `La somme correspond.`
@@ -150,19 +154,27 @@ Die von Ubuntu gelieferte Datei entspricht nicht der Summe dieses Pakets.
 
 ### ClamAV beim Zugriff
 
-Die Nachricht enthält die Signatur, den Dateinamen, den Ursprungspfad und den Quarantänepfad, dann den Hinweis und einen `sudo ls`-Befehl.
+Die Nachricht enthält die Signatur, den Dateinamen, den Ursprungspfad und den Quarantänepfad, dann den Hinweis und einen Wiederherstellungsbefehl je verschobener Datei.
 
-Dasselbe Journal nennt die Uhrzeit, die Art des Funds, die ausgeführten Aktionen und eine kurze Empfehlung. Der Befehl wird für die in der Post genannte Quarantänedatei gebaut. Eine Datei, deren Basisname auf `.clamav-quarantine-lock.*` passt, sendet keine Post. Das Skript endet mit 0 vor dem Journal und vor `hf_log_alert`.
+Dasselbe Journal nennt die Uhrzeit, die Art des Funds, die ausgeführten Aktionen und eine kurze Empfehlung. Eine Datei, deren Basisname auf `.clamav-quarantine-lock.*` passt, sendet keine Post. Das Skript endet mit 0 vor dem Journal und vor `hf_log_alert`.
 
 ```bash
-sudo ls -la -- /var/lib/clamav/quarantine/<file>
+sudo bash /opt/high-fortress-user/bin/quarantine-restore.sh <id>
 ```
 
-Das Beispiel zeigt die Form. Die Post enthält den echten Pfad, quotiert. Der Befehl listet diese Datei und legt sie nicht zurück. `ls` gibt den Verzeichniseintrag aus. Es gibt keine Erfolgszeile des Installationsprogramms.
+Das Beispiel zeigt die Form. Die Post enthält die echte Kennung. Der Befehl legt diese Datei an ihren Ursprungsort zurück. Die Erfolgszeile ist `fichier remis en place`.
+
+Das Register ist `/opt/high-fortress-user/cron/quarantine.registry`.
 
 ### ClamAV-Startprüfung
 
-Die Nachricht enthält die Zusammenfassung und den Journalauszug. Diese Post fügt keinen Befehlsblock hinzu. Die Journalform ist `/opt/high-fortress-user/cron/security_logs/clamav-YYYYMMDD-HHMMSS.log`.
+Die Nachricht enthält die Zusammenfassung und den Journalauszug.
+
+Wenn eine Datei verschoben wurde, fügt die Post einen Wiederherstellungsbefehl je Datei hinzu.
+
+Der Befehl ist derselbe wie in der Zugriffspost.
+
+Die Journalform ist `/opt/high-fortress-user/cron/security_logs/clamav-YYYYMMDD-HHMMSS.log`.
 
 Eine unlesbare Datei ohne Zeile `FOUND` sendet keine Post.
 
@@ -182,7 +194,9 @@ Die Post sagt dann, dass die restlichen Dateien nicht gelesen wurden.
 
 Die Nachricht enthält die Zusammenfassung und den Journalauszug.
 
-Diese Post fügt keinen Befehlsblock hinzu.
+Wenn eine Datei verschoben wurde, fügt die Post einen Wiederherstellungsbefehl je Datei hinzu.
+
+Der Befehl ist derselbe wie in der Zugriffspost.
 
 Eine Signatur und ein Pfad, die schon in `/opt/high-fortress-user/cron/scan-skip.seen` stehen, senden keine Post mehr.
 
@@ -209,6 +223,10 @@ sudo bash /opt/high-fortress-user/bin/rkhunter-refresh-db.sh
 ```
 
 Der Befehl berechnet die rkhunter-Eigenschaftsbasis aus der aktuellen Platte neu. Die Erfolgszeile ist `Base de propriétés rkhunter enregistrée.`
+
+Ein bestätigter Fund verschiebt die Datei und hängt stattdessen den Wiederherstellungsbefehl an.
+
+Der Neuberechnungsbefehl bleibt nur, wenn keine bestätigte Datei verschoben wurde.
 
 Dateien unter `/dev/shm` und der Socket `/dev/log` sind in `rkhunter.conf.local` erlaubt.
 

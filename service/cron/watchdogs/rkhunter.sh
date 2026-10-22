@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/rkhunter.sh
-# Updated at : 2026-10-16
+# Updated at : 2026-10-22
 # Creator    : palarchsys
 # =============================================================================
 
@@ -36,13 +36,26 @@ set +e
 rkhunter --check --skip-keypress --report-warnings-only --nocolors >> "${LOG_FILE}" 2>&1
 rc=$?
 set -e
+HF_CONFIRMED_COUNT=0
+confirmed_tmp="$(mktemp)"
+hf_quarantine_confirmed_log rkhunter "${LOG_FILE}" systemd sshd unbound fail2ban gamescope > "${confirmed_tmp}" || true
+if [[ -s "${confirmed_tmp}" ]]; then
+    cat "${confirmed_tmp}" >> "${LOG_FILE}"
+fi
+rm -f "${confirmed_tmp}"
 if [[ "${rc}" -ge 128 ]]; then
     hf_log_alert "$(hf_get_crash_sentence "rkhunter" "${rc}")"
 elif [[ "${rc}" -ge 2 ]]; then
     hf_log_alert "rkhunter erreur rc=${rc}"
 elif [[ "${rc}" -eq 1 ]]; then
-    HFU_RKHUNTER_REFRESH=1 \
+    if [[ "${HF_CONFIRMED_COUNT:-0}" -eq 0 ]]; then
+        HFU_RKHUNTER_REFRESH=1 \
+            hf_log_alert "rkhunter warnings (voir ${LOG_FILE})"
+    else
         hf_log_alert "rkhunter warnings (voir ${LOG_FILE})"
+    fi
+elif [[ "${HF_CONFIRMED_COUNT:-0}" -gt 0 ]]; then
+    hf_log_alert "rkhunter warnings (voir ${LOG_FILE})"
 else
     hfu_log_pass "rkhunter OK"
 fi
