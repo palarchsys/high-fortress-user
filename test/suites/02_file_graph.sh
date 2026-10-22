@@ -524,6 +524,7 @@ grep -qF 'Do not copy it into a message, a ticket, or a repository.' "${readme}"
 for flag in en fr de es; do
     [[ -f "${HFT_ROOT}/docs/flags/${flag}.svg" ]] || pages_ok=0
     grep -qF "docs/flags/${flag}.svg" "${readme}" || pages_ok=0
+    grep -q 'width="90" height="60" viewBox="0 0 90 60"' "${HFT_ROOT}/docs/flags/${flag}.svg" || pages_ok=0
 done
 warn='`secrets.conf` stays on the machine. Do not copy it into a message, a ticket, or a repository.'
 desc_lines=0
