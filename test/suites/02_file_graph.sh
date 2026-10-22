@@ -263,13 +263,15 @@ grep -qF 'CPUQuota=${cpu_quota}%' "${root}/config/cron/hfu-boot-scan.service"
 grep -qF 'CPUQuota=${cpu_quota}%' "${root}/config/cron/hfu-idle-scan.service"
 grep -qF 'CPUQuota=${cpu_quota}%' "${root}/config/cron/hfu-reboot-notice.service"
 grep -qF 'CPUQuota=${cpu_quota}%' "${root}/config/cron/hfu-periodic-scan.service"
+grep -qF 'CPUQuota=${cpu_quota}%' "${root}/config/cron/hfu-hourly-scan.service"
 ! grep -qF 'CPUQuota=${HF_WATCHDOG_CPU_LIMIT}%' \
     "${root}/service/cron/configure.sh" \
     "${root}/config/cron/hfu-boot-scan.service" \
     "${root}/config/cron/hfu-idle-scan.service" \
     "${root}/config/cron/hfu-reboot-notice.service" \
     "${root}/config/cron/hfu-boot-chain.service" \
-    "${root}/config/cron/hfu-periodic-scan.service"
+    "${root}/config/cron/hfu-periodic-scan.service" \
+    "${root}/config/cron/hfu-hourly-scan.service"
 CPU
 if [[ "${cpu_rc}" -eq 0 ]]; then
     hft_pass "graph.cpu.quota" "20 % de la machine, CPUQuota multiplié par le nombre de CPU"
@@ -318,6 +320,21 @@ grep -q 'Persistent=${HFU_TIMER_PERSISTENT}' "${root}/config/cron/hfu-periodic-s
 grep -q 'hfu-periodic-scan.timer' "${conf}"
 grep -q 'hfu-periodic-scan.timer' "${root}/verify/alerts.sh"
 grep -q 'hfu-periodic-scan.timer' "${root}/verify/workstation.sh"
+grep -q 'HFU_HOURLY_EVERY=1h' "${timers}"
+grep -q 'HFU_HOURLY_ON_BOOT_SEC=1h' "${timers}"
+grep -q 'OnBootSec=${HFU_HOURLY_ON_BOOT_SEC}' "${root}/config/cron/hfu-hourly-scan.timer"
+grep -q 'OnUnitActiveSec=${HFU_HOURLY_EVERY}' "${root}/config/cron/hfu-hourly-scan.timer"
+grep -q 'Persistent=${HFU_TIMER_PERSISTENT}' "${root}/config/cron/hfu-hourly-scan.timer"
+grep -q 'hfu-hourly-scan.timer' "${conf}"
+grep -q 'hfu-hourly-scan.timer' "${root}/verify/alerts.sh"
+grep -q 'hfu-hourly-scan.timer' "${root}/verify/workstation.sh"
+awk '
+    /aide.sh/ { if (!a) a = NR }
+    /rkhunter.sh/ { if (a && !b) b = NR }
+    /chkrootkit.sh/ { if (b && !c) c = NR }
+    /debsums.sh/ { if (c && !d) d = NR }
+    END { exit (a && b && c && d && a < b && b < c && c < d) ? 0 : 1 }
+' "${root}/service/cron/watchdogs/hourly-scan.sh"
 grep -q 'boot-check.sh' "${root}/verify/boot.sh"
 test -f "${root}/service/cron/boot-check.sh"
 grep -q '39f53479d3a045ac8e11786248231fbf' "${root}/service/cron/boot-check.sh"
@@ -589,6 +606,9 @@ grep -q 'hfu_add_onaccess_directory /opt' "${root}/service/clamav/configure.sh"
 ! grep -q 'OnAccessIncludePath /' "${root}/service/clamav/configure.sh"
 ! grep -q 'OnAccessExcludePath' "${root}/service/clamav/configure.sh"
 grep -q 'HFU_ONACCESS_FIXED_EXCLUDE' "${root}/service/cron/watchdogs/apply-scan-skip.sh"
+grep -q 're.escape' "${root}/service/cron/watchdogs/apply-scan-skip.sh"
+grep -q 'HFU_BASE}/src' "${root}/service/cron/watchdogs/apply-scan-skip.sh"
+grep -qF 'sub(/^\^/' "${root}/service/cron/watchdogs/clamav.sh"
 grep -q 'mktemp -p /run/high-fortress-user' "${root}/service/cron/watchdogs/clamav.sh"
 grep -q 'HF_CLAM_MODE=daemon' "${root}/service/cron/watchdogs/clamav.sh"
 grep -q 'flock -n 9' "${root}/service/cron/watchdogs/clamav.sh"
@@ -605,6 +625,9 @@ grep -q 'hfu_run_check egress-watch.sh' "${root}/service/cron/watchdogs/boot-sca
 ! grep -q 'HFU_EGRESS_LOG' "${root}/service/ufw/egress.sh"
 ! grep -q 'HFU_EGRESS_LOG' "${root}/config/ufw/egress.conf"
 grep -q 'nft add table inet hfu_egress' "${root}/service/ufw/egress.sh"
+grep -q 'hfu-egress-table.service' "${root}/service/ufw/egress.sh"
+grep -q 'config/integrity/paths.list' "${root}/service/cron/configure.sh"
+grep -Fq '${HF_CONFIG_BASE_DIRECTORY}/config/global.conf' "${root}/service/cron/configure.sh"
 ! grep -q 'HFU_NET_ISOLATE=' "${root}/config/ufw/egress.conf"
 ! grep -q 'HFU_NET_ISOLATE:-' "${root}/service/cron/watchdogs/clamav-response.sh"
 grep -q 'HFU_NET_ISOLATE_SEC=120' "${root}/config/ufw/egress.conf"

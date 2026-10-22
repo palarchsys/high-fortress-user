@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : verify/alerts.sh
-# Updated at : 2026-10-20
+# Updated at : 2026-10-21
 # Creator    : palarchsys
 # =============================================================================
 
@@ -9,7 +9,7 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
     cat << 'EOF'
 Usage : sudo bash verify/alerts.sh [--no-send]
 
-Contrôle la passe de démarrage qui envoie les alertes, la passe différée,
+Contrôle la passe de démarrage qui envoie les alertes, la passe horaire, la passe différée,
 ClamAV à l'accès, et le chemin du courrier. Sans --no-send, un seul message d'essai part
 quand les alertes sont activées. Le sujet se termine par « Contrôle ».
 EOF
@@ -98,6 +98,9 @@ printf '%-36s %s\n' "hfu-idle-scan.timer" "${idle_word}"
 periodic_word="$(hfu_check_unit_word hfu-periodic-scan.timer)"
 printf '%-36s %s\n' "hfu-periodic-scan.timer" "${periodic_word}"
 [[ "${periodic_word}" == "OK" ]] || hfu_record_fail "timer d'analyse ClamAV périodique ${periodic_word}"
+hourly_word="$(hfu_check_unit_word hfu-hourly-scan.timer)"
+printf '%-36s %s\n' "hfu-hourly-scan.timer" "${hourly_word}"
+[[ "${hourly_word}" == "OK" ]] || hfu_record_fail "timer de passe horaire ${hourly_word}"
 if [[ -x "${BIN}/boot-scan.sh" ]] \
     && grep -q 'integrity.sh' "${BIN}/boot-scan.sh" \
     && grep -q 'behavior.sh' "${BIN}/boot-scan.sh" \

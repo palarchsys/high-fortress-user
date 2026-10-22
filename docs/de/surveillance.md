@@ -160,6 +160,18 @@ Ein laufendes `lutris`, `heroic` oder `gamescope` überspringt den Lauf.
 
 `/run/high-fortress-user/clamav.lock` hält einen zweiten Lauf an.
 
+## Stündliche Prüfung
+
+| Dienst, der überwacht | Zonen | Was als Alarm geht | Befehl der Post |
+| --- | --- | --- | --- |
+| hourly-scan.sh in hfu-hourly-scan.timer | AIDE, dann rkhunter, dann chkrootkit, dann debsums. Dieselben Kontrollen wie der Startlauf. | Dieselben Funde wie jede dieser Startkontrollen. Ein sauberer Lauf bleibt still. | Der Postbefehl dieser Kontrolle. |
+
+Der Timer ist `OnBootSec=1h` und `OnUnitActiveSec=1h`, mit `Persistent=false`.
+
+`Nice` ist 19, `IOSchedulingClass` ist `idle`, und `CPUQuota` ist dieselbe Quote wie der Startlauf.
+
+Der Startlauf startet diese vier Kontrollen.
+
 ## Verzögerte ClamAV-Prüfung
 
 | Dienst, der prüft                   | Zonen                                                                                                      | Was alarmiert wird                                                                                                              | Postbefehl               |

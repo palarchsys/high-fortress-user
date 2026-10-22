@@ -67,6 +67,7 @@ The file is written in `config/`, next to `global.conf`, mode `600`, owner root.
 | hfu-idle-scan.timer           | OnUnitActiveSec=1h, Persistent=false      | Same Nice, idle I/O and CPU quota as the boot pass. No fixed delay after boot. |
 | hfu-reboot-notice.timer       | OnUnitActiveSec=6h, Persistent=false      | Same quota. The script does not reboot the machine. |
 | hfu-periodic-scan.timer       | OnBootSec=2h, OnUnitActiveSec=2h          | Runs clamav.sh only. Same Nice, idle I/O and CPU quota. Persistent=false. |
+| hfu-hourly-scan.timer         | OnBootSec=1h, OnUnitActiveSec=1h          | Runs AIDE, rkhunter, chkrootkit, then debsums. Same Nice, idle I/O and CPU quota. Persistent=false. |
 | integrity.sh                  | boot-scan.sh, after aide.sh           | Hashes config/integrity/paths.list. The first pass writes cron/integrity.sha256 and stays silent. |
 | behavior.sh                   | boot-scan.sh, after rkhunter.sh       | Reads exec-tmp events since cron/behavior.stamp. The first pass writes the stamp and stays silent. auditd stays running. |
 | inet hfu_egress               | installed                             | Logs new outbound flows outside ports 53, 80 and 443. Policy accept. Outgoing stays allow. |

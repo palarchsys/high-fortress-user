@@ -67,6 +67,7 @@ El archivo se escribe en `config/`, junto a `global.conf`, modo `600`, propietar
 | hfu-idle-scan.timer           | OnUnitActiveSec=1h, Persistent=false      | El mismo Nice, la misma E/S idle y la misma cuota de CPU que la pasada de arranque. Sin espera fija tras el arranque. |
 | hfu-reboot-notice.timer       | OnUnitActiveSec=6h, Persistent=false      | La misma cuota. El script no reinicia la máquina. |
 | hfu-periodic-scan.timer       | OnBootSec=2h, OnUnitActiveSec=2h          | Lanza solo clamav.sh. El mismo Nice, la misma E/S idle y la misma cuota de CPU. Persistent=false. |
+| hfu-hourly-scan.timer         | OnBootSec=1h, OnUnitActiveSec=1h          | Lanza AIDE, rkhunter, chkrootkit y después debsums. El mismo Nice, la misma E/S idle y la misma cuota de CPU. Persistent=false. |
 | integrity.sh                  | boot-scan.sh, tras aide.sh            | Huella de config/integrity/paths.list. La primera pasada escribe cron/integrity.sha256 y permanece en silencio. |
 | behavior.sh                   | boot-scan.sh, tras rkhunter.sh        | Lee los eventos exec-tmp desde cron/behavior.stamp. La primera pasada escribe el sello y permanece en silencio. auditd sigue en servicio. |
 | inet hfu_egress               | instalada                             | Registra los flujos salientes nuevos fuera de los puertos 53, 80 y 443. Política accept. La salida permanece allow. |

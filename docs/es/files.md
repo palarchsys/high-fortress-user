@@ -30,6 +30,8 @@ Cada fila es un archivo que el instalador escribe, con el modo que el script fij
 | /etc/systemd/system/hfu-reboot-notice.timer             | Relanza ese aviso cada 6 horas después de la cadena.                                                     | 644                          |
 | /etc/systemd/system/hfu-periodic-scan.service           | Pasada ClamAV cada 2 horas. Los mismos límites de CPU y E/S que la pasada de arranque.                   | 644                          |
 | /etc/systemd/system/hfu-periodic-scan.timer             | Lanza esa pasada 2 horas después del arranque, luego cada 2 horas.                                       | 644                          |
+| /etc/systemd/system/hfu-hourly-scan.service             | Pasada horaria de AIDE, rkhunter, chkrootkit y debsums. Los mismos límites de CPU y E/S que la pasada de arranque. | 644                          |
+| /etc/systemd/system/hfu-hourly-scan.timer               | Lanza esa pasada 1 hora después del arranque, luego cada hora.                                           | 644                          |
 | /opt/high-fortress-user/cron/integrity.sha256           | Sello de huella escrito por integrity.sh durante la pasada de arranque.                                 | 600                          |
 | /opt/high-fortress-user/cron/behavior.stamp             | Sello de ventana de auditoría escrito por behavior.sh durante la pasada de arranque.            | 600                          |
 | /opt/high-fortress-user/cron/egress.stamp               | Sello de ventana del diario saliente escrito por egress-watch.sh durante la pasada de arranque. | 600                          |

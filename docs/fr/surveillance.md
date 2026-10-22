@@ -160,6 +160,18 @@ Un `lutris`, `heroic` ou `gamescope` en cours saute la passe.
 
 `/run/high-fortress-user/clamav.lock` empêche une seconde passe de démarrer.
 
+## Passe horaire
+
+| Service qui surveille | Zones | Ce qui part en alerte | Commande du courrier |
+| --- | --- | --- | --- |
+| hourly-scan.sh dans hfu-hourly-scan.timer | AIDE, puis rkhunter, puis chkrootkit, puis debsums. Mêmes contrôles que la passe de démarrage. | Les mêmes trouvailles que chacun de ces contrôles de démarrage. Une passe propre reste silencieuse. | La commande du courrier de ce contrôle. |
+
+Le minuteur est `OnBootSec=1h` et `OnUnitActiveSec=1h`, avec `Persistent=false`.
+
+`Nice` vaut 19, `IOSchedulingClass` vaut `idle`, et `CPUQuota` est le même quota que la passe de démarrage.
+
+La passe de démarrage lance ces quatre contrôles.
+
 ## Analyse ClamAV différée
 
 | Service qui surveille                | Zones                                                                                                | Ce qui part en alerte                                                                                                      | Commande du courrier     |

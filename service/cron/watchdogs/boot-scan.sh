@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/boot-scan.sh
-# Updated at : 2026-10-20
+# Updated at : 2026-10-21
 # Creator    : palarchsys
 # =============================================================================
 
@@ -38,4 +38,7 @@ hfu_run_check behavior.sh "audit"
 hfu_run_check chkrootkit.sh "chkrootkit"
 hfu_run_check clamav.sh "ClamAV"
 hfu_run_check debsums.sh "debsums"
+if [[ -x "${HFU_BASE}/cron/bin/egress-table.sh" ]]; then
+    bash "${HFU_BASE}/cron/bin/egress-table.sh" || true
+fi
 hfu_run_check egress-watch.sh "journal sortant"

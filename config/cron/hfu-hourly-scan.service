@@ -1,0 +1,16 @@
+# =============================================================================
+# File       : config/cron/hfu-hourly-scan.service
+# Updated at : 2026-10-21
+# Creator    : palarchsys
+# =============================================================================
+
+[Unit]
+Description=Passe AIDE, rkhunter, chkrootkit et debsums toutes les heures
+After=local-fs.target multi-user.target
+
+[Service]
+Type=oneshot
+Nice=${HF_WATCHDOG_LIMIT_NICE}
+IOSchedulingClass=idle
+CPUQuota=${cpu_quota}%
+ExecStart=${HF_CONFIG_BASE_DIRECTORY}/cron/bin/hourly-scan.sh

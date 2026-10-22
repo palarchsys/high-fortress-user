@@ -30,6 +30,8 @@ Chaque ligne est un fichier que l'installeur écrit, avec le mode que le script 
 | /etc/systemd/system/hfu-reboot-notice.timer             | Relance cet avis toutes les 6 heures après la chaîne.                                                    | 644                          |
 | /etc/systemd/system/hfu-periodic-scan.service           | Passe ClamAV toutes les 2 heures. Mêmes limites CPU et E/S que la passe de démarrage.                    | 644                          |
 | /etc/systemd/system/hfu-periodic-scan.timer             | Lance cette passe 2 heures après le démarrage, puis toutes les 2 heures.                                 | 644                          |
+| /etc/systemd/system/hfu-hourly-scan.service             | Passe horaire AIDE, rkhunter, chkrootkit et debsums. Mêmes limites CPU et E/S que la passe de démarrage. | 644                          |
+| /etc/systemd/system/hfu-hourly-scan.timer               | Lance cette passe 1 heure après le démarrage, puis toutes les heures.                                    | 644                          |
 | /opt/high-fortress-user/cron/integrity.sha256           | Cachet d'empreinte écrit par integrity.sh pendant la passe de démarrage.                                | 600                          |
 | /opt/high-fortress-user/cron/behavior.stamp             | Cachet de fenêtre d'audit écrit par behavior.sh pendant la passe de démarrage.                  | 600                          |
 | /opt/high-fortress-user/cron/egress.stamp               | Cachet de fenêtre du journal sortant écrit par egress-watch.sh pendant la passe de démarrage.   | 600                          |

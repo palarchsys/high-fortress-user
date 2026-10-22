@@ -1,0 +1,18 @@
+# =============================================================================
+# File       : config/cron/hfu-hourly-scan.timer
+# Updated at : 2026-10-21
+# Creator    : palarchsys
+# =============================================================================
+
+[Unit]
+Description=Relance AIDE, rkhunter, chkrootkit et debsums toutes les heures
+
+[Timer]
+OnBootSec=${HFU_HOURLY_ON_BOOT_SEC}
+OnUnitActiveSec=${HFU_HOURLY_EVERY}
+AccuracySec=${HFU_HOURLY_ACCURACY}
+Persistent=${HFU_TIMER_PERSISTENT}
+Unit=hfu-hourly-scan.service
+
+[Install]
+WantedBy=timers.target

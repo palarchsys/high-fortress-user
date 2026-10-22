@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/apply-scan-skip.sh
-# Updated at : 2026-10-20
+# Updated at : 2026-10-21
 # Creator    : palarchsys
 # =============================================================================
 # -----------------------------------------------------------------------------
 # Note       : Fixed excludes from onaccess.conf join the same block.
 # Note       : The temporary file is created under /run/high-fortress-user.
+# Note       : Each OnAccessExcludePath value matches that directory only.
 # -----------------------------------------------------------------------------
 
 set -euo pipefail
@@ -57,6 +58,12 @@ hfu_load_onaccess_exclude() {
     if [[ -n "${HFU_BASE:-}" ]]; then
         HFU_ONACCESS_FIXED+=("${HFU_BASE}")
     fi
+    local kept=()
+    for path in "${HFU_ONACCESS_FIXED[@]+"${HFU_ONACCESS_FIXED[@]}"}"; do
+        [[ "${path}" == "${HFU_BASE}/src" ]] && continue
+        kept+=("${path}")
+    done
+    HFU_ONACCESS_FIXED=("${kept[@]+"${kept[@]}"}")
 }
 
 hfu_load_onaccess_exclude
@@ -74,6 +81,7 @@ if [[ -f "${conf}" ]]; then
     tmp="$(mktemp -p /run/high-fortress-user)"
     trap 'rm -f "${tmp}"' EXIT
     changed="$(python3 - "${conf}" "${tmp}" "${#HFU_ONACCESS_FIXED[@]}" "${HFU_ONACCESS_FIXED[@]}" "${HFU_SCAN_SKIP_VALID[@]}" << 'PY'
+import re
 import sys
 from pathlib import Path
 
@@ -108,7 +116,7 @@ while out and out[-1] == "":
     out.pop()
 block = [begin]
 for path in paths:
-    block.append(f"OnAccessExcludePath {path}")
+    block.append("OnAccessExcludePath ^" + re.escape(path) + "$")
 block.append(end)
 out.append("")
 out.extend(block)

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/integrity.sh
-# Updated at : 2026-10-20
+# Updated at : 2026-10-21
 # Creator    : palarchsys
 # =============================================================================
 # -----------------------------------------------------------------------------
@@ -19,6 +19,7 @@ MODULE_NAME="Integrite"
 
 list=""
 for candidate in \
+    "${HFU_BASE}/config/integrity/paths.list" \
     "${HFU_BASE}/src/config/integrity/paths.list" \
     "${HF_INSTALL_DIRECTORY:-}/config/integrity/paths.list"
 do

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : verify/workstation.sh
-# Updated at : 2026-10-20
+# Updated at : 2026-10-21
 # Creator    : palarchsys
 # =============================================================================
 
@@ -237,6 +237,11 @@ if systemctl is-enabled --quiet hfu-periodic-scan.timer 2>/dev/null; then
     hfu_report_pass "analyse ClamAV toutes les 2 h"
 else
     hfu_report_fail "timer d'analyse ClamAV périodique absent"
+fi
+if systemctl is-enabled --quiet hfu-hourly-scan.timer 2>/dev/null; then
+    hfu_report_pass "passe horaire AIDE, rkhunter, chkrootkit et debsums"
+else
+    hfu_report_fail "timer de passe horaire absent"
 fi
 boot_bin="${HF_CONFIG_BASE_DIRECTORY}/cron/bin/boot-scan.sh"
 if [[ -f "${boot_bin}" ]] \

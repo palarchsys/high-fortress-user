@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/configure.sh
-# Updated at : 2026-10-20
+# Updated at : 2026-10-21
 # Creator    : palarchsys
 # =============================================================================
 
@@ -26,7 +26,7 @@ cpu_quota="$(
 # shellcheck disable=SC1091
 source "$(hf_locate_config_file cron/timers.conf)"
 
-hf_log_info "Installation des watchdogs (chaîne au démarrage et analyse toutes les 2 h, plafonnée à ${HF_WATCHDOG_CPU_LIMIT}% du CPU total)"
+hf_log_info "Installation des watchdogs (chaîne au démarrage, passe horaire et analyse toutes les 2 h, plafonnée à ${HF_WATCHDOG_CPU_LIMIT}% du CPU total)"
 hf_ensure_directory "${HF_CONFIG_BASE_DIRECTORY}/cron/bin" 755
 hf_ensure_directory "${HF_CONFIG_BASE_DIRECTORY}/cron/cron_logs" 750
 hf_ensure_directory "${HF_CONFIG_BASE_DIRECTORY}/cron/security_logs" 750
@@ -87,6 +87,9 @@ hfu_render_unit() {
         -e "s|\\\${HFU_PERIODIC_EVERY}|${HFU_PERIODIC_EVERY}|g" \
         -e "s|\\\${HFU_PERIODIC_ON_BOOT_SEC}|${HFU_PERIODIC_ON_BOOT_SEC}|g" \
         -e "s|\\\${HFU_PERIODIC_ACCURACY}|${HFU_PERIODIC_ACCURACY}|g" \
+        -e "s|\\\${HFU_HOURLY_EVERY}|${HFU_HOURLY_EVERY}|g" \
+        -e "s|\\\${HFU_HOURLY_ON_BOOT_SEC}|${HFU_HOURLY_ON_BOOT_SEC}|g" \
+        -e "s|\\\${HFU_HOURLY_ACCURACY}|${HFU_HOURLY_ACCURACY}|g" \
         "${src}" > "${dest}"
     chmod 644 "${dest}"
 }
@@ -99,6 +102,8 @@ hfu_render_unit hfu-reboot-notice.service
 hfu_render_unit hfu-reboot-notice.timer
 hfu_render_unit hfu-periodic-scan.service
 hfu_render_unit hfu-periodic-scan.timer
+hfu_render_unit hfu-hourly-scan.service
+hfu_render_unit hfu-hourly-scan.timer
 systemctl disable --now hfu-boot-scan.timer >/dev/null 2>&1 || true
 rm -f /etc/systemd/system/hfu-boot-scan.timer
 systemctl disable --now hfu-integrity.timer >/dev/null 2>&1 || true
@@ -115,7 +120,8 @@ hf_run_silent systemctl enable hfu-boot-chain.timer
 hf_run_silent systemctl enable hfu-idle-scan.timer
 hf_run_silent systemctl enable hfu-reboot-notice.timer
 hf_run_silent systemctl enable hfu-periodic-scan.timer
-hf_log_success "Chaîne de démarrage et analyse toutes les 2 h installées, plafonnées à ${HF_WATCHDOG_CPU_LIMIT}% du CPU total"
+hf_run_silent systemctl enable hfu-hourly-scan.timer
+hf_log_success "Chaîne de démarrage, passe horaire et analyse toutes les 2 h installées, plafonnées à ${HF_WATCHDOG_CPU_LIMIT}% du CPU total"
 
 export HFU_BASE="${HF_CONFIG_BASE_DIRECTORY}"
 export HFU_SCAN_SKIP_HOME="${CURRENT_HOME}"
@@ -129,6 +135,16 @@ install -d -m 755 "${HF_CONFIG_BASE_DIRECTORY}/bin"
 install -m 755 "${DIR_SCRIPT_PATH}/scan-skip.sh" "${HF_CONFIG_BASE_DIRECTORY}/bin/scan-skip.sh"
 install -m 755 "${DIR_SCRIPT_PATH}/boot-check.sh" "${HF_CONFIG_BASE_DIRECTORY}/bin/boot-check.sh"
 bash "${HF_CONFIG_BASE_DIRECTORY}/cron/bin/apply-scan-skip.sh"
+
+install -d -m 755 "${HF_CONFIG_BASE_DIRECTORY}/config/integrity"
+install -m 644 \
+    "$(hf_locate_config_file integrity/paths.list)" \
+    "${HF_CONFIG_BASE_DIRECTORY}/config/integrity/paths.list"
+install -m 644 \
+    "${HF_INSTALL_DIRECTORY}/config/global.conf" \
+    "${HF_CONFIG_BASE_DIRECTORY}/config/global.conf"
+export HFU_BASE="${HF_CONFIG_BASE_DIRECTORY}"
+bash "${HF_CONFIG_BASE_DIRECTORY}/cron/bin/integrity.sh"
 
 hf_log_info "crontab utilisateur : non touché (pas de cron.allow)."
 hf_log_success "Watchdogs installés dans ${HF_CONFIG_BASE_DIRECTORY}/cron/bin"

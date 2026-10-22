@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/boot-check.sh
-# Updated at : 2026-10-20
+# Updated at : 2026-10-21
 # Creator    : palarchsys
 # =============================================================================
 
@@ -116,7 +116,7 @@ else
 fi
 
 printf '\n===== minuteries =====\n'
-for timer in hfu-boot-chain hfu-idle-scan hfu-reboot-notice; do
+for timer in hfu-boot-chain hfu-idle-scan hfu-reboot-notice hfu-hourly-scan; do
     enabled="$(systemctl is-enabled "${timer}.timer" 2>/dev/null || echo absent)"
     active="$(systemctl is-active "${timer}.timer" 2>/dev/null || echo absent)"
     if [[ "${enabled}" == "enabled" && "${active}" == "active" ]]; then
@@ -138,7 +138,7 @@ else
 fi
 
 printf '\n===== plafond CPU =====\n'
-for unit in hfu-boot-scan hfu-idle-scan hfu-reboot-notice; do
+for unit in hfu-boot-scan hfu-idle-scan hfu-reboot-notice hfu-hourly-scan; do
     unit_file="/etc/systemd/system/${unit}.service"
     file_quota="$(grep -E '^CPUQuota=' "${unit_file}" 2>/dev/null | cut -d= -f2-)"
     file_nice="$(grep -E '^Nice=' "${unit_file}" 2>/dev/null | cut -d= -f2-)"

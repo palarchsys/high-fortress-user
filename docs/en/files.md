@@ -30,6 +30,8 @@ Each row is a file the installer writes, with the mode the script sets. Files in
 | /etc/systemd/system/hfu-reboot-notice.timer             | Repeats that notice every 6 hours after the chain.                                              | 644                          |
 | /etc/systemd/system/hfu-periodic-scan.service           | ClamAV walk every 2 hours. Same CPU and I/O limits as the boot scan.                            | 644                          |
 | /etc/systemd/system/hfu-periodic-scan.timer             | Starts that walk 2 hours after boot, then every 2 hours.                                        | 644                          |
+| /etc/systemd/system/hfu-hourly-scan.service             | Hourly AIDE, rkhunter, chkrootkit and debsums. Same CPU and I/O limits as the boot scan.       | 644                          |
+| /etc/systemd/system/hfu-hourly-scan.timer               | Starts that pass 1 hour after boot, then every hour.                                            | 644                          |
 | /opt/high-fortress-user/cron/integrity.sha256           | Hash stamp written by integrity.sh during the boot scan.                                        | 600                          |
 | /opt/high-fortress-user/cron/behavior.stamp             | Audit window stamp written by behavior.sh during the boot scan.                                 | 600                          |
 | /opt/high-fortress-user/cron/egress.stamp               | Outbound window stamp written by egress-watch.sh during the boot scan.                          | 600                          |

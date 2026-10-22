@@ -30,6 +30,8 @@ Jede Zeile ist eine Datei, die das Installationsprogramm schreibt, mit dem Modus
 | /etc/systemd/system/hfu-reboot-notice.timer             | Wiederholt diesen Hinweis alle 6 Stunden nach der Kette.                                                  | 644                          |
 | /etc/systemd/system/hfu-periodic-scan.service           | ClamAV-Lauf alle 2 Stunden. Dieselben CPU- und E/A-Grenzen wie der Startlauf.                            | 644                          |
 | /etc/systemd/system/hfu-periodic-scan.timer             | Startet diesen Lauf 2 Stunden nach dem Boot, dann alle 2 Stunden.                                        | 644                          |
+| /etc/systemd/system/hfu-hourly-scan.service             | Stündliche Prüfung von AIDE, rkhunter, chkrootkit und debsums. Dieselben CPU- und E/A-Grenzen wie der Startlauf. | 644                          |
+| /etc/systemd/system/hfu-hourly-scan.timer               | Startet diese Prüfung 1 Stunde nach dem Boot, dann jede Stunde.                                          | 644                          |
 | /opt/high-fortress-user/cron/integrity.sha256           | Prüfsummenstempel, den integrity.sh während der Startprüfung schreibt.                                  | 600                          |
 | /opt/high-fortress-user/cron/behavior.stamp             | Audit-Fensterstempel, den behavior.sh während der Startprüfung schreibt.                        | 600                          |
 | /opt/high-fortress-user/cron/egress.stamp               | Stempel des ausgehenden Fensters, den egress-watch.sh während der Startprüfung schreibt.        | 600                          |

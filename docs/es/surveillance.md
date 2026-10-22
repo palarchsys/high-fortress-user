@@ -160,6 +160,18 @@ Un `lutris`, `heroic` o `gamescope` en marcha omite la pasada.
 
 `/run/high-fortress-user/clamav.lock` impide que arranque una segunda pasada.
 
+## Pasada horaria
+
+| Servicio que vigila | Zonas | Qué sale en alerta | Orden del correo |
+| --- | --- | --- | --- |
+| hourly-scan.sh en hfu-hourly-scan.timer | AIDE, luego rkhunter, luego chkrootkit, luego debsums. Los mismos controles que la pasada de arranque. | Los mismos hallazgos que cada uno de esos controles de arranque. Una pasada limpia permanece en silencio. | La orden del correo de ese control. |
+
+El temporizador es `OnBootSec=1h` y `OnUnitActiveSec=1h`, con `Persistent=false`.
+
+`Nice` vale 19, `IOSchedulingClass` vale `idle`, y `CPUQuota` es la misma cuota que la pasada de arranque.
+
+La pasada de arranque lanza estos cuatro controles.
+
 ## Análisis ClamAV diferido
 
 | Servicio que vigila                  | Zonas                                                                                                         | Qué se alerta                                                                                                                    | Orden del correo         |

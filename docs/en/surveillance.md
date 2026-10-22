@@ -160,6 +160,18 @@ A running `lutris`, `heroic` or `gamescope` skips the pass.
 
 `/run/high-fortress-user/clamav.lock` stops a second pass from starting.
 
+## Hourly pass
+
+| Service that watches | Zones | What is alerted | Mail command |
+| --- | --- | --- | --- |
+| hourly-scan.sh in hfu-hourly-scan.timer | AIDE, then rkhunter, then chkrootkit, then debsums. Same checks as the boot pass. | The same findings as each of those boot checks. A clean pass stays silent. | The mail command of that check. |
+
+The timer is `OnBootSec=1h` and `OnUnitActiveSec=1h`, with `Persistent=false`.
+
+`Nice` is 19, `IOSchedulingClass` is `idle`, and `CPUQuota` matches the boot pass.
+
+The boot pass runs these four checks.
+
 ## ClamAV idle scan
 
 | Service that watches                 | Zones                                                                                                              | What is alerted                                                                                          | Mail command      |

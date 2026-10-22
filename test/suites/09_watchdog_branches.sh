@@ -520,7 +520,7 @@ hft_check_user_sec branch.usr.response.sec 45 45
 
 hft_stop_holder
 
-for id in usr.collect.install usr.base usr.integrity.bin usr.integrity.list usr.integrity.stamp usr.behavior.bin usr.behavior.stamp usr.egress.bin usr.egress.stamp usr.egress.table usr.isolate.state usr.net.ufw usr.boot.order usr.boot.timer usr.boot.scan-timer usr.periodic.timer usr.clamav.lock usr.clamav.deny usr.conf.order usr.conf.base; do
+for id in usr.collect.install usr.base usr.integrity.bin usr.integrity.list usr.integrity.stamp usr.behavior.bin usr.behavior.stamp usr.egress.bin usr.egress.stamp usr.egress.table usr.isolate.state usr.net.ufw usr.boot.order usr.boot.timer usr.boot.scan-timer usr.periodic.timer usr.hourly.timer usr.clamav.lock usr.clamav.deny usr.conf.order usr.conf.base; do
     if grep -q "${id}" "${probe}"; then
         hft_pass "probe.id.${id}" "présent"
     else

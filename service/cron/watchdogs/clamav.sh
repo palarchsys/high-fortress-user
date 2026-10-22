@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/clamav.sh
-# Updated at : 2026-10-20
+# Updated at : 2026-10-21
 # Creator    : palarchsys
 # =============================================================================
 # -----------------------------------------------------------------------------
 # Purpose    : Boot and periodic ClamAV walk of /home, /opt and /tmp.
 # Note       : HF_CLAM_MODE=daemon selects the running daemon in the shared scanner.
 # Note       : The file list is created under /run/high-fortress-user.
+# Note       : An anchored OnAccessExcludePath is pruned as its path.
 # Note       : HFU_CLAMAV_DEFER=1 skips the pass while a game is running.
 # -----------------------------------------------------------------------------
 
@@ -57,7 +58,13 @@ excludes=()
 if [[ -f /etc/clamav/clamd.conf ]]; then
     while read -r path; do
         [[ -n "${path}" ]] && excludes+=("${path}")
-    done < <(awk '/^OnAccessExcludePath[[:space:]]/{print $2}' /etc/clamav/clamd.conf)
+    done < <(awk '/^OnAccessExcludePath[[:space:]]/{
+        p = $2
+        sub(/^\^/, "", p)
+        sub(/\$$/, "", p)
+        gsub(/\\/, "", p)
+        print p
+    }' /etc/clamav/clamd.conf)
 fi
 
 prune_names=(
