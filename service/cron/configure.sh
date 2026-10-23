@@ -136,6 +136,8 @@ install -m 755 "${DIR_SCRIPT_PATH}/scan-skip.sh" "${HF_CONFIG_BASE_DIRECTORY}/bi
 install -m 755 "${DIR_SCRIPT_PATH}/boot-check.sh" "${HF_CONFIG_BASE_DIRECTORY}/bin/boot-check.sh"
 install -m 755 "$(readlink -f "${HF_INSTALL_DIRECTORY}/core/quarantine-restore.sh")" \
     "${HF_CONFIG_BASE_DIRECTORY}/bin/quarantine-restore.sh"
+install -m 755 "$(readlink -f "${HF_INSTALL_DIRECTORY}/core/mail-test.sh")" \
+    "${HF_CONFIG_BASE_DIRECTORY}/bin/mail-test.sh"
 bash "${HF_CONFIG_BASE_DIRECTORY}/cron/bin/apply-scan-skip.sh"
 
 install -d -m 755 "${HF_CONFIG_BASE_DIRECTORY}/config/integrity"

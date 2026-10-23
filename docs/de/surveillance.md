@@ -4,9 +4,9 @@
 
 Eine Journalzeile in einer Alarmpost bleibt auf einer Zeile.
 
-Die Alarmpost ist 450px breit.
+Die Alarmpost ist 400px bis 800px breit und folgt dem Nachrichtenbereich zwischen diesen Breiten.
 
-Eine lange Journalzeile läuft im Journalblock weiter.
+Die Alarmpost füllt mindestens die Höhe des Nachrichtenbereichs.
 
 ## AIDE
 
@@ -15,6 +15,8 @@ Eine lange Journalzeile läuft im Journalblock weiter.
 | aide.sh in boot-scan.sh | /etc/aide/aide.conf, database /var/lib/aide/aide.db | Änderungen, oder ein Code ungleich null, der kein sauberes Ergebnis ist. | `sudo bash /opt/high-fortress-user/bin/aide-refresh-db.sh` |
 
 Flüchtige Pfade, Journale, Caches und die Cron-Berichtverzeichnisse sind in `config/aide/aide.conf` ausgeschlossen, damit die Basis nicht von diesen Dateien neu geschrieben wird.
+
+Dateien `*.stamp`, `integrity.sha256` und `rkhunter-mirrors.sha256` im Cron-Verzeichnis des Produkts sind ausgeschlossen.
 
 Die Datei `/etc/crowdsec/hub/.index.json` ist ausgeschlossen.
 

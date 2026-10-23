@@ -4,9 +4,9 @@
 
 Une ligne de journal dans un courrier d'alerte reste sur une seule ligne.
 
-Le courrier d'alerte fait 450px de large.
+Le courrier d'alerte fait de 400px à 800px de large et suit le volet de lecture entre ces deux largeurs.
 
-Une longue ligne de journal défile dans le bloc de journal.
+Le courrier d'alerte occupe au moins la hauteur du volet de lecture.
 
 ## AIDE
 
@@ -15,6 +15,8 @@ Une longue ligne de journal défile dans le bloc de journal.
 | aide.sh in boot-scan.sh | /etc/aide/aide.conf, database /var/lib/aide/aide.db | Des changements, ou un code non nul qui n'est pas un résultat propre. | `sudo bash /opt/high-fortress-user/bin/aide-refresh-db.sh` |
 
 Les chemins volatils, les journaux, les caches et les répertoires de rapports cron sont exclus dans `config/aide/aide.conf` afin que la base ne soit pas réécrite par ces fichiers.
+
+Les fichiers `*.stamp`, `integrity.sha256` et `rkhunter-mirrors.sha256` du répertoire cron du produit sont exclus.
 
 Le fichier `/etc/crowdsec/hub/.index.json` est exclu.
 

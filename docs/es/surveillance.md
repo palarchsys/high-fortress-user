@@ -4,9 +4,9 @@
 
 Una línea de diario en un correo de alerta permanece en una sola línea.
 
-El correo de alerta mide 450px de ancho.
+El correo de alerta mide de 400px a 800px de ancho y sigue el panel del mensaje entre esos anchos.
 
-Una línea larga del diario se desplaza dentro del bloque de diario.
+El correo de alerta ocupa al menos la altura del panel del mensaje.
 
 ## AIDE
 
@@ -15,6 +15,8 @@ Una línea larga del diario se desplaza dentro del bloque de diario.
 | aide.sh in boot-scan.sh | /etc/aide/aide.conf, database /var/lib/aide/aide.db | Cambios, o un código distinto de cero que no es un resultado limpio. | `sudo bash /opt/high-fortress-user/bin/aide-refresh-db.sh` |
 
 Las rutas volátiles, los diarios, las cachés y los directorios de informes cron están excluidos en `config/aide/aide.conf` para que la base no sea reescrita por esos archivos.
+
+Los archivos `*.stamp`, `integrity.sha256` y `rkhunter-mirrors.sha256` del directorio cron del producto están excluidos.
 
 El archivo `/etc/crowdsec/hub/.index.json` está excluido.
 

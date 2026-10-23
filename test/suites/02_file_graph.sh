@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : test/suites/02_file_graph.sh
-# Updated at : 2026-10-22
+# Updated at : 2026-10-23
 # Creator    : palarchsys
 # =============================================================================
 
@@ -466,6 +466,13 @@ awk '
     END { exit !(etc && ex && ex > etc) }
 ' "${HFT_ROOT}/config/aide/aide.conf" || daily_ok=0
 awk '
+    /__HF_BASE__/ && /All/ { base = NR }
+    $0 == "!__HF_BASE__/cron/[^/]+\\.stamp$" { stamp = NR }
+    $0 == "!__HF_BASE__/cron/integrity\\.sha256$" { integ = NR }
+    $0 == "!__HF_BASE__/cron/rkhunter-mirrors\\.sha256$" { mirrors = NR }
+    END { exit !(base && stamp > base && integ > stamp && mirrors > integ) }
+' "${HFT_ROOT}/config/aide/aide.conf" || daily_ok=0
+awk '
     /out\.extend/ { ext = NR }
     /path\.write_text/ { wr = NR }
     END { exit !(ext && wr && wr > ext) }
@@ -673,11 +680,20 @@ grep -q 'hf_quarantine_confirmed_log' "${root}/service/cron/watchdogs/chkrootkit
 grep -q 'non mis en quarantaine' "${root}/../core/watchdog.sh"
 ! grep -q 'pre-wrap' "${root}/template/mail.html"
 ! grep -q 'width:840px' "${root}/template/mail.html"
-! grep -q 'max-content' "${root}/template/mail.html"
 ! grep -q 'min-width:100%' "${root}/template/mail.html"
-grep -q 'min-width:450px' "${root}/template/mail.html"
+! grep -q 'min-width:450px' "${root}/template/mail.html"
+! grep -q 'max-width:450px' "${root}/template/mail.html"
+! grep -q 'min-width:800px' "${root}/template/mail.html"
+! grep -q 'width:max-content' "${root}/template/mail.html"
+grep -q 'min-width:400px' "${root}/template/mail.html"
+grep -q 'max-width:800px' "${root}/template/mail.html"
+grep -q 'width:100%' "${root}/template/mail.html"
 grep -q 'white-space:pre' "${root}/template/mail.html"
+grep -q 'min-height:100vh' "${root}/template/mail.html"
+grep -q 'overflow-x:auto' "${root}/template/mail.html"
 grep -q 'quarantine-restore.sh' "${root}/service/cron/configure.sh"
+grep -q 'mail-test.sh' "${root}/service/cron/configure.sh"
+grep -q 'hf_send_mail_test' "${root}/../core/mail-test.sh"
 WATCH
 if [[ "${watch_rc}" -eq 0 ]]; then
     hft_pass "graph.watch" "surveillance continue et contrôles au démarrage"

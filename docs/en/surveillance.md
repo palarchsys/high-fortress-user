@@ -4,9 +4,9 @@
 
 A journal line in an alert mail stays on one line.
 
-The alert mail is 450px wide.
+The alert mail is 400px to 800px wide and follows the message pane between those widths.
 
-A long journal line scrolls inside the log block.
+The alert mail is at least as tall as the message pane.
 
 ## AIDE
 
@@ -15,6 +15,8 @@ A long journal line scrolls inside the log block.
 | aide.sh in boot-scan.sh | /etc/aide/aide.conf, database /var/lib/aide/aide.db | Changes, or a non-zero code that is not a clean result. | `sudo bash /opt/high-fortress-user/bin/aide-refresh-db.sh` |
 
 Volatile paths, logs, caches and the cron report directories are excluded in `config/aide/aide.conf` so the baseline is not rewritten by those files.
+
+Files named `*.stamp`, `integrity.sha256` and `rkhunter-mirrors.sha256` under the product cron directory are excluded.
 
 The file `/etc/crowdsec/hub/.index.json` is excluded.
 
