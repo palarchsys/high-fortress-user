@@ -1,24 +1,36 @@
-# High-Fortress User
+<div align="center">
 
-## Descripción
+# 🛡️ High-Fortress User 🛡️
 
-High-Fortress User prepara un puesto Ubuntu 26.04 o posterior. Instala el resolutor DNS local, el cortafuegos y los controles de seguridad.
+![Ubuntu 26.04 or newer](https://img.shields.io/badge/Ubuntu-26.04%2B-E95420?logo=ubuntu&logoColor=white)
+![Workstation](https://img.shields.io/badge/profile-workstation-1f6feb)
+![Unbound](https://img.shields.io/badge/DNS-Unbound-0055A4)
+![UFW](https://img.shields.io/badge/firewall-UFW-0055A4)
+![Security checks](https://img.shields.io/badge/checks-AIDE%20%C2%B7%20ClamAV%20%C2%B7%20Lynis-2ea44f)
 
-La cuenta Ubuntu ya creada en la máquina no se sustituye. El instalador no crea una segunda cuenta.
+High-Fortress User prepara un puesto Ubuntu 26.04 o posterior.<br/>
+Instala el resolutor DNS local, el cortafuegos y los controles de seguridad.<br/>
+La cuenta Ubuntu ya creada en la máquina no se sustituye.<br/>
+El instalador no crea una segunda cuenta.<br/>
 
-`secrets.conf` permanece en la máquina. No lo copie en un mensaje, un ticket o un repositorio.
+</div>
 
-## Antes de comenzar
+## 📋 Antes de comenzar
 
-### Sistema
+Tres puntos preceden a la instalación: el sistema, el acceso y las necesidades externas.
 
-Ubuntu 26.04 o posterior. Una instalación nueva es preferible. Use una consola local o la sesión gráfica ya abierta. La máquina necesita Internet.
+## ▪️ Sistema
 
-### Acceso
+Ubuntu 26.04 o posterior.<br/>
+Una instalación nueva es preferible.<br/>
+Use una consola local o la sesión gráfica ya abierta.<br/>
+La máquina necesita Internet.
+
+## ▪️ Acceso
 
 Usted necesita `sudo` para `./hf configure`, `./hf run` y los controles.
 
-### Necesidades externas
+## ▪️ Necesidades externas
 
 | Necesidad                | Enlace y procedimiento                                                                                                                                                                                                                      |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -26,11 +38,11 @@ Usted necesita `sudo` para `./hf configure`, `./hf run` y los controles.
 | Contraseña de aplicación | Se pide solo si usted activa las alertas. Use la contraseña de aplicación del proveedor de correo. No escriba nunca la contraseña de la cuenta. Longitud de 8 a 128. Los espacios escritos se quitan.                                       |
 | Servidor SMTP            | Se pide solo si las alertas están activadas. Forma `host:puerto`. El ejemplo de `configure.sh` es `smtp-mail.outlook.com:587`. Los corchetes se rechazan. `swaks` envía un mensaje de prueba. La línea de éxito es `Essai d'envoi accepté.` |
 
-## Instalación
+## 📋 Instalación
 
-### Curl
+El puesto se prepara con el instalador curl, o con un clon seguido de `sudo ./hf configure`.
 
-`install.sh` también instala `curl`, `ca-certificates` y `tar`, descarga la rama `main` y escribe las fuentes en `/opt/high-fortress-user/src`. Después ejecuta `scripts/configure.sh`. Si `global.conf` ya contiene `HF_CONFIG_PREPARED=1`, si `secrets.conf` existe y si `scripts/configure.sh --check` pasa, ejecuta `scripts/run.sh` en su lugar.
+## ▪️ Curl
 
 ```bash
 sudo apt-get update
@@ -38,9 +50,7 @@ sudo apt-get install -y ca-certificates curl git swaks tar
 curl -fsSL https://raw.githubusercontent.com/palarchsys/high-fortress-user/main/install.sh | sudo bash
 ```
 
-### Clon
-
-El clon permanece en el directorio creado por `git clone`. `sudo ./hf configure` se ejecuta en ese directorio. El instalador curl es la orden que copia las fuentes a `/opt/high-fortress-user/src`.
+## ▪️ Clon
 
 ```bash
 git clone https://github.com/palarchsys/high-fortress-user
@@ -50,322 +60,278 @@ sudo ./hf configure
 
 ## Acción de configure.sh
 
-`sudo ./hf configure` hace las preguntas de abajo, escribe `global.conf` en modo `644` y `secrets.conf` en modo `600` como root, y después inicia `scripts/run.sh`. `secrets.conf` no sale de la máquina.
+`sudo ./hf configure` hace las preguntas de abajo, escribe `global.conf` en modo `644` y `secrets.conf` en modo `600` como root, y después inicia `scripts/run.sh`.<br/>
+`secrets.conf` permanece en la máquina. No lo copie en un mensaje, un ticket o un repositorio.<br/>
 
-| Pregunta         | Respuesta esperada                                                                                                                                                                   | Intro conserva                                               |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------ |
-| Jeton Ubuntu Pro | Letras y dígitos, de 6 a 100, sin espacio. Obligatorio.                                                                                                                              | Un token ya guardado. La primera vez no hay token guardado.  |
-| Activer          | `Y` o `y` activa las alertas. `n` o `non` las corta. Cualquier otra respuesta muestra `Répondez Y ou n.`                                                                             | Nada. La pregunta no tiene valor por defecto.                |
-| Serveur          | `host:puerto`, por ejemplo `smtp-mail.outlook.com:587`. Sin corchetes. Solo si las alertas están activadas.                                                                          | Nada la primera vez.                                         |
-| Login            | Una dirección de correo.                                                                                                                                                             | Nada la primera vez.                                         |
-| Password         | La contraseña de aplicación del proveedor, de 8 a 128 caracteres. Los espacios se quitan. Las comillas, `$`, `\` y la comilla inversa se rechazan. Nunca la contraseña de la cuenta. | Nada. Una segunda línea pide la confirmación.                |
-| From             | Una dirección de correo. `HF_WATCHDOG_MAIL` recibe la misma dirección.                                                                                                                  | Nada la primera vez.                                         |
-| Mode test        | `0` o `1`.                                                                                                                                                                           | El valor actual de `HF_MODE_TEST`. El valor entregado es `[1]`. |
-
-Cuando las alertas están activadas, `swaks` debe recibir un `250` SMTP. La línea de éxito es `Essai d'envoi accepté.` `HF_MAIL_ALERTS` pasa a `1`. Cuando las alertas se cortan, la línea de éxito es `Alertes e-mail coupées. Les contrôles partiront sans envoi.` y las variables de correo se vacían.
-
-Los valores que no se preguntan se escriben desde `hfu_set_config_default` y desde el `global.conf` entregado. Están en [configuration.md](configuration.md). No se genera ninguna contraseña aleatoria.
+| Pregunta         | Respuesta esperada                                                                                                                                                                   |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Jeton Ubuntu Pro | Letras y dígitos, de 6 a 100, sin espacio. Obligatorio.                                                                                                                              |
+| Activer          | `Y` o `y` activa las alertas. `n` o `non` las corta. Cualquier otra respuesta muestra `Répondez Y ou n.`                                                                             |
+| Serveur          | `host:puerto`, por ejemplo `smtp-mail.outlook.com:587`. Sin corchetes. Solo si las alertas están activadas.                                                                          |
+| Login            | Una dirección de correo.                                                                                                                                                             |
+| Password         | La contraseña de aplicación del proveedor, de 8 a 128 caracteres. Los espacios se quitan. Las comillas, `$`, `\` y la comilla inversa se rechazan. Nunca la contraseña de la cuenta. |
+| From             | Una dirección de correo. `HF_WATCHDOG_MAIL` recibe la misma dirección.                                                                                                               |
+| Mode test        | `0` o `1`.                                                                                                                                                                           |
 
 ## Programas y servicios instalados
 
-| Nombre                                          | Origen                                                                                  | Función                                                                                                                        |
-| ----------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| openssh-server                                  | Ubuntu archive                                                                          | Servidor SSH. El acceso de root se rechaza. La autenticación por contraseña permanece activada.                                |
-| ufw                                             | Ubuntu archive                                                                          | Cortafuegos del equipo.                                                                                                        |
-| usbguard, usbguard-notifier                     | Ubuntu archive                                                                          | Permite los dispositivos ya conectados, además de los teclados, los ratones y los concentradores. Un soporte de almacenamiento nuevo espera una confirmación en el escritorio. |
-| fail2ban                                        | Ubuntu archive                                                                          | Bloquea los fallos de autenticación repetidos.                                                                                 |
-| auditd                                          | Ubuntu archive                                                                          | Escribe las reglas de auditoría de las rutas elegidas.                                                                         |
-| rkhunter                                        | Ubuntu archive                                                                          | Control de rootkits y de propiedades de archivos.                                                                              |
-| chkrootkit                                      | Ubuntu archive                                                                          | Control de rootkits. El binario es `/usr/sbin/chkrootkit`.                                                                     |
-| clamav                                          | Ubuntu archive                                                                          | Análisis al acceso y análisis al arranque.                                                                                     |
-| crowdsec                                        | https://packagecloud.io/crowdsec/crowdsec/any any main                                  | Decisiones de seguridad locales.                                                                                               |
-| debsums                                         | Ubuntu archive                                                                          | Sumas de control de los archivos de los paquetes.                                                                              |
-| unbound                                         | Ubuntu archive                                                                          | Resolutor DNS local en `127.0.0.1` y `::1`, puerto 53.                                                                         |
-| apparmor                                        | Ubuntu archive, plus `service/apparmor/userns.sh`                                       | Perfiles de la distribución. `service/apparmor/userns.sh` retira un perfil hfu que no se entrega.                            |
-| aide                                            | Ubuntu archive                                                                          | Base de integridad `/var/lib/aide/aide.db`.                                                                                    |
-| unattended-upgrades                             | Ubuntu archive                                                                          | Orígenes de seguridad. `Automatic-Reboot` vale `false`.                                                                        |
-| postfix                                         | Ubuntu archive, only when `HF_MAIL_ALERTS=1`                                            | Envía el correo de alerta.                                                                                                     |
-| lynis                                           | https://packages.cisofy.com/community/lynis/deb/ stable main                            | Auditoría de endurecimiento. La clave es `https://packages.cisofy.com/keys/cisofy-software-public.key`.                        |
-| ubuntu-pro-client                               | Ubuntu archive                                                                          | Asocia el token de Ubuntu Pro.                                                                                                 |
-| acct, sysstat, libpam-pwquality                 | Ubuntu archive                                                                          | Contabilidad de procesos, estadísticas de actividad, calidad de las contraseñas.                                               |
-| rng-tools-debian, haveged                       | Ubuntu archive                                                                          | Fuentes de entropía.                                                                                                           |
-| apt-listchanges, needrestart, apt-show-versions | Ubuntu archive                                                                          | Avisos de cambios de paquetes y controles de reinicio.                                                                         |
+La instalación coloca los paquetes y servicios de abajo.
 
-## Qué hace la máquina después de la instalación
+| Nombre                                          | Función                                                                                                                                                                        |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| openssh-server                                  | Servidor SSH. El acceso de root se rechaza. La autenticación por contraseña permanece activada. `PasswordAuthentication yes`. `AllowTcpForwarding no`. `AllowAgentForwarding no`. |
+| ufw                                             | Cortafuegos del puesto.                                                                                                                                                        |
+| usbguard, usbguard-notifier                     | Autoriza los aparatos ya conectados, así como los teclados, los ratones y los concentradores. Un soporte de almacenamiento nuevo espera una confirmación en el escritorio.     |
+| fail2ban                                        | Bloquea los fallos de autenticación repetidos.                                                                                                                                |
+| auditd                                          | Escribe las reglas de auditoría de las rutas elegidas.                                                                                                                         |
+| rkhunter                                        | Control de rootkit y de propiedades de archivos.                                                                                                                               |
+| chkrootkit                                      | Control de rootkit. El binario es `/usr/sbin/chkrootkit`.                                                                                                                      |
+| clamav                                          | Análisis al acceso y análisis al arranque.                                                                                                                                     |
+| crowdsec                                        | Decisiones de seguridad locales.                                                                                                                                               |
+| debsums                                         | Sumas de comprobación de los archivos de los paquetes.                                                                                                                         |
+| unbound                                         | Resolutor DNS local en `127.0.0.1` y `::1`, puerto 53.                                                                                                                         |
+| apparmor                                        | Perfiles de la distribución. `service/apparmor/userns.sh` retira un perfil hfu que no se entrega.                                                                              |
+| aide                                            | Base de integridad `/var/lib/aide/aide.db`.                                                                                                                                    |
+| unattended-upgrades                             | Orígenes de seguridad. `Automatic-Reboot` vale `false`.                                                                                                                        |
+| postfix                                         | Envía el correo de alerta. Instalado solo cuando `HF_MAIL_ALERTS=1`.                                                                                                           |
+| lynis                                           | Auditoría de endurecimiento.                                                                                                                                                   |
+| ubuntu-pro-client                               | Adjunta el token de Ubuntu Pro.                                                                                                                                                |
+| acct, sysstat, libpam-pwquality                 | Contabilidad de procesos, estadísticas de actividad, calidad de las contraseñas.                                                                                               |
+| rng-tools-debian, haveged                       | Fuentes de entropía.                                                                                                                                                           |
+| apt-listchanges, needrestart, apt-show-versions | Avisos de cambios de paquetes y controles de reinicio.                                                                                                                         |
 
-| Tema        | Comportamiento                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Cortafuegos | `ufw default deny incoming`, `ufw default allow outgoing`, `ufw default allow routed`. El bucle local se permite en ambos sentidos. SSH en el puerto detectado queda limitado a cada prefijo directamente conectado. Cuando ningún prefijo está activo, el límite desde cualquier origen permanece.                                                                                                                                                                                                                                                                                                    |
-| DNS         | Unbound escucha en `127.0.0.1` y `::1`. systemd-resolved y NetworkManager apuntan a ese resolutor. El DNS IPv6 permanece activado (`do-ip6: yes`).                                                                                                                                                                                                                                                                                                                                |
-| SSH         | `PermitRootLogin no`. `PasswordAuthentication yes`. `PubkeyAuthentication yes`. Banner `/etc/ssh/sshd_banner`. `MaxAuthTries 4`. `AllowTcpForwarding no`. `AllowAgentForwarding no`.                                                                                                                                                                                                                                                                                                                                                  |
-| Núcleo      | `/etc/sysctl.d/90-high-fortress-user.conf` se copia a `/etc/sysctl.d/99-zzz-high-fortress-user.conf`. IPv6 permanece activado. Las redirecciones IPv6 y el source routing se rechazan. Los user namespaces permanecen activados. `dccp`, `sctp`, `rds` y `tipc` quedan en lista negra. Los sistemas de archivos no usados quedan en lista negra. Los volcados de núcleo quedan en 0. `HFU_PAM_PASSWORD_MIN_LENGTH` vale 12.                                                                  |
-| AppArmor    | `service/apparmor/userns.sh` retira un perfil hfu que no se entrega.                                                                                                                                                                                                                                                                                                      |
-| Controles   | `hfu-boot-chain.timer` lanza `hfu-boot-chain.service` cuando `multi-user.target` está alcanzado (`OnBootSec=0`, `Persistent=false`). La cadena lanza `hfu-boot-scan.service`, luego `hfu-idle-scan.service`, luego `hfu-reboot-notice.service`. La pasada lanza AIDE, rkhunter, chkrootkit, ClamAV y debsums. `hfu-hourly-scan.timer` lanza AIDE, rkhunter, chkrootkit y debsums una hora después del arranque, luego cada hora (`OnBootSec=1h`, `OnUnitActiveSec=1h`, `Persistent=false`). `Nice` vale `HF_WATCHDOG_LIMIT_NICE` (19), `IOSchedulingClass=idle`, `CPUQuota` vale `HF_WATCHDOG_CPU_LIMIT` multiplicado por el número de CPU, así que 50 es el 50 % de la máquina. `/etc/cron.d/high-fortress-user` solo contiene `SHELL` y `PATH`. La crontab del usuario no se modifica. El correo sale solo cuando un control encuentra algo y `HF_MAIL_ALERTS=1`. `hfu-idle-scan.timer` relanza el análisis diferido cada hora. `hfu-reboot-notice.timer` relanza el aviso cada 6 horas y envía correo cuando un reinicio es útil y ningún juego está en marcha. Las reglas están en [surveillance.md](surveillance.md). |
-| Lynis       | `HF_LYNIS_MIN_SCORE` vale 80. `verify/workstation.sh` acepta un `hardening_index` superior o igual a ese umbral.                                                                                                                                                                                                                                                                                                                                                                     |
-| Diarios     | Los diarios de instalación están en `<source>/logs/install-YYYYMMDD-HHMMSS-user/`. Los diarios de seguridad están en `/opt/high-fortress-user/cron/security_logs/`. El almacenamiento de journald es persistente.                                                                                                                                                                                                                                                                |
-| Paquetes    | En amd64 se activa la arquitectura i386. CUPS se purga al inicio de la instalación. |
-| USB          | Los dispositivos presentes en el momento del configure permanecen permitidos. La clase de interfaz `03` y la clase `09` permanecen permitidas. Un soporte de almacenamiento nuevo permanece bloqueado hasta que usted lo acepte en el escritorio. El módulo `usb-storage` permanece disponible. |
+## 📋 Correos de alerta
 
-## Correos de alerta
+El correo sale solo si `HF_MAIL_ALERTS=1`, si `HF_WATCHDOG_MAIL` está definido, y si `/opt/high-fortress-user/cron/bin/send.sh` es ejecutable.<br/>
+Un control limpio no envía correo.<br/>
+Si una línea del diario es desconocida, no lance la orden.<br/>
+Conserve el correo.
 
-El correo sale solo si `HF_MAIL_ALERTS=1`, si `HF_WATCHDOG_MAIL` está definido y si `/opt/high-fortress-user/cron/bin/send.sh` es ejecutable. Un control limpio no envía correo. Si una línea del diario es desconocida, no lance la orden. Conserve el correo.
-
-Un control que se detiene antes de su fin normal envía correo.
-
-El correo nombra el control.
-
+Un control que se detiene antes de su fin envía un correo.<br/>
+El correo nombra el control.<br/>
 Nombra la señal, o el código de salida.
 
-### AIDE
+## ▪️ AIDE
 
-El mensaje contiene la línea de resumen y un extracto del diario, después la nota y el bloque de orden. La ruta del diario en el correo es el archivo real. La forma es `/opt/high-fortress-user/cron/security_logs/aide-YYYYMMDD-HHMMSS.log`.
+El mensaje contiene la línea de resumen y un extracto del diario, luego la nota y el bloque de orden.<br/>
+La ruta del diario en el correo es el archivo real.<br/>
+La forma es `/opt/high-fortress-user/cron/security_logs/aide-YYYYMMDD-HHMMSS.log`.
 
 ```bash
 sudo bash /opt/high-fortress-user/bin/aide-refresh-db.sh
 ```
 
-La orden reconstruye la base AIDE a partir del disco actual. La línea de éxito es `Base de référence AIDE enregistrée.`
+La orden reconstruye la base AIDE a partir del disco actual.<br/>
+La línea de éxito es `Base de référence AIDE enregistrée.`
 
-### chkrootkit
+## ▪️ chkrootkit
 
-El mensaje contiene el resumen y el extracto del diario, después la nota y la orden. El ejemplo de abajo muestra la forma. El correo contiene la ruta real.
+El mensaje contiene el resumen y el extracto del diario, luego la nota y la orden.<br/>
+El ejemplo de abajo muestra la forma.<br/>
+El correo contiene la ruta real.
 
 ```bash
 sudo bash /opt/high-fortress-user/bin/chkrootkit-ignore-log.sh '/opt/high-fortress-user/cron/security_logs/chkrootkit-YYYYMMDD-HHMMSS.log'
 ```
 
-La orden registra las líneas de ese diario en `/opt/high-fortress-user/cron/chkrootkit.local.ignore`. La línea de éxito es `Aucune nouvelle détection à enregistrer.` cuando no hay nada nuevo, o `N détection(s) enregistrée(s) dans /opt/high-fortress-user/cron/chkrootkit.local.ignore`.
+La orden registra las líneas de ese diario en `/opt/high-fortress-user/cron/chkrootkit.local.ignore`.<br/>
+La línea de éxito es `Aucune nouvelle détection à enregistrer.` cuando no hay nada nuevo, o `N détection(s) enregistrée(s) dans /opt/high-fortress-user/cron/chkrootkit.local.ignore`.
 
-Una detección confirmada mueve el archivo y adjunta la orden de restauración en su lugar.
-
+Una detección confirmada mueve el archivo y adjunta la orden de restauración en su lugar.<br/>
 La orden de registro permanece solo cuando ningún archivo confirmado fue movido.
 
-### debsums
+## ▪️ debsums
 
-El mensaje contiene el resumen y el extracto del diario. No añade un bloque de orden. El control reinstala cada paquete que sigue señalado con `apt-get install --reinstall`. El correo nombra cada paquete restablecido. La línea de éxito es `La somme correspond.`
+El mensaje contiene el resumen y el extracto del diario.<br/>
+No añade un bloque de orden.<br/>
+El control reinstala cada paquete todavía señalado con `apt-get install --reinstall`.<br/>
+El correo nombra cada paquete restablecido.<br/>
+La línea de éxito es `La somme correspond.`
 
-Un paquete cuya suma sigue distinta, o cuya reinstalación falla, permanece en el correo.
+Un paquete cuya suma sigue siendo distinta, o cuya reinstalación falla, permanece en el correo.<br/>
+Una línea para `/var/lib/rkhunter/db/mirrors.dat` se retira antes de esa reinstalación solo si su SHA-256 actual es igual a `/opt/high-fortress-user/cron/rkhunter-mirrors.sha256`.<br/>
+Una línea modificada bajo `/usr/lib/*/perl-base/unicore/` del paquete `perl-base` se retira antes de esa reinstalación.<br/>
+El archivo entregado por Ubuntu no corresponde a la suma de ese paquete.
 
-Una línea de `/var/lib/rkhunter/db/mirrors.dat` se retira antes de esta reinstalación solo si su SHA-256 actual es igual a `/opt/high-fortress-user/cron/rkhunter-mirrors.sha256`.
+## ▪️ ClamAV al acceso
 
-Una línea modificada bajo `/usr/lib/*/perl-base/unicore/` del paquete `perl-base` se retira antes de esta reinstalación.
-
-El archivo que entrega Ubuntu no coincide con la suma de ese paquete.
-
-### ClamAV al acceso
-
-El mensaje contiene la firma, el nombre del archivo, la ruta de origen y la ruta de cuarentena, después la nota y una orden de restauración por archivo movido.
-
-El mismo diario indica la hora, el tipo de detección, las acciones aplicadas y una recomendación breve. Un archivo cuyo nombre coincide con `.clamav-quarantine-lock.*` no envía correo. El script sale con 0 antes del diario y antes de `hf_log_alert`.
+El mensaje contiene la firma, el nombre del archivo, la ruta de origen y la ruta de cuarentena, luego la nota y una orden de restauración por archivo movido.<br/>
+El mismo diario indica la hora, el tipo de detección, las acciones aplicadas y una recomendación corta.<br/>
+Un archivo cuyo nombre corresponde a `.clamav-quarantine-lock.*` no envía correo.<br/>
+El script sale con 0 antes del diario y antes de `hf_log_alert`.
 
 ```bash
 sudo bash /opt/high-fortress-user/bin/quarantine-restore.sh <id>
 ```
 
-El ejemplo muestra la forma. El correo contiene el identificador real. La orden devuelve ese archivo a su ubicación de origen. La línea de éxito es `fichier remis en place`.
-
+El ejemplo muestra la forma.<br/>
+El correo contiene el identificador real.<br/>
+La orden devuelve ese archivo a su lugar de origen.<br/>
+La línea de éxito es `fichier remis en place`.<br/>
 El registro es `/opt/high-fortress-user/cron/quarantine.registry`.
 
-### Análisis ClamAV al arranque
+## ▪️ Análisis ClamAV al arranque
 
-El mensaje contiene el resumen y el extracto del diario.
+El mensaje contiene el resumen y el extracto del diario.<br/>
+Cuando un archivo fue movido, el correo añade una orden de restauración por archivo.<br/>
+La orden es la misma que la del correo al acceso.<br/>
+La forma del diario es `/opt/high-fortress-user/cron/security_logs/clamav-YYYYMMDD-HHMMSS.log`.<br/>
+Un archivo ilegible, sin línea `FOUND`, no envía correo.<br/>
+Las líneas `Known viruses` e `Infected files` no se copian en el correo.<br/>
+Un proceso `clamscan` detenido por una señal envía un correo.<br/>
+El correo nombra la señal y cada archivo no leído.<br/>
+Los demás archivos de la pasada se analizan.<br/>
+Dos fallos seguidos detienen la pasada ClamAV.<br/>
+El correo dice entonces que los archivos restantes no fueron leídos.
 
-Cuando un archivo fue movido, el correo añade una orden de restauración por archivo.
+## ▪️ Análisis ClamAV diferido
 
-La orden es la misma que la del correo de acceso.
-
-La forma del diario es `/opt/high-fortress-user/cron/security_logs/clamav-YYYYMMDD-HHMMSS.log`.
-
-Un archivo ilegible, sin línea `FOUND`, no envía correo.
-
-Las líneas `Known viruses` e `Infected files` no se copian en el correo.
-
-Un proceso `clamscan` detenido por una señal envía correo.
-
-El correo nombra la señal y cada archivo no leído.
-
-Los demás archivos de la pasada se analizan.
-
-Dos fallos seguidos detienen la pasada de ClamAV.
-
-El correo dice entonces que los archivos restantes no se leyeron.
-
-### Análisis ClamAV diferido
-
-El mensaje contiene el resumen y el extracto del diario.
-
-Cuando un archivo fue movido, el correo añade una orden de restauración por archivo.
-
-La orden es la misma que la del correo de acceso.
-
-Una firma y una ruta ya guardadas en `/opt/high-fortress-user/cron/scan-skip.seen` no vuelven a enviar correo.
-
-Un proceso `clamscan` detenido por una señal envía correo.
-
-El correo nombra la señal y cada archivo no leído.
-
-Los demás archivos de la pasada se analizan.
-
-Dos fallos seguidos detienen la pasada de ClamAV.
-
-El correo dice entonces que los archivos restantes no se leyeron.
-
-El sello permanece en su sitio.
-
+El mensaje contiene el resumen y el extracto del diario.<br/>
+Cuando un archivo fue movido, el correo añade una orden de restauración por archivo.<br/>
+La orden es la misma que la del correo al acceso.<br/>
+Una firma y una ruta ya registradas en `/opt/high-fortress-user/cron/scan-skip.seen` no vuelven a enviar correo.<br/>
+Un proceso `clamscan` detenido por una señal envía un correo.<br/>
+El correo nombra la señal y cada archivo no leído.<br/>
+Los demás archivos de la pasada se analizan.<br/>
+Dos fallos seguidos detienen la pasada ClamAV.<br/>
+El correo dice entonces que los archivos restantes no fueron leídos.<br/>
+El sello permanece en su lugar.<br/>
 La forma del diario es `/opt/high-fortress-user/cron/security_logs/idle-scan-YYYYMMDD-HHMMSS.log`.
 
-### rkhunter
+## ▪️ rkhunter
 
-El correo de avisos contiene el resumen y el extracto del diario, después la nota y el bloque de orden. El correo `mirrors.dat modifié hors rkhunter --update` no añade ese bloque. Un correo de error tampoco lo añade. La forma del diario es `/opt/high-fortress-user/cron/security_logs/rkhunter-YYYYMMDD-HHMMSS.log`.
+El correo de avisos contiene el resumen y el extracto del diario, luego la nota y el bloque de orden.<br/>
+El correo `mirrors.dat modifié hors rkhunter --update` no añade ese bloque.<br/>
+Un correo de error tampoco.<br/>
+La forma del diario es `/opt/high-fortress-user/cron/security_logs/rkhunter-YYYYMMDD-HHMMSS.log`.
 
 ```bash
 sudo bash /opt/high-fortress-user/bin/rkhunter-refresh-db.sh
 ```
 
-La orden recalcula la base de propiedades de rkhunter a partir del disco actual. La línea de éxito es `Base de propriétés rkhunter enregistrée.`
-
-Una detección confirmada mueve el archivo y adjunta la orden de restauración en su lugar.
-
-La orden de recálculo permanece solo cuando ningún archivo confirmado fue movido.
-
-Los archivos de `/dev/shm` y el socket `/dev/log` están permitidos en `rkhunter.conf.local`.
-
-No producen el aviso `Suspicious file types found in /dev`.
-
+La orden recalcula la base de propiedades rkhunter a partir del disco actual.<br/>
+La línea de éxito es `Base de propriétés rkhunter enregistrée.`<br/>
+Una detección confirmada mueve el archivo y adjunta la orden de restauración en su lugar.<br/>
+La orden de recálculo permanece solo cuando ningún archivo confirmado fue movido.<br/>
+Los archivos de `/dev/shm` y el socket `/dev/log` están autorizados en `rkhunter.conf.local`.<br/>
+No producen el aviso `Suspicious file types found in /dev`.<br/>
 El extracto conserva la línea de aviso y las rutas que la siguen.
 
-### Aviso de reinicio
+## ▪️ Aviso de reinicio
 
-El mensaje es `Un redémarrage est utile. La machine n'a pas été redémarrée.`
-
-Este correo no añade un bloque de orden.
-
-El mismo conjunto de paquetes no vuelve a enviar correo.
-
-Un juego en marcha omite el correo y deja el sello sin cambios.
-
-El script no reinicia la máquina.
-
+El mensaje es `Un redémarrage est utile. La machine n'a pas été redémarrée.`<br/>
+Este correo no añade un bloque de orden.<br/>
+El mismo conjunto de paquetes no vuelve a enviar correo.<br/>
+Un juego en curso omite el correo y deja la huella sin cambio.<br/>
+El script no reinicia la máquina.<br/>
 La forma del diario es `/opt/high-fortress-user/cron/security_logs/reboot-notice-YYYYMMDD-HHMMSS.log`.
 
-## Comandos después de la instalación
+## 📋 Comandos después de la instalación
 
 Lance estas órdenes desde el directorio de las fuentes (`/opt/high-fortress-user/src` después del instalador curl, o el directorio del clon).
 
-### hf check
+## ▪️ hf check
 
 ```bash
 sudo ./hf check
 ```
 
-Comprueba `global.conf` y `secrets.conf`. La línea de éxito es `Configuration conforme`. `secrets.conf` está en modo `600`, así que `sudo` es necesario para leerlo.
+Comprueba `global.conf` y `secrets.conf`.<br/>
+La línea de éxito es `Configuration conforme`.<br/>
 
-### hf run
+## ▪️ hf run
 
 ```bash
 sudo ./hf run
 ```
 
-Lanza la instalación a partir de los archivos preparados. El instalador se niega a empezar cuando el control no pasa.
+Lanza la instalación a partir de los archivos preparados.<br/>
+El instalador rechaza arrancar cuando el control no pasa.
 
-### verify/alerts.sh
+## ▪️ verify/alerts.sh
 
 ```bash
 sudo bash verify/alerts.sh
 ```
 
-Comprueba el temporizador de la cadena, el temporizador diferido, ClamAV al acceso y la ruta del correo. Sin `--no-send`, sale una sonda cuando las alertas están activadas. El asunto termina por `Contrôle`. La línea de éxito es `Résultat : OK`.
+Comprueba el temporizador de la cadena, el temporizador diferido, ClamAV al acceso y la ruta del correo.<br/>
+Sin `--no-send`, una sonda sale cuando las alertas están activadas.<br/>
+El asunto termina por `Contrôle`.<br/>
+La línea de éxito es `Résultat : OK`.
 
 ```bash
 sudo bash verify/alerts.sh --no-send
 ```
 
-El mismo control sin enviar la sonda.
-
-### verify/workstation.sh
+## ▪️ verify/workstation.sh
 
 ```bash
 sudo bash verify/workstation.sh "$PWD"
 ```
 
-Lanza la verificación del puesto. La línea final tiene la forma `Check : N OK / N WARN / N FAIL`.
+Lanza la comprobación del puesto.<br/>
+La línea de cierre tiene la forma `Check : N OK / N WARN / N FAIL`.<br/>
+La misma pasada comprueba el reenvío SSH, la regla de cortafuegos SSH, USBGuard, el plazo sudo y `hfu-reboot-notice.timer`.
 
-La misma pasada comprueba el reenvío SSH, la regla de cortafuegos SSH, USBGuard, el plazo de sudo y `hfu-reboot-notice.timer`.
-
-### Comprobación después del arranque
+## ▪️ Comprobación después del arranque
 
 ```bash
 sudo bash /opt/high-fortress-user/bin/boot-check.sh
 ```
 
-Comprueba los servicios de seguridad del arranque y las tres pasadas de esta sesión.
+Comprueba los servicios de seguridad del arranque y las tres pasadas de esta sesión.<br/>
+La línea de éxito es `Contrôle de démarrage : OK`.<br/>
+Una pasada todavía en curso muestra `Contrôle de démarrage : en cours` y termina con el código 1.<br/>
+Una diferencia muestra `Contrôle de démarrage : écarts` y termina con el código 1.
 
-La línea de éxito es `Contrôle de démarrage : OK`.
-
-Una pasada todavía en curso muestra `Contrôle de démarrage : en cours` y termina con el código 1.
-
-Una desviación muestra `Contrôle de démarrage : écarts` y termina con el código 1.
-
-### hf lynis
+## ▪️ hf lynis
 
 ```bash
 sudo ./hf lynis
 ```
 
-Lanza `lynis audit system --quick --no-colors` y escribe el informe bajo `<source>/logs/lynis-<stamp>/`.
+Lanza `lynis audit system --quick --no-colors` y escribe el informe bajo `<source>/logs/lynis-<stamp>/`.<br/>
+`HF_LYNIS_MIN_SCORE` vale 80.<br/>
+`verify/workstation.sh` acepta un `hardening_index` superior o igual a ese umbral.
 
-### Base AIDE
+## ▪️ Base AIDE
 
 ```bash
 sudo bash /opt/high-fortress-user/bin/aide-refresh-db.sh
 ```
 
-Reconstruye `/var/lib/aide/aide.db`. La línea de éxito es `Base de référence AIDE enregistrée.`
+Reconstruye `/var/lib/aide/aide.db`.<br/>
+La línea de éxito es `Base de référence AIDE enregistrée.`
 
-### Huella de los espejos rkhunter
+## ▪️ Huella de los espejos rkhunter
 
 ```bash
 sudo bash /opt/high-fortress-user/cron/bin/record-mirrors.sh save
 ```
 
-Escribe el SHA-256 de `/var/lib/rkhunter/db/mirrors.dat` en `/opt/high-fortress-user/cron/rkhunter-mirrors.sha256` en modo `600`. `rkhunter.sh` guarda esta huella solo después de un `rkhunter --update` que devuelve 0 o 2.
+Escribe el SHA-256 de `/var/lib/rkhunter/db/mirrors.dat` en `/opt/high-fortress-user/cron/rkhunter-mirrors.sha256` en modo `600`.<br/>
+`rkhunter.sh` registra esta huella solo después de un `rkhunter --update` que devuelve 0 o 2.
 
-### Rutas excluidas del análisis
+## ▪️ Rutas excluidas del análisis
 
 ```bash
 sudo bash /opt/high-fortress-user/bin/scan-skip.sh list
-sudo bash /opt/high-fortress-user/bin/scan-skip.sh add /var/jeux/exemple
-sudo bash /opt/high-fortress-user/bin/scan-skip.sh del /var/jeux/exemple
+sudo bash /opt/high-fortress-user/bin/scan-skip.sh add $HOME/.cache/exemple
+sudo bash /opt/high-fortress-user/bin/scan-skip.sh del $HOME/.cache/exemple
 ```
 
-El archivo de la lista es `/opt/high-fortress-user/src/config/clamav/scan-skip.paths`.
+El archivo de lista es `/opt/high-fortress-user/src/config/clamav/scan-skip.paths`.<br/>
+Una lista ya presente permanece cuando el instalador vuelve a ejecutarse.<br/>
+Una lista que todavía está en `/opt/high-fortress-user/cron/scan-skip.paths` se copia una vez, cuando el archivo nuevo todavía es la plantilla.
 
-Una lista ya presente permanece cuando el instalador se ejecuta de nuevo.
+| Acción       | Línea mostrada                      |
+| ------------ | ----------------------------------- |
+| `list`       | una ruta aceptada por línea         |
+| `add`        | `Chemin ajouté : <path>`            |
+| ya presente  | `Ce chemin est déjà exclu : <path>` |
+| `del`        | `Chemin retiré : <path>`            |
+| rechazada    | `Chemin refusé : <path>`            |
 
-Una lista que todavía está en `/opt/high-fortress-user/cron/scan-skip.paths` se copia una vez, cuando el archivo nuevo sigue siendo la plantilla.
-
-| Acción | Línea mostrada |
-| --- | --- |
-| `list` | una ruta aceptada por línea |
-| `add` | `Chemin ajouté : <path>` |
-| ya presente | `Ce chemin est déjà exclu : <path>` |
-| `del` | `Chemin retiré : <path>` |
-| rechazada | `Chemin refusé : <path>` |
-
-Una ruta rechazada deja el archivo sin cambios.
-
-La orden reescribe `/etc/clamav/clamd.conf`.
-
-Reinicia `clamav-daemon`, luego `clamav-clamonacc.service` o `clamonacc.service`, cuando el bloque de exclusión cambia.
-
-Las rutas aceptadas, la lista entregada y los rechazos están en [surveillance.md](surveillance.md).
-
-## Páginas detalladas
-
-| Tema                               | Página                               |
-| ---------------------------------- | ------------------------------------ |
-| Variables generales y por servicio | [configuration.md](configuration.md) |
-| Herramientas de vigilancia         | [surveillance.md](surveillance.md)   |
-| Árbol instalado                    | [architecture.md](architecture.md)   |
-| Archivos instalados                | [files.md](files.md)                 |
-| Diarios                            | [logs.md](logs.md)                   |
+Una ruta rechazada deja el archivo sin cambio.<br/>
+La orden reescribe `/etc/clamav/clamd.conf`.<br/>
+Relanza `clamav-daemon`, luego `clamav-clamonacc.service` o `clamonacc.service`, cuando el bloque de exclusión cambia.<br/>

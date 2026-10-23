@@ -489,7 +489,6 @@ for lang in en fr de es; do
     grep -q 'PasswordAuthentication yes' "${page}" || daily_ok=0
     grep -q 'hfu-reboot-notice.timer' "${page}" || daily_ok=0
     grep -q 'usbguard' "${page}" || daily_ok=0
-    grep -q 'reboot-notice.sh' "${HFT_ROOT}/docs/${lang}/architecture.md" || daily_ok=0
 done
 if grep -q 'No other incoming allow rule is added.' "${HFT_ROOT}/docs/en/README.md"; then
     daily_ok=0
@@ -502,7 +501,7 @@ grep -qF 'SSH LAN' "${ver}" || daily_ok=0
 grep -q 'timestamp_timeout=5' "${ver}" || daily_ok=0
 grep -q 'hfu-reboot-notice.timer' "${ver}" || daily_ok=0
 grep -qF 'allow with-interface equals { 03:*:* }' "${ver}" || daily_ok=0
-grep -qF 'The same run checks SSH forwarding' "${HFT_ROOT}/docs/en/README.md" || daily_ok=0
+grep -qF 'The same pass checks SSH forwarding' "${HFT_ROOT}/docs/en/README.md" || daily_ok=0
 grep -qF 'La même passe contrôle le relais SSH' "${HFT_ROOT}/docs/fr/README.md" || daily_ok=0
 grep -qF 'Derselbe Lauf prüft die SSH-Weiterleitung' "${HFT_ROOT}/docs/de/README.md" || daily_ok=0
 grep -qF 'La misma pasada comprueba el reenvío SSH' "${HFT_ROOT}/docs/es/README.md" || daily_ok=0
@@ -518,10 +517,11 @@ en="${HFT_ROOT}/docs/en/README.md"
 fr="${HFT_ROOT}/docs/fr/README.md"
 pages_ok=1
 for lang in en fr de es; do
-    for page in README.md configuration.md surveillance.md architecture.md files.md logs.md; do
-        if [[ ! -f "${HFT_ROOT}/docs/${lang}/${page}" ]]; then
-            pages_ok=0
-        elif [[ "${page}" != "README.md" ]] && ! head -1 "${HFT_ROOT}/docs/${lang}/${page}" | grep -q 'README.md'; then
+    if [[ ! -f "${HFT_ROOT}/docs/${lang}/README.md" ]]; then
+        pages_ok=0
+    fi
+    for page in configuration.md surveillance.md architecture.md files.md logs.md; do
+        if [[ -f "${HFT_ROOT}/docs/${lang}/${page}" ]]; then
             pages_ok=0
         fi
     done
@@ -531,31 +531,20 @@ for old in configuration.md surveillance.md architecture.md files.md logs.md; do
 done
 grep -qF '## Documentation' "${readme}" || pages_ok=0
 grep -qF 'Click a flag to open all the information.' "${readme}" || pages_ok=0
-grep -qF 'width="100%"' "${readme}" || pages_ok=0
+grep -qF 'git clone https://github.com/palarchsys/high-fortress-user' "${readme}" || pages_ok=0
 grep -qF 'Do not copy it into a message, a ticket, or a repository.' "${readme}" && pages_ok=0
 for flag in en fr de es; do
     [[ -f "${HFT_ROOT}/docs/flags/${flag}.svg" ]] || pages_ok=0
     grep -qF "docs/flags/${flag}.svg" "${readme}" || pages_ok=0
     grep -q 'width="90" height="60" viewBox="0 0 90 60"' "${HFT_ROOT}/docs/flags/${flag}.svg" || pages_ok=0
 done
-warn='`secrets.conf` stays on the machine. Do not copy it into a message, a ticket, or a repository.'
-desc_lines=0
-while IFS= read -r line; do
-    line="${line//${warn}/}"
-    line="${line#"${line%%[![:space:]]*}"}"
-    line="${line%"${line##*[![:space:]]}"}"
-    [[ -z "${line}" ]] && continue
-    desc_lines=$((desc_lines + 1))
-    grep -qF "${line}" "${readme}" || pages_ok=0
-done < <(awk '
-    /^## Description$/ { capture = 1; next }
-    /^## / && capture { exit }
-    capture { print }
-' "${en}")
-[[ "${desc_lines}" -ge 2 ]] || pages_ok=0
-if grep -qF '# High-Fortress User' "${readme}" \
-   && grep -qF 'https://raw.githubusercontent.com/palarchsys/high-fortress-user/main/install.sh' "${readme}" \
-   && grep -qF 'ca-certificates curl git swaks tar' "${readme}" \
+grep -qF 'High-Fortress User prepares an Ubuntu 26.04 or newer workstation.' "${readme}" || pages_ok=0
+grep -qF 'High-Fortress User prepares an Ubuntu 26.04 or newer workstation.' "${en}" || pages_ok=0
+grep -qF 'It installs the local DNS resolver, the firewall, and the security checks.' "${readme}" || pages_ok=0
+grep -qF 'It installs the local DNS resolver, the firewall, and the security checks.' "${en}" || pages_ok=0
+if grep -qF 'High-Fortress User' "${readme}" \
+   && grep -qF 'https://raw.githubusercontent.com/palarchsys/high-fortress-user/main/install.sh' "${en}" \
+   && grep -qF 'ca-certificates curl git swaks tar' "${en}" \
    && grep -qF 'docs/en/README.md' "${readme}" \
    && grep -qF 'docs/fr/README.md' "${readme}" \
    && grep -qF 'docs/de/README.md' "${readme}" \
@@ -567,32 +556,26 @@ if grep -qF '# High-Fortress User' "${readme}" \
    && grep -qF 'HF_LYNIS_MIN_SCORE' "${en}" \
    && grep -qF 'is 80' "${en}" \
    && awk '
-        /^## Description$/ { h[++n] = NR }
-        /^## Before you start$/ { h[++n] = NR }
-        /^## Installation$/ { h[++n] = NR }
+        /^## 📋 Before you start$/ { h[++n] = NR }
+        /^## 📋 Installation$/ { h[++n] = NR }
         /^## What configure.sh does$/ { h[++n] = NR }
         /^## Installed software and services$/ { h[++n] = NR }
-        /^## What the machine does after installation$/ { h[++n] = NR }
-        /^## Alert emails$/ { h[++n] = NR }
-        /^## Commands after installation$/ { h[++n] = NR }
-        /^## Detailed pages$/ { h[++n] = NR }
+        /^## 📋 Alert emails$/ { h[++n] = NR }
+        /^## 📋 Commands after installation$/ { h[++n] = NR }
         END {
-            if (n != 9) exit 1
+            if (n != 6) exit 1
             for (i = 2; i <= n; i++) if (h[i] <= h[i-1]) exit 1
         }
       ' "${en}" \
    && awk '
-        /^## Description$/ { h[++n] = NR }
-        /^## Avant de commencer$/ { h[++n] = NR }
-        /^## Installation$/ { h[++n] = NR }
+        /^## 📋 Avant de commencer$/ { h[++n] = NR }
+        /^## 📋 Installation$/ { h[++n] = NR }
         /^## Action de configure.sh$/ { h[++n] = NR }
         /^## Logiciels et services installés$/ { h[++n] = NR }
-        /^## Ce que la machine fait après l'"'"'installation$/ { h[++n] = NR }
-        /^## E-mails d'"'"'alerte$/ { h[++n] = NR }
-        /^## Commandes après l'"'"'installation$/ { h[++n] = NR }
-        /^## Fichiers détaillés$/ { h[++n] = NR }
+        /^## 📋 E-mails d'"'"'alerte$/ { h[++n] = NR }
+        /^## 📋 Commandes après l'"'"'installation$/ { h[++n] = NR }
         END {
-            if (n != 9) exit 1
+            if (n != 6) exit 1
             for (i = 2; i <= n; i++) if (h[i] <= h[i-1]) exit 1
         }
       ' "${fr}" \
@@ -678,19 +661,23 @@ grep -q 'quarantine-restore.sh' "${root}/../core/watchdog.sh"
 grep -q 'hf_quarantine_confirmed_log' "${root}/service/cron/watchdogs/rkhunter.sh"
 grep -q 'hf_quarantine_confirmed_log' "${root}/service/cron/watchdogs/chkrootkit.sh"
 grep -q 'non mis en quarantaine' "${root}/../core/watchdog.sh"
-! grep -q 'pre-wrap' "${root}/template/mail.html"
+! grep -q 'display:flex' "${root}/template/mail.html"
 ! grep -q 'width:840px' "${root}/template/mail.html"
 ! grep -q 'min-width:100%' "${root}/template/mail.html"
 ! grep -q 'min-width:450px' "${root}/template/mail.html"
 ! grep -q 'max-width:450px' "${root}/template/mail.html"
 ! grep -q 'min-width:800px' "${root}/template/mail.html"
+! grep -q 'min-width:400px' "${root}/template/mail.html"
+! grep -q 'max-width:800px' "${root}/template/mail.html"
+! grep -q 'min-height:100vh' "${root}/template/mail.html"
 ! grep -q 'width:max-content' "${root}/template/mail.html"
-grep -q 'min-width:400px' "${root}/template/mail.html"
-grep -q 'max-width:800px' "${root}/template/mail.html"
+! grep -E 'white-space:pre([^-]|$)' "${root}/template/mail.html"
+grep -q 'max-width:600px' "${root}/template/mail.html"
 grep -q 'width:100%' "${root}/template/mail.html"
-grep -q 'white-space:pre' "${root}/template/mail.html"
-grep -q 'min-height:100vh' "${root}/template/mail.html"
+grep -q 'white-space:pre-wrap' "${root}/template/mail.html"
+grep -q 'word-break:break-word' "${root}/template/mail.html"
 grep -q 'overflow-x:auto' "${root}/template/mail.html"
+grep -q '<pre' "${root}/template/mail.html"
 grep -q 'quarantine-restore.sh' "${root}/service/cron/configure.sh"
 grep -q 'mail-test.sh' "${root}/service/cron/configure.sh"
 grep -q 'hf_send_mail_test' "${root}/../core/mail-test.sh"
