@@ -16,9 +16,7 @@ It installs the local DNS resolver, the firewall, and the security checks.
 ```bash
 sudo apt-get update
 sudo apt-get install -y ca-certificates curl git swaks tar
-git clone https://github.com/palarchsys/high-fortress-user
-cd high-fortress-user
-sudo ./hf configure
+curl -fsSL https://raw.githubusercontent.com/palarchsys/high-fortress-user/main/install.sh | sudo bash
 ```
 
 ## Documentation

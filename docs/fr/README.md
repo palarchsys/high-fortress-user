@@ -8,9 +8,9 @@
 ![UFW](https://img.shields.io/badge/firewall-UFW-0055A4)
 ![Security checks](https://img.shields.io/badge/checks-AIDE%20%C2%B7%20ClamAV%20%C2%B7%20Lynis-2ea44f)
 
-High-Fortress User prépare un poste Ubuntu 26.04 ou plus récent.
+High-Fortress User prépare un poste Ubuntu 26.04 ou plus récent.<br/>
 Il installe le résolveur DNS local, le pare-feu et les contrôles de sécurité.<br/>
-Le compte Ubuntu déjà créé sur la machine n'est pas remplacé.
+Le compte Ubuntu déjà créé sur la machine n'est pas remplacé.<br/>
 L'installeur ne crée pas un second compte.
 
 </div>

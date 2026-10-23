@@ -531,7 +531,10 @@ for old in configuration.md surveillance.md architecture.md files.md logs.md; do
 done
 grep -qF '## Documentation' "${readme}" || pages_ok=0
 grep -qF 'Click a flag to open all the information.' "${readme}" || pages_ok=0
-grep -qF 'git clone https://github.com/palarchsys/high-fortress-user' "${readme}" || pages_ok=0
+grep -qF 'https://raw.githubusercontent.com/palarchsys/high-fortress-user/main/install.sh' "${readme}" || pages_ok=0
+grep -qF 'ca-certificates curl git swaks tar' "${readme}" || pages_ok=0
+grep -qF 'sudo apt-get update' "${readme}" || pages_ok=0
+grep -qF 'git clone https://github.com/palarchsys/high-fortress-user' "${readme}" && pages_ok=0
 grep -qF 'Do not copy it into a message, a ticket, or a repository.' "${readme}" && pages_ok=0
 for flag in en fr de es; do
     [[ -f "${HFT_ROOT}/docs/flags/${flag}.svg" ]] || pages_ok=0
