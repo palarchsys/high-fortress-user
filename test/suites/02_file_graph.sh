@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : test/suites/02_file_graph.sh
-# Updated at : 2026-10-23
+# Updated at : 2026-10-25
 # Creator    : palarchsys
 # =============================================================================
 
@@ -634,6 +634,13 @@ grep -q 'hfu_run_check egress-watch.sh' "${root}/service/cron/watchdogs/boot-sca
 ! grep -q 'HFU_EGRESS_LOG' "${root}/service/ufw/egress.sh"
 ! grep -q 'HFU_EGRESS_LOG' "${root}/config/ufw/egress.conf"
 grep -q 'nft add table inet hfu_egress' "${root}/service/ufw/egress.sh"
+grep -q 'th dport 123 accept' "${root}/service/ufw/egress.sh"
+grep -q 'th dport 4460 accept' "${root}/service/ufw/egress.sh"
+grep -q '224.0.0.251' "${root}/service/ufw/egress.sh"
+grep -q 'ff02::fb' "${root}/service/ufw/egress.sh"
+grep -q 'th sport 68 th dport 67 accept' "${root}/service/ufw/egress.sh"
+grep -q 'th sport 546 th dport 547 accept' "${root}/service/ufw/egress.sh"
+grep -q 'th dport 161 meta pkttype' "${root}/service/ufw/egress.sh"
 grep -q 'hfu-egress-table.service' "${root}/service/ufw/egress.sh"
 grep -q 'config/integrity/paths.list' "${root}/service/cron/configure.sh"
 grep -Fq 'hf_run_silent bash "${HF_CONFIG_BASE_DIRECTORY}/cron/bin/integrity.sh"' "${root}/service/cron/configure.sh"
@@ -657,8 +664,15 @@ grep -q 'systemctl disable --now hfu-egress-watch.timer' "${root}/service/cron/c
 grep -q -- '-S connect' "${root}/config/auditd/tail.rules"
 grep -q -- '-k hfu-egress' "${root}/config/auditd/tail.rules"
 grep -q 'ausearch' "${root}/service/cron/watchdogs/egress-watch.sh"
-grep -q 'flux sortants hors des ports 53, 80 et 443' "${root}/service/cron/watchdogs/egress-watch.sh"
-! grep -q 'reject' "${root}/service/cron/watchdogs/egress-watch.sh"
+grep -q 'hfu_check_egress_routine' "${root}/service/cron/watchdogs/egress-watch.sh"
+grep -q 'hfu_strip_egress_routine' "${root}/service/cron/watchdogs/egress-watch.sh"
+grep -q 'hfu_list_egress_suspects' "${root}/service/cron/watchdogs/egress-watch.sh"
+grep -q 'hfu_flow_hold' "${root}/service/cron/watchdogs/egress-watch.sh"
+grep -q '@v4 reject' "${root}/service/cron/watchdogs/egress-watch.sh"
+grep -q 'flux sortant suspect bloqué' "${root}/service/cron/watchdogs/egress-watch.sh"
+grep -q 'quarantine.registry' "${root}/service/cron/watchdogs/egress-watch.sh"
+! grep -q 'hfu_isolate' "${root}/service/cron/watchdogs/egress-watch.sh"
+! grep -q 'flux sortants hors des ports 53, 80 et 443' "${root}/service/cron/watchdogs/egress-watch.sh"
 grep -q 'hf_record_quarantine_origin' "${root}/../core/watchdog.sh"
 grep -q 'quarantine-restore.sh' "${root}/../core/watchdog.sh"
 grep -q 'hf_quarantine_confirmed_log' "${root}/service/cron/watchdogs/rkhunter.sh"

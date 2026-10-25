@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/ufw/egress.sh
-# Updated at : 2026-10-21
+# Updated at : 2026-10-25
 # Creator    : palarchsys
 # =============================================================================
 # -----------------------------------------------------------------------------
@@ -39,6 +39,14 @@ nft add rule inet hfu_egress output ct state established,related accept
 nft add rule inet hfu_egress output ip daddr 127.0.0.0/8 accept
 nft add rule inet hfu_egress output ip6 daddr ::1 accept
 nft add rule inet hfu_egress output meta l4proto '{ tcp, udp }' th dport '{ 53, 80, 443 }' accept
+# Workstation baseline: time sync, link-local discovery, DHCP. Other TCP/UDP stays logged.
+nft add rule inet hfu_egress output meta l4proto udp th dport 123 accept
+nft add rule inet hfu_egress output meta l4proto tcp th dport 4460 accept
+nft add rule inet hfu_egress output ip daddr 224.0.0.251 meta l4proto udp th dport 5353 accept
+nft add rule inet hfu_egress output ip6 daddr ff02::fb meta l4proto udp th dport 5353 accept
+nft add rule inet hfu_egress output meta l4proto udp th sport 68 th dport 67 accept
+nft add rule inet hfu_egress output meta l4proto udp th sport 546 th dport 547 accept
+nft add rule inet hfu_egress output meta l4proto udp th dport 161 meta pkttype '{ broadcast, multicast }' accept
 nft add rule inet hfu_egress output meta l4proto '{ tcp, udp }' limit rate 30/minute log prefix 'hfu-egress '
 EOF
 chmod 755 "${HF_CONFIG_BASE_DIRECTORY}/cron/bin/egress-table.sh"

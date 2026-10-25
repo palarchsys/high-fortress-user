@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : test/suites/09_watchdog_branches.sh
-# Updated at : 2026-10-22
+# Updated at : 2026-10-25
 # Creator    : palarchsys
 # =============================================================================
 # -----------------------------------------------------------------------------
@@ -337,10 +337,81 @@ hft_prepare_user egress-watch.sh
 printf '%s\n' '2026-01-02 03:04:05' > "${base}/cron/egress.stamp"
 hft_journal_stub "hfu-egress OUT=eth0"
 hft_run_user "${bin}/egress-watch.sh"
-if [[ "$(hft_got_status)" == "0" ]] && hft_alert_has "flux sortants hors des ports 53, 80 et 443"; then
-    hft_pass "branch.usr.egress.hit" "courrier"
+if [[ "$(hft_got_status)" == "0" ]] && hft_stdout_has "aucun flux sortant suspect" && [[ ! -e "${base}/alert.log" ]]; then
+    hft_pass "branch.usr.egress.plain" "ligne sans exécutable, pas de courrier"
 else
-    hft_fail "branch.usr.egress.hit" "statut $(hft_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
+    hft_fail "branch.usr.egress.plain" "statut $(hft_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
+fi
+
+hft_prepare_user egress-watch.sh
+printf '%s\n' '2026-01-02 03:04:05' > "${base}/cron/egress.stamp"
+hft_journal_stub "$(printf '%s\n' \
+    'oct. 25 06:10:42 host kernel: hfu-egress IN= OUT=lo SRC=127.0.0.1 DST=224.0.0.251 PROTO=UDP SPT=5353 DPT=5353' \
+    'oct. 25 06:10:43 host kernel: hfu-egress IN= OUT=enp1s0 SRC=192.168.122.110 DST=224.0.0.251 PROTO=UDP SPT=5353 DPT=5353' \
+    'oct. 25 06:10:53 host kernel: hfu-egress IN= OUT=enp1s0 SRC=fe80::1 DST=ff02:0000:0000:0000:0000:0000:0000:00fb PROTO=UDP SPT=5353 DPT=5353' \
+    'oct. 25 06:10:43 host kernel: hfu-egress IN= OUT=enp1s0 SRC=192.168.122.110 DST=185.125.190.122 PROTO=TCP SPT=46814 DPT=4460' \
+    'oct. 25 06:10:44 host kernel: hfu-egress IN= OUT=enp1s0 SRC=192.168.122.110 DST=192.168.122.255 PROTO=UDP SPT=47406 DPT=161' \
+    'oct. 25 06:11:54 host kernel: hfu-egress IN= OUT=enp1s0 SRC=192.168.122.110 DST=91.189.91.111 PROTO=UDP SPT=50257 DPT=123' \
+    'oct. 25 06:12:00 host kernel: hfu-egress IN= OUT=enp1s0 SRC=192.168.122.110 DST=192.168.122.1 PROTO=UDP SPT=68 DPT=67' \
+    'oct. 25 06:12:01 host kernel: hfu-egress IN= OUT=enp1s0 SRC=fe80::1 DST=ff02::1:2 PROTO=UDP SPT=546 DPT=547')"
+hft_run_user "${bin}/egress-watch.sh"
+if [[ "$(hft_got_status)" == "0" ]] && hft_stdout_has "aucun flux sortant inattendu" && [[ ! -e "${base}/alert.log" ]]; then
+    hft_pass "branch.usr.egress.routine" "mDNS NTP DHCP SNMP sans courrier"
+else
+    hft_fail "branch.usr.egress.routine" "statut $(hft_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
+fi
+
+hft_prepare_user egress-watch.sh
+printf '%s\n' '2026-01-02 03:04:05' > "${base}/cron/egress.stamp"
+hft_journal_stub "$(printf '%s\n' \
+    'oct. 25 06:10:42 host kernel: hfu-egress IN= OUT=lo SRC=127.0.0.1 DST=224.0.0.251 PROTO=UDP SPT=5353 DPT=5353' \
+    'oct. 25 06:11:54 host kernel: hfu-egress IN= OUT=enp1s0 SRC=192.168.122.110 DST=91.189.91.111 PROTO=UDP SPT=50257 DPT=123' \
+    'oct. 25 06:12:10 host kernel: hfu-egress IN= OUT=enp1s0 SRC=192.168.122.110 DST=203.0.113.10 PROTO=UDP SPT=47406 DPT=161' \
+    'oct. 25 06:12:11 host kernel: hfu-egress IN= OUT=enp1s0 SRC=192.168.122.110 DST=1.2.3.4 PROTO=TCP SPT=40000 DPT=587')"
+hft_ausearch_stub 0 "$(printf '%s\n' \
+    'type=SYSCALL msg=audit(1.1:1): arch=c000003e syscall=42 success=yes comm="mail" exe="/usr/bin/swaks" pid=20 uid=1000' \
+    'type=SOCKADDR msg=audit(1.1:1): saddr=0200024B01020304')"
+hft_run_user "${bin}/egress-watch.sh"
+if [[ "$(hft_got_status)" == "0" ]] && hft_stdout_has "aucun flux sortant suspect" \
+    && [[ ! -e "${base}/alert.log" ]] && ! hft_log_has "DPT=587"; then
+    hft_pass "branch.usr.egress.mixed" "port inhabituel sans signal, pas de courrier"
+else
+    hft_fail "branch.usr.egress.mixed" "statut $(hft_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
+fi
+
+hft_prepare_user egress-watch.sh
+printf '%s\n' '2026-01-02 03:04:05' > "${base}/cron/egress.stamp"
+printf '%s\n' 'HFU_NET_ISOLATE_SEC=45' > "${base}/cron/egress.conf"
+hft_journal_stub "oct. 25 06:20:00 host kernel: hfu-egress IN= OUT=enp1s0 SRC=192.168.122.110 DST=203.0.113.50 PROTO=TCP SPT=40000 DPT=4444"
+hft_ausearch_stub 0 "$(printf '%s\n' \
+    'type=SYSCALL msg=audit(1.1:2): arch=c000003e syscall=42 success=yes comm="evil" exe="/tmp/evil" pid=30 uid=1000' \
+    'type=SOCKADDR msg=audit(1.1:2): saddr=0200115CCB007132')"
+hft_run_user "${bin}/egress-watch.sh"
+if [[ "$(hft_got_status)" == "0" ]] && hft_alert_has "flux sortant suspect bloqué" \
+    && hft_log_has "203.0.113.50 tcp/4444 pendant 45s" \
+    && hft_log_has "/tmp/evil" \
+    && grep -q '203.0.113.50 . tcp . 4444 timeout 45s' "${work}/nft.log" \
+    && ! grep -q 'hfu_isolate' "${work}/nft.log"; then
+    hft_pass "branch.usr.egress.suspect" "destination tenue 45 s"
+else
+    hft_fail "branch.usr.egress.suspect" "statut $(hft_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true) $(tr '\n' ' ' < "${work}/nft.log" 2>/dev/null || true)"
+fi
+
+hft_prepare_user egress-watch.sh
+printf '%s\n' '2026-01-02 03:04:05' > "${base}/cron/egress.stamp"
+printf '%s\n' 'HFU_NET_ISOLATE_SEC=10' > "${base}/cron/egress.conf"
+printf '%s\n' $'20261025-010101-1-curl\t2026-10-25T01:01:01+02:00\tclamav\t/usr/bin/curl\t/var/lib/clamav/quarantine/20261025-010101-1-curl\tEicar' > "${base}/cron/quarantine.registry"
+hft_journal_stub "oct. 25 06:21:00 host kernel: hfu-egress IN= OUT=enp1s0 SRC=192.168.122.110 DST=198.51.100.8 PROTO=TCP SPT=41000 DPT=8443"
+hft_ausearch_stub 0 "$(printf '%s\n' \
+    'type=SYSCALL msg=audit(1.1:3): arch=c000003e syscall=42 success=yes comm="curl" exe="/usr/bin/curl" pid=31 uid=1000' \
+    'type=SOCKADDR msg=audit(1.1:3): saddr=020020FBC6336408')"
+hft_run_user "${bin}/egress-watch.sh"
+if [[ "$(hft_got_status)" == "0" ]] && hft_alert_has "flux sortant suspect bloqué" \
+    && hft_log_has "198.51.100.8 tcp/8443 pendant 120s" \
+    && grep -q '198.51.100.8 . tcp . 8443 timeout 120s' "${work}/nft.log"; then
+    hft_pass "branch.usr.egress.quarantine" "binaire en quarantaine, durée plancher"
+else
+    hft_fail "branch.usr.egress.quarantine" "statut $(hft_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true) $(tr '\n' ' ' < "${work}/nft.log" 2>/dev/null || true)"
 fi
 
 hft_prepare_user boot-scan.sh
