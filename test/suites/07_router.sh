@@ -112,6 +112,7 @@ if [[ -n "${root}" ]]; then
     hft_check_route tests "test" "agents/maps/tests.md"
     hft_check_route probe "anomalie sonde" $'agents/laws/logs.md\nagents/maps/probe.md'
     hft_check_route install "installeur" $'agents/laws/install.md\nagents/maps/core.md'
+    hft_check_route git.gitignore "gitignore" "agents/laws/git.md"
     hft_check_route compat.postfix "compatibilité postfix" $'agents/laws/compat.md\nagents/maps/versions.md'
     hft_check_route compat.sasl "sasl 26.10" $'agents/laws/compat.md\nagents/maps/versions.md'
     hft_check_route compat.esm "esm-infra" $'agents/laws/compat.md\nagents/maps/versions.md'
