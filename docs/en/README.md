@@ -21,7 +21,7 @@ Three points come before installation: the system, access, and the external need
 
 ## ▪️ System
 
-Ubuntu 26.04 or newer, or a derivative based on Ubuntu 26.04 or newer.<br/>
+Ubuntu 26.04 or newer, including an interim release.<br/>
 A fresh installation is preferred.<br/>
 Use a local console or the existing graphical session.<br/>
 The machine needs Internet access.
@@ -99,7 +99,7 @@ The installation places the packages and services below.
 | postfix                                         | Sends alert mail. Installed only when `HF_MAIL_ALERTS=1`.                                                                |
 | rclone                                          | Copies an alert file to Google Drive. Installed only when `HF_RCLONE_ALERTS=1`.                                          |
 | lynis                                           | Hardening audit.                                                                                                         |
-| ubuntu-pro-client                               | Attaches the Ubuntu Pro token.                                                                                           |
+| ubuntu-pro-client                               | Attaches the Ubuntu Pro token. A non-LTS release does not enable esm-infra, esm-apps or Livepatch. On an LTS release, a failure to enable them does not stop the installation. |
 | acct, sysstat, libpam-pwquality                 | Process accounting, activity stats, password quality.                                                                    |
 | rng-tools-debian, haveged                       | Entropy sources.                                                                                                         |
 | apt-listchanges, needrestart, apt-show-versions | Package change notices and restart checks.                                                                               |

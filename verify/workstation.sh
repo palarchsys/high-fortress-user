@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : verify/workstation.sh
-# Updated at : 2026-10-21
+# Updated at : 2026-10-27
 # Creator    : palarchsys
 # =============================================================================
 
@@ -78,19 +78,19 @@ done
 
 hf_log_title "SSH / UFW / services"
 
-root_login="$(sshd -T 2>/dev/null | awk '/^permitrootlogin /{print $2; exit}')"
+root_login="$(hf_get_sshd_value permitrootlogin)"
 if [[ "${root_login}" == "no" ]]; then
     hfu_report_pass "PermitRootLogin no"
 else
     hfu_report_fail "PermitRootLogin n'est pas no (valeur effective : ${root_login:-inconnue})"
 fi
-if sshd -T 2>/dev/null | grep -qiE '^passwordauthentication yes$'; then
+if [[ "$(hf_get_sshd_value passwordauthentication)" == "yes" ]]; then
     hfu_report_pass "PasswordAuthentication yes (le mot de passe du compte est accepté en SSH)"
 else
     hfu_report_pass "PasswordAuthentication n'est pas yes (SSH n'accepte qu'une clé pour ${CURRENT_USER})"
 fi
-tcp_fwd="$(sshd -T 2>/dev/null | awk '/^allowtcpforwarding /{print $2; exit}')"
-agent_fwd="$(sshd -T 2>/dev/null | awk '/^allowagentforwarding /{print $2; exit}')"
+tcp_fwd="$(hf_get_sshd_value allowtcpforwarding)"
+agent_fwd="$(hf_get_sshd_value allowagentforwarding)"
 if [[ "${tcp_fwd}" == "no" && "${agent_fwd}" == "no" ]]; then
     hfu_report_pass "relais SSH coupé"
 else
@@ -383,20 +383,22 @@ if ! command -v pro >/dev/null 2>&1; then
     hfu_report_fail "ubuntu-pro-client absent"
 elif hf_check_ubuntu_pro; then
     hfu_report_pass "Ubuntu Pro attaché"
-
-    while IFS=$'\t' read -r svc_name svc_status svc_detail; do
-        case "${svc_status}" in
-            enabled|active)
-                hfu_report_pass "${svc_name} activé"
-                ;;
-            warning)
-                hfu_report_pass "${svc_name} activé, redémarrage encore utile${svc_detail:+ : ${svc_detail}}"
-                ;;
-            *)
-                hfu_report_fail "${svc_name} non activé (état : ${svc_status:-inconnu}${svc_detail:+ : ${svc_detail}})"
-                ;;
-        esac
-    done < <(pro status --format json 2>/dev/null | python3 -c '
+    if hf_check_ubuntu_lts; then
+        seen=""
+        while IFS=$'\t' read -r svc_name svc_status svc_detail; do
+            seen="${seen} ${svc_name}"
+            case "${svc_status}" in
+                enabled|active)
+                    hfu_report_pass "${svc_name} activé"
+                    ;;
+                warning)
+                    hfu_report_pass "${svc_name} activé, redémarrage encore utile${svc_detail:+ : ${svc_detail}}"
+                    ;;
+                *)
+                    hfu_report_warn "${svc_name} non activé (état : ${svc_status:-inconnu}${svc_detail:+ : ${svc_detail}})"
+                    ;;
+            esac
+        done < <(pro status --format json 2>/dev/null | python3 -c '
 import json, sys
 data = json.load(sys.stdin)
 wanted = ("esm-infra", "esm-apps", "livepatch")
@@ -411,6 +413,15 @@ for svc in data.get("services") or []:
     detail = detail.replace("\t", " ").replace("\n", " ")
     print("%s\t%s\t%s" % (name, svc.get("status") or "", detail))
 ')
+        for svc in esm-infra esm-apps livepatch; do
+            case " ${seen} " in
+                *" ${svc} "*) ;;
+                *) hfu_report_warn "${svc} absent de pro status" ;;
+            esac
+        done
+    else
+        hfu_report_pass "esm-infra, esm-apps et livepatch non demandés : version intermédiaire"
+    fi
 else
     hfu_report_fail "Ubuntu Pro non attaché (obligatoire)"
 fi

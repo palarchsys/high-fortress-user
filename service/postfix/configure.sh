@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/postfix/configure.sh
-# Updated at : 2026-10-16
+# Updated at : 2026-10-27
 # Creator    : palarchsys
 # =============================================================================
 
@@ -27,8 +27,17 @@ umask 077
 printf '%s %s:%s\n' "${relayhost}" "${HF_POSTFIX_SMTP_LOGIN}" "${HF_POSTFIX_MAIL_PASSWORD}" \
     > /etc/postfix/sasl_passwd
 umask 022
-hf_run_silent postmap /etc/postfix/sasl_passwd
-chmod 600 /etc/postfix/sasl_passwd /etc/postfix/sasl_passwd.db
+sasl_type="$(hf_get_sasl_map_type)"
+case "${sasl_type}" in
+    hash) sasl_index="/etc/postfix/sasl_passwd.db" ;;
+    cdb) sasl_index="/etc/postfix/sasl_passwd.cdb" ;;
+    lmdb) sasl_index="/etc/postfix/sasl_passwd.lmdb" ;;
+esac
+hf_run_silent postmap "${sasl_type}:/etc/postfix/sasl_passwd"
+if [[ ! -f "${sasl_index}" ]]; then
+    hf_log_error "Carte SASL absente après postmap."
+fi
+chmod 600 /etc/postfix/sasl_passwd "${sasl_index}"
 hf_log_success "Carte SASL enregistrée (lecture root seulement)"
 
 hf_log_title "Nom de courrier"
@@ -52,6 +61,7 @@ hfu_apply_postfix() {
         value="${value//__HOSTNAME__/${host}}"
         value="${value//__RELAYHOST__/${relayhost}}"
         value="${value//__PROJECT_NAME__/${HF_PROJECT_NAME}}"
+        value="${value//__SASL_TYPE__/${sasl_type}}"
         postconf -e "${key} = ${value}"
     done < "$(hf_locate_config_file postfix/main.keys)"
 }

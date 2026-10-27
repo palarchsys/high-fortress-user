@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : core/log.sh
-# Updated at : 2026-10-16
+# Updated at : 2026-10-27
 # Creator    : palarchsys
 # =============================================================================
 
@@ -210,9 +210,36 @@ hf_log_index_append() {
     fi
 }
 
+# Prefer the release already resolved. Read os-release when the caller has not.
+# Append the version number when that release name omits it.
+hf_get_distribution_label() {
+    local os_pretty="${OS_PRETTY:-}"
+    local os_version="${UBUNTU_BASE_VERSION:-${OS_VERSION_ID:-}}"
+    local release_pretty=""
+    local release_version=""
+    local release_lines=()
+
+    if [[ -z "${os_pretty}" || -z "${os_version}" ]]; then
+        mapfile -t release_lines < <(
+            # shellcheck disable=SC1091
+            . /etc/os-release 2>/dev/null || true
+            printf '%s\n%s\n' "${PRETTY_NAME:-}" "${VERSION_ID:-}"
+        ) || true
+        release_pretty="${release_lines[0]:-}"
+        release_version="${release_lines[1]:-}"
+        [[ -z "${os_pretty}" ]] && os_pretty="${release_pretty}"
+        [[ -z "${os_version}" ]] && os_version="${release_version}"
+    fi
+    [[ -z "${os_pretty}" ]] && os_pretty="inconnue"
+    if [[ -n "${os_version}" && "${os_pretty}" != *"${os_version}"* ]]; then
+        os_pretty="${os_pretty} ${os_version}"
+    fi
+    printf '%s\n' "${os_pretty}"
+}
+
 hf_init_install_log() {
     local root="${HF_INSTALL_DIRECTORY:-.}"
-    local stamp name kind old_umask
+    local stamp name kind old_umask os_label
     stamp="$(date '+%Y%m%d-%H%M%S')"
     kind="${HFS_SERVER_TYPE:-}"
     if [[ -z "${kind}" ]]; then
@@ -234,10 +261,14 @@ hf_init_install_log() {
     umask "${old_umask}"
     export HF_LOG_DIR HF_LOG_FILE HF_LOG_SYS
 
+    os_label="$(hf_get_distribution_label)"
+    printf '%s\n' "os          : ${os_label}" >> "${HF_LOG_FILE}"
+
     {
         echo "${HF_PROJECT_NAME:-High-Fortress} install log"
         echo "date        : $(date -Iseconds)"
         echo "hostname    : $(hostname 2>/dev/null || echo '?')"
+        echo "os          : ${os_label}"
         echo "user        : ${CURRENT_USER:-}"
         echo "HFS_SERVER_TYPE : ${HFS_SERVER_TYPE:-}"
         echo "HF_MODE_TEST   : ${HF_MODE_TEST:-}"
@@ -314,6 +345,7 @@ hf_collect_install_log() {
     {
         echo "hf_collect_install_log: $(date -Iseconds)"
         echo "dossier : ${HF_LOG_DIR}"
+        echo "os          : $(hf_get_distribution_label)"
         echo "voir install.log, errors.log et steps/INDEX.tsv"
         echo "logiciels : snapshot/software/ et snapshot/journal/"
     } > "${snap}/COLLECTED.txt"

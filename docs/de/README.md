@@ -21,7 +21,7 @@ Drei Punkte gehen der Installation voraus: das System, der Zugang und die extern
 
 ## ▪️ System
 
-Ubuntu 26.04 oder neuer, oder eine Ableitung auf Ubuntu 26.04 oder neuer.<br/>
+Ubuntu 26.04 oder neuer, einschließlich einer Zwischenversion.<br/>
 Eine Neuinstallation ist vorzuziehen.<br/>
 Benutzen Sie eine lokale Konsole oder die bereits geöffnete grafische Sitzung.<br/>
 Die Maschine braucht Internetzugang.
@@ -99,7 +99,7 @@ Die Installation setzt die folgenden Pakete und Dienste.
 | postfix                                         | Sendet die Alarmpost. Installiert nur wenn `HF_MAIL_ALERTS=1`.                                                                                     |
 | rclone                                          | Kopiert eine Alarmdatei nach Google Drive. Installiert nur wenn `HF_RCLONE_ALERTS=1`.                                                               |
 | lynis                                           | Härtungsaudit.                                                                                                                                     |
-| ubuntu-pro-client                               | Hängt das Ubuntu-Pro-Token an.                                                                                                                     |
+| ubuntu-pro-client                               | Hängt das Ubuntu-Pro-Token an. Außerhalb einer LTS werden esm-infra, esm-apps und Livepatch nicht aktiviert. Auf einer LTS stoppt ein Fehlschlag die Installation nicht. |
 | acct, sysstat, libpam-pwquality                 | Prozessabrechnung, Aktivitätsstatistik, Kennwortqualität.                                                                                          |
 | rng-tools-debian, haveged                       | Entropiequellen.                                                                                                                                   |
 | apt-listchanges, needrestart, apt-show-versions | Hinweise auf Paketänderungen und Neustartprüfungen.                                                                                                |

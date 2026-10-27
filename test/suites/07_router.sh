@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : test/suites/07_router.sh
-# Updated at : 2026-10-20
+# Updated at : 2026-10-27
 # Creator    : palarchsys
 # =============================================================================
 
@@ -112,6 +112,9 @@ if [[ -n "${root}" ]]; then
     hft_check_route tests "test" "agents/maps/tests.md"
     hft_check_route probe "anomalie sonde" $'agents/laws/logs.md\nagents/maps/probe.md'
     hft_check_route install "installeur" $'agents/laws/install.md\nagents/maps/core.md'
+    hft_check_route compat.postfix "compatibilité postfix" $'agents/laws/compat.md\nagents/maps/versions.md'
+    hft_check_route compat.sasl "sasl 26.10" $'agents/laws/compat.md\nagents/maps/versions.md'
+    hft_check_route compat.esm "esm-infra" $'agents/laws/compat.md\nagents/maps/versions.md'
 
     help_user="$(bash "${root}/user/hf" help)"
     help_server="$(bash "${root}/server/hf" help)"

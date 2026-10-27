@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/ssh/configure.sh
-# Updated at : 2026-10-16
+# Updated at : 2026-10-27
 # Creator    : palarchsys
 # =============================================================================
 
@@ -61,7 +61,7 @@ hf_log_info "Test de syntaxe sshd"
 if ! sshd -t; then
     hf_log_error "sshd -t a échoué — drop-in retiré"
 fi
-root_login="$(sshd -T 2>/dev/null | awk '/^permitrootlogin /{print $2; exit}')"
+root_login="$(hf_get_sshd_value permitrootlogin)"
 if [[ "${root_login}" != "no" ]]; then
     hf_log_error "PermitRootLogin effectif : ${root_login:-inconnu}. Attendu : no."
 fi

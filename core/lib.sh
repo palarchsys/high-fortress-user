@@ -313,59 +313,62 @@ hf_get_current_user() {
     export CURRENT_USER CURRENT_GROUP CURRENT_HOME
 }
 
-# Ubuntu 26.04 or newer, or a derivative whose Ubuntu base is 26.04 or newer.
+# Ubuntu itself, release 26.04 or newer. A derivative is refused.
 hf_check_ubuntu_base() {
     local os_id="${ID:-}"
-    local os_like="${ID_LIKE:-}"
     local os_codename="${UBUNTU_CODENAME:-}"
     local version_id="${VERSION_ID:-}"
     local pretty="${PRETTY_NAME:-${OS_PRETTY:-inconnu}}"
-    local compatible=0
-    local mapped=""
     local base_version=""
 
-    if [[ "${os_id}" == "ubuntu" || "${os_id}" == "anduinos" ]]; then
-        compatible=1
-    fi
-    if [[ "${os_like}" == *ubuntu* ]]; then
-        compatible=1
-    fi
-    if [[ -n "${os_codename}" ]]; then
-        compatible=1
-    fi
-    if [[ "${compatible}" -ne 1 ]]; then
-        hf_log_error "Ubuntu 26.04 ou plus récent, ou une dérivée de cette base, requis. Système détecté : ${pretty}."
+    if [[ "${os_id}" != "ubuntu" ]]; then
+        hf_log_error "Ubuntu 26.04 ou plus récent requis. Système détecté : ${pretty}."
     fi
 
-    case "${os_codename}" in
-        focal) mapped="20.04" ;;
-        jammy) mapped="22.04" ;;
-        kinetic) mapped="22.10" ;;
-        lunar) mapped="23.04" ;;
-        mantic) mapped="23.10" ;;
-        noble) mapped="24.04" ;;
-        oracular) mapped="24.10" ;;
-        plucky) mapped="25.04" ;;
-        questing) mapped="25.10" ;;
-        resolute) mapped="26.04" ;;
-        stonking) mapped="26.10" ;;
-    esac
-
-    if [[ "${os_id}" == "ubuntu" && "${version_id}" =~ ^([0-9]+)\.([0-9]+) ]]; then
+    if [[ "${version_id}" =~ ^([0-9]+)\.([0-9]+) ]]; then
         base_version="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
-    elif [[ -n "${mapped}" ]]; then
-        base_version="${mapped}"
     fi
     if [[ -z "${base_version}" ]]; then
-        hf_log_error "Base Ubuntu 26.04 ou plus récente requise. Nom de code détecté : ${os_codename:-aucun}."
+        hf_log_error "Ubuntu 26.04 ou plus récent requis. Version détectée : ${version_id:-aucune}."
     fi
 
     UBUNTU_BASE_VERSION="${base_version}"
     UBUNTU_BASE_CODENAME="${os_codename:-inconnu}"
     if ! dpkg --compare-versions "${UBUNTU_BASE_VERSION}" ge "26.04"; then
-        hf_log_error "Base Ubuntu ${UBUNTU_BASE_VERSION} (${UBUNTU_BASE_CODENAME}) refusée : elle n'est pas supérieure ou égale à 26.04."
+        hf_log_error "Ubuntu ${UBUNTU_BASE_VERSION} (${UBUNTU_BASE_CODENAME}) refusée : elle n'est pas supérieure ou égale à 26.04."
     fi
     export UBUNTU_BASE_VERSION UBUNTU_BASE_CODENAME
+}
+
+# Return 0 when the resolved base is an LTS: even year, minor 4.
+hf_check_ubuntu_lts() {
+    local version="${UBUNTU_BASE_VERSION:-}"
+    local major=0
+    local minor=0
+
+    if [[ ! "${version}" =~ ^([0-9]+)\.([0-9]+)$ ]]; then
+        return 1
+    fi
+    major="${BASH_REMATCH[1]}"
+    minor="${BASH_REMATCH[2]}"
+    if [[ "${minor}" -eq 4 && $((major % 2)) -eq 0 ]]; then
+        return 0
+    fi
+    return 1
+}
+
+# Print the Postfix map type in use: hash on 26.04, cdb on 26.10.
+hf_get_sasl_map_type() {
+    local map_type=""
+    map_type="$(postconf -h default_database_type 2>/dev/null || true)"
+    case "${map_type}" in
+        hash|cdb|lmdb)
+            printf '%s\n' "${map_type}"
+            ;;
+        *)
+            hf_log_error "Type de carte Postfix refusé : ${map_type:-aucun}."
+            ;;
+    esac
 }
 
 hf_get_operating_system() {
@@ -457,10 +460,22 @@ hf_check_account_drift() {
     return 1
 }
 
+# Read one keyword from an sshd -T dump on stdin. Match ignores keyword case.
+hf_read_sshd_value() {
+    local keyword="${1,,}"
+    awk -v key="${keyword}" 'tolower($1) == key { print tolower($2); exit }'
+}
+
+# Print one effective sshd setting. 10.2 uses lowercase, 10.5 uses canonical case.
+hf_get_sshd_value() {
+    local keyword="${1,,}"
+    sshd -T 2>/dev/null | hf_read_sshd_value "${keyword}"
+}
+
 hf_get_ssh_port() {
     local port="22"
     if command -v sshd >/dev/null 2>&1; then
-        port="$(sshd -T 2>/dev/null | awk '/^port /{print $2; exit}')"
+        port="$(hf_get_sshd_value port)"
         [[ -z "$port" ]] && port="22"
     fi
     SSH_PORT="$port"

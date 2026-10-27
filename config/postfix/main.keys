@@ -1,6 +1,6 @@
 # =============================================================================
 # File       : config/postfix/main.keys
-# Updated at : 2026-10-16
+# Updated at : 2026-10-27
 # Creator    : palarchsys
 # =============================================================================
 
@@ -8,7 +8,7 @@ myhostname=__HOSTNAME__
 myorigin=/etc/mailname
 relayhost=__RELAYHOST__
 smtp_sasl_auth_enable=yes
-smtp_sasl_password_maps=hash:/etc/postfix/sasl_passwd
+smtp_sasl_password_maps=__SASL_TYPE__:/etc/postfix/sasl_passwd
 smtp_sasl_security_options=noanonymous
 smtp_tls_security_level=encrypt
 smtp_tls_CAfile=/etc/ssl/certs/ca-certificates.crt

@@ -21,7 +21,7 @@ Trois points précèdent l'installation : le système, l'accès, et les besoins 
 
 ## ▪️ Système
 
-Ubuntu 26.04 ou plus récent, ou une dérivée dont la base Ubuntu est 26.04 ou plus récente.<br/>
+Ubuntu 26.04 ou plus récent, version intermédiaire comprise.<br/>
 Une installation neuve est préférable.<br/>
 Utilisez une console locale ou la session graphique déjà ouverte.<br/>
 La machine a besoin d'Internet.
@@ -99,7 +99,7 @@ L'installation pose les paquets et les services ci-dessous.
 | postfix | Envoie le courrier d'alerte. Posé seulement lorsque `HF_MAIL_ALERTS=1`. |
 | rclone | Copie un fichier d'alerte vers Google Drive. Posé seulement lorsque `HF_RCLONE_ALERTS=1`. |
 | lynis | Audit de durcissement. |
-| ubuntu-pro-client | Attache le jeton Ubuntu Pro. |
+| ubuntu-pro-client | Attache le jeton Ubuntu Pro. Hors LTS, esm-infra, esm-apps et Livepatch ne sont pas activés. Sur une LTS, leur échec n'arrête pas l'installation. |
 | acct, sysstat, libpam-pwquality | Comptabilité des processus, statistiques d'activité, qualité des mots de passe. |
 | rng-tools-debian, haveged | Sources d'entropie. |
 | apt-listchanges, needrestart, apt-show-versions | Avis de changements de paquets et contrôles de redémarrage. |

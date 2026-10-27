@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/boot-check.sh
-# Updated at : 2026-10-21
+# Updated at : 2026-10-27
 # Creator    : palarchsys
 # =============================================================================
 
@@ -107,8 +107,8 @@ if [[ -f "${HFU_BASE}/cron/mail.conf" ]] && grep -q '^HF_MAIL_ALERTS="1"$' "${HF
 else
     hfu_record_boot_mark OK "alertes e-mail coupées"
 fi
-root_login="$(sshd -T 2>/dev/null | awk '/^permitrootlogin /{print $2}')"
-password_auth="$(sshd -T 2>/dev/null | awk '/^passwordauthentication /{print $2}')"
+root_login="$(sshd -T 2>/dev/null | awk 'tolower($1)=="permitrootlogin"{print tolower($2); exit}')"
+password_auth="$(sshd -T 2>/dev/null | awk 'tolower($1)=="passwordauthentication"{print tolower($2); exit}')"
 if [[ "${root_login}" == "no" && "${password_auth}" == "yes" ]]; then
     hfu_record_boot_mark OK "sshd PermitRootLogin=no PasswordAuthentication=yes"
 else

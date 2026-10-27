@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : system/install.sh
-# Updated at : 2026-10-20
+# Updated at : 2026-10-27
 # Creator    : palarchsys
 # =============================================================================
 
@@ -80,25 +80,33 @@ if ! hf_check_ubuntu_pro; then
     hf_log_error "Ubuntu Pro : la machine n'est pas attachée après pro attach."
 fi
 
-for svc in esm-infra esm-apps; do
-    hf_log_info "Activation d'Ubuntu Pro (${svc})"
-    en_out=$(pro enable "${svc}" --assume-yes 2>&1) && en_rc=0 || en_rc=$?
-    if [[ "${en_rc}" -eq 0 ]] || echo "${en_out}" | grep -qiE 'already enabled'; then
-        hf_log_success "Ubuntu Pro : ${svc} activé"
-    else
-        hf_log_error "Ubuntu Pro : impossible d'activer ${svc} (obligatoire) : ${en_out}"
-    fi
-done
+if hf_check_ubuntu_lts; then
+    for svc in esm-infra esm-apps; do
+        hf_log_info "Activation d'Ubuntu Pro (${svc})"
+        en_out=$(pro enable "${svc}" --assume-yes 2>&1) && en_rc=0 || en_rc=$?
+        if [[ "${en_rc}" -eq 0 ]] || echo "${en_out}" | grep -qiE 'already enabled'; then
+            hf_log_success "Ubuntu Pro : ${svc} activé"
+        fi
+        if [[ "${en_rc}" -ne 0 ]] && ! echo "${en_out}" | grep -qiE 'already enabled'; then
+            hf_log_warn "Ubuntu Pro : ${svc} non activé, installation poursuivie"
+            hf_log_debug "${en_out}"
+        fi
+    done
 
-hf_log_info "Activation de Livepatch"
-lp_out=$(pro enable livepatch --assume-yes 2>&1) && lp_rc=0 || lp_rc=$?
-if [[ "${lp_rc}" -eq 0 ]] || echo "${lp_out}" | grep -qiE 'already enabled'; then
-    hf_log_success "Ubuntu Pro : livepatch activé"
+    hf_log_info "Activation de Livepatch"
+    lp_out=$(pro enable livepatch --assume-yes 2>&1) && lp_rc=0 || lp_rc=$?
+    if [[ "${lp_rc}" -eq 0 ]] || echo "${lp_out}" | grep -qiE 'already enabled'; then
+        hf_log_success "Ubuntu Pro : livepatch activé"
+    fi
+    if [[ "${lp_rc}" -ne 0 ]] && ! echo "${lp_out}" | grep -qiE 'already enabled'; then
+        hf_log_warn "Ubuntu Pro : livepatch non activé, installation poursuivie"
+        hf_log_debug "${lp_out}"
+    fi
 else
-    hf_log_error "Ubuntu Pro : livepatch obligatoire, activation échouée : ${lp_out}"
+    hf_log_info "Version intermédiaire : esm-infra, esm-apps et Livepatch ne sont pas activés."
 fi
 hf_log_info "Installation d'Ubuntu Pro"
-hf_log_success "Ubuntu Pro installé (attaché + ESM + livepatch)"
+hf_log_success "Ubuntu Pro installé"
 
 hf_log_title "Multiarch i386"
 

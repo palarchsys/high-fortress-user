@@ -21,7 +21,7 @@ Tres puntos preceden a la instalación: el sistema, el acceso y las necesidades 
 
 ## ▪️ Sistema
 
-Ubuntu 26.04 o posterior, o una derivada cuya base Ubuntu sea 26.04 o posterior.<br/>
+Ubuntu 26.04 o posterior, incluida una versión intermedia.<br/>
 Una instalación nueva es preferible.<br/>
 Use una consola local o la sesión gráfica ya abierta.<br/>
 La máquina necesita Internet.
@@ -99,7 +99,7 @@ La instalación coloca los paquetes y servicios de abajo.
 | postfix                                         | Envía el correo de alerta. Instalado solo cuando `HF_MAIL_ALERTS=1`.                                                                                                           |
 | rclone                                          | Copia un archivo de alerta a Google Drive. Instalado solo cuando `HF_RCLONE_ALERTS=1`.                                                                                         |
 | lynis                                           | Auditoría de endurecimiento.                                                                                                                                                   |
-| ubuntu-pro-client                               | Adjunta el token de Ubuntu Pro.                                                                                                                                                |
+| ubuntu-pro-client                               | Adjunta el token de Ubuntu Pro. Fuera de una LTS no se activan esm-infra, esm-apps ni Livepatch. En una LTS, un fallo al activarlos no detiene la instalación. |
 | acct, sysstat, libpam-pwquality                 | Contabilidad de procesos, estadísticas de actividad, calidad de las contraseñas.                                                                                               |
 | rng-tools-debian, haveged                       | Fuentes de entropía.                                                                                                                                                           |
 | apt-listchanges, needrestart, apt-show-versions | Avisos de cambios de paquetes y controles de reinicio.                                                                                                                         |

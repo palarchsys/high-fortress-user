@@ -25,7 +25,7 @@ for name in hf_set_color_blue hf_require_root hf_set_step_visible hf_log_error h
     hft_require_function "${name}" "${MONO}/core"
 done
 for name in hf_get_current_user hf_get_operating_system hf_check_ubuntu_base hfu_check_desktop_account hf_write_account_table \
-    hf_record_account_snapshot hfu_strip_virt_groups hf_check_account_drift hf_get_ssh_port \
+    hf_record_account_snapshot hfu_strip_virt_groups hf_check_account_drift hf_read_sshd_value hf_get_sshd_value hf_get_ssh_port \
     hf_check_virtual_machine hf_check_app hf_check_password_unchanged hf_check_ubuntu_pro \
     hfu_collect_product_logs; do
     hft_require_function "${name}" "${HFT_ROOT}/core/lib.sh"
@@ -46,8 +46,11 @@ source "${HF_INSTALL_DIRECTORY}/core/lib.sh"
 grep -q 'source /etc/os-release' "${HF_INSTALL_DIRECTORY}/core/lib.sh"
 grep -q 'dpkg --compare-versions' "${HF_INSTALL_DIRECTORY}/core/lib.sh"
 grep -q 'ge "26.04"' "${HF_INSTALL_DIRECTORY}/core/lib.sh"
-grep -q 'resolute) mapped="26.04"' "${HF_INSTALL_DIRECTORY}/core/lib.sh"
-grep -q 'stonking) mapped="26.10"' "${HF_INSTALL_DIRECTORY}/core/lib.sh"
+grep -q 'hf_check_ubuntu_lts' "${HF_INSTALL_DIRECTORY}/core/lib.sh"
+grep -qF '!= "ubuntu"' "${HF_INSTALL_DIRECTORY}/core/lib.sh"
+if grep -q 'anduinos' "${HF_INSTALL_DIRECTORY}/core/lib.sh"; then
+    exit 1
+fi
 
 pass_os() {
     local ID="$1"
@@ -89,19 +92,17 @@ pass_os ubuntu debian resolute "Ubuntu 26.04.1 LTS" "26.04.1" 26.04 resolute
 pass_os ubuntu debian stonking "Ubuntu 26.10" "26.10" 26.10 stonking
 pass_os ubuntu debian later "Ubuntu 28.04 LTS" "28.04" 28.04 later
 pass_os ubuntu debian "" "Ubuntu 26.04" "26.04" 26.04 inconnu
-pass_os anduinos "" resolute "AnduinOS" "1.4" 26.04 resolute
-pass_os anduinos "" stonking "AnduinOS" "1.5" 26.10 stonking
-pass_os linuxmint "ubuntu debian" resolute "Linux Mint" "22" 26.04 resolute
-pass_os custom "" resolute "Custom derivative" "" 26.04 resolute
-fail_os questing ubuntu debian questing "Ubuntu questing" "25.10"
-fail_os noble ubuntu debian noble "Ubuntu noble" "24.04"
-fail_os jammy ubuntu debian jammy "Ubuntu jammy" "22.04"
-fail_os noble linuxmint "ubuntu debian" noble "Linux Mint" "26.04"
-fail_os aucun linuxmint "ubuntu debian" "" "Linux Mint" "26.04"
+fail_os AnduinOS anduinos "" resolute "AnduinOS" "1.4"
+fail_os "Linux Mint" linuxmint "ubuntu debian" resolute "Linux Mint" "22"
+fail_os "Custom derivative" custom "" resolute "Custom derivative" ""
+fail_os 25.10 ubuntu debian questing "Ubuntu 25.10" "25.10"
+fail_os 24.04 ubuntu debian noble "Ubuntu 24.04 LTS" "24.04"
+fail_os 22.04 ubuntu debian jammy "Ubuntu 22.04 LTS" "22.04"
+fail_os aucune ubuntu debian "" "Ubuntu" ""
 fail_os Fedora fedora fedora "" "Fedora" "42"
 OSBASE
 then
-    hft_pass "fn.os.base" "26.04 ou plus récent, dérivée de cette base comprise"
+    hft_pass "fn.os.base" "Ubuntu seul, 26.04 ou plus récent"
 else
     hft_fail "fn.os.base" "la base Ubuntu n'accepte pas 26.04 ou plus récent"
 fi
@@ -109,6 +110,34 @@ if grep -q '!= "26.04"' "${HFT_ROOT}/core/lib.sh"; then
     hft_fail "fn.os.strict" "la version est comparée par égalité stricte sur VERSION_ID"
 else
     hft_pass "fn.os.strict" "la version est comparée au plancher 26.04"
+fi
+
+hft_section "sshd -T casse"
+if bash -s -- "${HFT_ROOT}" << 'SSHCASE'
+set -euo pipefail
+root="$1"
+HF_INSTALL_DIRECTORY="${root}"
+# shellcheck disable=SC1091
+source "${HF_INSTALL_DIRECTORY}/core/lib.sh"
+canon=$'Port 22\nPermitRootLogin no\nPasswordAuthentication yes\nAllowTcpForwarding no\n'
+lower=$'port 2222\npermitrootlogin no\npasswordauthentication yes\n'
+[[ "$(printf '%s\n' "${canon}" | hf_read_sshd_value permitrootlogin)" == "no" ]]
+[[ "$(printf '%s\n' "${canon}" | hf_read_sshd_value PermitRootLogin)" == "no" ]]
+[[ "$(printf '%s\n' "${canon}" | hf_read_sshd_value port)" == "22" ]]
+[[ "$(printf '%s\n' "${lower}" | hf_read_sshd_value port)" == "2222" ]]
+[[ "$(printf '%s\n' "${lower}" | hf_read_sshd_value permitrootlogin)" == "no" ]]
+grep -q 'hf_get_sshd_value permitrootlogin' "${root}/service/ssh/configure.sh"
+grep -q 'hf_get_sshd_value permitrootlogin' "${root}/../server/service/ssh/configure.sh"
+grep -q 'hf_get_sshd_value allowtcpforwarding' "${root}/verify/workstation.sh"
+grep -q 'tolower($1)=="permitrootlogin"' "${root}/service/cron/boot-check.sh"
+if grep -RInE "awk '/\\^permitrootlogin " "${root}/service" "${root}/verify" "${root}/../server/service" >/dev/null 2>&1; then
+    exit 1
+fi
+SSHCASE
+then
+    hft_pass "fn.sshd.case" "sshd -T lu en minuscules et en casse canonique"
+else
+    hft_fail "fn.sshd.case" "la lecture de sshd -T reste figée en minuscules"
 fi
 
 hft_section "journaux dans logs/"
@@ -188,12 +217,23 @@ if HF_PRODUCT_ROOT="${HFT_ROOT}" bash -c '
     export HF_INSTALL_DIRECTORY
     HFU_PROJECT_SLUG=high-fortress-user
     HF_PROJECT_NAME=HF
+    unset UBUNTU_BASE_VERSION || true
+    OS_PRETTY="Ubuntu"
+    OS_VERSION_ID="26.10"
+    export OS_PRETTY OS_VERSION_ID
     hf_init_install_log
     [[ "${HF_LOG_DIR}" == "${HF_INSTALL_DIRECTORY}/logs/install-"*"-user" ]]
+    grep -Fqx "os          : Ubuntu 26.10" "${HF_LOG_DIR}/meta.txt"
+    grep -Fqx "os          : Ubuntu 26.10" "${HF_LOG_DIR}/install.log"
+    OS_PRETTY="Ubuntu 26.10"
+    export OS_PRETTY
+    hf_init_install_log
+    grep -Fqx "os          : Ubuntu 26.10" "${HF_LOG_DIR}/meta.txt"
+    ! grep -Fqx "os          : Ubuntu 26.10 26.10" "${HF_LOG_DIR}/meta.txt"
 ' bash "${HFT_ROOT}/core/lib.sh" "${log_work}"; then
-    hft_pass "user.mode-test.logname" "journal nommé install-*-user"
+    hft_pass "user.mode-test.logname" "journal nommé install-*-user, version de distribution écrite une fois"
 else
-    hft_fail "user.mode-test.logname" "le journal du poste ne se termine pas par -user"
+    hft_fail "user.mode-test.logname" "le journal du poste omet -user ou la version de distribution"
 fi
 rm -rf "${log_work}"
 

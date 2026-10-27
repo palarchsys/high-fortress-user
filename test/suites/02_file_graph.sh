@@ -51,6 +51,37 @@ else
     hft_fail "graph.order.purge-before-db" "la purge rc doit précéder --propupd et aide --init"
 fi
 
+hft_section "carte sasl selon postfix"
+if grep -q 'hf_get_sasl_map_type' "${HFT_ROOT}/service/postfix/configure.sh" \
+   && grep -q 'sasl_passwd.db' "${HFT_ROOT}/service/postfix/configure.sh" \
+   && grep -q 'sasl_passwd.cdb' "${HFT_ROOT}/service/postfix/configure.sh" \
+   && grep -q '__SASL_TYPE__' "${HFT_ROOT}/service/postfix/configure.sh" \
+   && grep -q '__SASL_TYPE__:/etc/postfix/sasl_passwd' "${HFT_ROOT}/config/postfix/main.keys" \
+   && ! grep -q 'hash:/etc/postfix/sasl_passwd' "${HFT_ROOT}/config/postfix/main.keys" \
+   && ! grep -q 'cdb:/etc/postfix/sasl_passwd' "${HFT_ROOT}/config/postfix/main.keys"; then
+    hft_pass "graph.postfix.cdb" "carte SASL selon default_database_type"
+else
+    hft_fail "graph.postfix.cdb" "la carte SASL est figée sur un seul type"
+fi
+
+hft_section "ubuntu pro hors lts"
+if awk '
+    /if hf_check_ubuntu_lts; then/ { state = 1; next }
+    state == 1 && /^else$/ { state = 2; next }
+    state == 2 && /^fi$/ { state = 0; closed = 1; next }
+    state == 1 && /pro enable/ { inn++ }
+    state == 1 && /esm-infra esm-apps/ { names = 1 }
+    state == 1 && /pro enable livepatch/ { live = 1 }
+    state == 2 && /pro enable/ { bad = 1 }
+    END { exit !(inn == 2 && names && live && !bad && closed) }
+' "${HFT_ROOT}/system/install.sh" \
+   && grep -q 'hf_check_ubuntu_lts' "${HFT_ROOT}/verify/workstation.sh" \
+   && grep -qF 'non demandés : version intermédiaire' "${HFT_ROOT}/verify/workstation.sh"; then
+    hft_pass "graph.pro.interim" "esm-infra, esm-apps et livepatch seulement sur une LTS"
+else
+    hft_fail "graph.pro.interim" "le poste active encore esm ou livepatch hors LTS"
+fi
+
 hft_section "ordre des contrôles quotidiens"
 if awk '
     function remember(name, s) { arr[name] = arr[name] s "\n" }
