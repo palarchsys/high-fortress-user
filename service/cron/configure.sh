@@ -51,10 +51,17 @@ HF_MAIL_ALERTS="${HF_MAIL_ALERTS:-0}"
 HF_WATCHDOG_MAIL="${HF_WATCHDOG_MAIL:-}"
 HF_PROJECT_NAME="${HF_PROJECT_NAME}"
 HF_MAIL_TEMPLATE="${HF_MAIL_TEMPLATE:-mail.html}"
+HF_RCLONE_ALERTS="${HF_RCLONE_ALERTS:-0}"
+HF_RCLONE_REMOTE="${HF_RCLONE_REMOTE:-gdrive}"
+HF_RCLONE_PATH="${HF_RCLONE_PATH:-high-fortress-alerts}"
 EOF
 umask 022
 chmod 600 "${HF_CONFIG_BASE_DIRECTORY}/cron/mail.conf"
 chown -R root:root "${HF_CONFIG_BASE_DIRECTORY}/cron"
+if [[ -f "${HF_CONFIG_BASE_DIRECTORY}/cron/rclone.conf" ]]; then
+    chown root:root "${HF_CONFIG_BASE_DIRECTORY}/cron/rclone.conf"
+    chmod 600 "${HF_CONFIG_BASE_DIRECTORY}/cron/rclone.conf"
+fi
 
 export HFU_PROJECT_SLUG HF_CONFIG_BASE_DIRECTORY
 

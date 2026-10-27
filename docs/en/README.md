@@ -21,7 +21,7 @@ Three points come before installation: the system, access, and the external need
 
 ## ▪️ System
 
-Ubuntu 26.04 or newer.<br/>
+Ubuntu 26.04 or newer, or a derivative based on Ubuntu 26.04 or newer.<br/>
 A fresh installation is preferred.<br/>
 Use a local console or the existing graphical session.<br/>
 The machine needs Internet access.
@@ -66,11 +66,14 @@ sudo ./hf configure
 | Question         | Expected answer                                                                                                                                     |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Jeton Ubuntu Pro | Letters and digits, 6 to 100, no space. Required.                                                                                                   |
-| Activer          | `Y` or `y` enables alerts. `n` or `non` disables them. Any other answer prints `Répondez Y ou n.`                                                   |
+| Activer          | `Y` or `y` enables mail. `N`, `n` or `non` disables mail. Disabled does not install Postfix. Any other answer prints `Répondez Y ou N.`            |
 | Serveur          | `host:port`, for example `smtp-mail.outlook.com:587`. No brackets. Asked only when alerts are enabled.                                              |
 | Login            | An e-mail address.                                                                                                                                  |
 | Password         | The provider application password, 8 to 128 characters. Spaces are removed. Quotes, `$`, `\` and backticks are refused. Never the account password. |
 | From             | An e-mail address. `HF_WATCHDOG_MAIL` receives the same address.                                                                                    |
+| Activer l'envoi des alertes vers Google Drive (Y/N). | `Y` or `y` enables the copy. `N`, `n` or `non` disables it. Enabled asks for the remote name and the folder, then runs `rclone config`. The token stays on the machine, mode 600. Disabled does not install rclone. |
+| Distant          | Remote name. Letters, digits or a hyphen, 1 to 32 characters. Asked only when the copy is enabled.                                                  |
+| Dossier          | Remote folder. No `..` and no local absolute path. Asked only when the copy is enabled.                                                             |
 | Mode test        | `0` or `1`.                                                                                                                                         |
 
 ## Installed software and services
@@ -94,6 +97,7 @@ The installation places the packages and services below.
 | aide                                            | File integrity database `/var/lib/aide/aide.db`.                                                                         |
 | unattended-upgrades                             | Security origins. `Automatic-Reboot` is `false`.                                                                         |
 | postfix                                         | Sends alert mail. Installed only when `HF_MAIL_ALERTS=1`.                                                                |
+| rclone                                          | Copies an alert file to Google Drive. Installed only when `HF_RCLONE_ALERTS=1`.                                          |
 | lynis                                           | Hardening audit.                                                                                                         |
 | ubuntu-pro-client                               | Attaches the Ubuntu Pro token.                                                                                           |
 | acct, sysstat, libpam-pwquality                 | Process accounting, activity stats, password quality.                                                                    |
@@ -102,6 +106,9 @@ The installation places the packages and services below.
 
 ## 📋 Alert emails
 
+Each alert file is stored under `/opt/high-fortress-user/cron/alerts`.<br/>
+Mail leaves only when `HF_MAIL_ALERTS=1`.<br/>
+A copy leaves for Google Drive only when `HF_RCLONE_ALERTS=1`, to the chosen remote and folder.<br/>
 Mail is sent only when `HF_MAIL_ALERTS=1`, `HF_WATCHDOG_MAIL` is set, and `/opt/high-fortress-user/cron/bin/send.sh` is executable.<br/>
 A clean check does not send mail.<br/>
 If a journal line is unknown, do not run the command.<br/>

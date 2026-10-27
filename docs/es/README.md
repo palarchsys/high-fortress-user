@@ -21,7 +21,7 @@ Tres puntos preceden a la instalación: el sistema, el acceso y las necesidades 
 
 ## ▪️ Sistema
 
-Ubuntu 26.04 o posterior.<br/>
+Ubuntu 26.04 o posterior, o una derivada cuya base Ubuntu sea 26.04 o posterior.<br/>
 Una instalación nueva es preferible.<br/>
 Use una consola local o la sesión gráfica ya abierta.<br/>
 La máquina necesita Internet.
@@ -66,11 +66,14 @@ sudo ./hf configure
 | Pregunta         | Respuesta esperada                                                                                                                                                                   |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Jeton Ubuntu Pro | Letras y dígitos, de 6 a 100, sin espacio. Obligatorio.                                                                                                                              |
-| Activer          | `Y` o `y` activa las alertas. `n` o `non` las corta. Cualquier otra respuesta muestra `Répondez Y ou n.`                                                                             |
+| Activer          | `Y` o `y` activa el correo. `N`, `n` o `non` lo corta. Cortado, Postfix no se instala. Cualquier otra respuesta muestra `Répondez Y ou N.`                                  |
 | Serveur          | `host:puerto`, por ejemplo `smtp-mail.outlook.com:587`. Sin corchetes. Solo si las alertas están activadas.                                                                          |
 | Login            | Una dirección de correo.                                                                                                                                                             |
 | Password         | La contraseña de aplicación del proveedor, de 8 a 128 caracteres. Los espacios se quitan. Las comillas, `$`, `\` y la comilla inversa se rechazan. Nunca la contraseña de la cuenta. |
 | From             | Una dirección de correo. `HF_WATCHDOG_MAIL` recibe la misma dirección.                                                                                                               |
+| Activer l'envoi des alertes vers Google Drive (Y/N). | `Y` o `y` activa la copia. `N`, `n` o `non` la corta. Activada, se le pregunta el nombre remoto y la carpeta, y después se ejecuta `rclone config`. El testigo permanece en la máquina, modo 600. Cortada, rclone no se instala. |
+| Distant          | Nombre remoto. Letras, dígitos o guion, de 1 a 32 caracteres. Solo si la copia está activada.                                                                                        |
+| Dossier          | Carpeta remota. Sin `..` y sin ruta local absoluta. Solo si la copia está activada.                                                                                                  |
 | Mode test        | `0` o `1`.                                                                                                                                                                           |
 
 ## Programas y servicios instalados
@@ -94,6 +97,7 @@ La instalación coloca los paquetes y servicios de abajo.
 | aide                                            | Base de integridad `/var/lib/aide/aide.db`.                                                                                                                                    |
 | unattended-upgrades                             | Orígenes de seguridad. `Automatic-Reboot` vale `false`.                                                                                                                        |
 | postfix                                         | Envía el correo de alerta. Instalado solo cuando `HF_MAIL_ALERTS=1`.                                                                                                           |
+| rclone                                          | Copia un archivo de alerta a Google Drive. Instalado solo cuando `HF_RCLONE_ALERTS=1`.                                                                                         |
 | lynis                                           | Auditoría de endurecimiento.                                                                                                                                                   |
 | ubuntu-pro-client                               | Adjunta el token de Ubuntu Pro.                                                                                                                                                |
 | acct, sysstat, libpam-pwquality                 | Contabilidad de procesos, estadísticas de actividad, calidad de las contraseñas.                                                                                               |
@@ -102,6 +106,9 @@ La instalación coloca los paquetes y servicios de abajo.
 
 ## 📋 Correos de alerta
 
+Cada archivo de alerta queda en `/opt/high-fortress-user/cron/alerts`.<br/>
+El correo sale solo si `HF_MAIL_ALERTS=1`.<br/>
+Una copia sale hacia Google Drive solo si `HF_RCLONE_ALERTS=1`, hacia el remoto y la carpeta elegidos.<br/>
 El correo sale solo si `HF_MAIL_ALERTS=1`, si `HF_WATCHDOG_MAIL` está definido, y si `/opt/high-fortress-user/cron/bin/send.sh` es ejecutable.<br/>
 Un control limpio no envía correo.<br/>
 Si una línea del diario es desconocida, no lance la orden.<br/>

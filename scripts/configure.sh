@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : scripts/configure.sh
-# Updated at : 2026-10-16
+# Updated at : 2026-10-26
 # Creator    : palarchsys
 # =============================================================================
 
@@ -20,6 +20,7 @@ Usage :
   ./hf check                   contrôle les fichiers, code 0 si conformes
 
 Le jeton Ubuntu Pro est obligatoire. Les alertes e-mail sont au choix.
+L'envoi vers Google Drive est au choix. Coupé, rclone n'est pas installé.
 Un mot de passe s'affiche en astérisques, puis une seconde ligne demande la confirmation.
 EOF
 }
@@ -93,6 +94,8 @@ hfu_prompt() {
             secret) hf_check_app_password "${value}" && ok=1 ;;
             smtp) hf_check_smtp "${value}" && ok=1 ;;
             bool01) [[ "${value}" =~ ^[01]$ ]] && ok=1 ;;
+            remote) hf_check_drive_remote "${value}" && ok=1 ;;
+            drive_path) hf_check_drive_path "${value}" && ok=1 ;;
         esac
         if [[ "${ok}" == "1" ]]; then
             printf -v "${__var}" '%s' "${value}"
@@ -213,7 +216,7 @@ while true; do
     echo ""
     printf '         \e[34m%*s\e[0m : ' 12 "Activer" >&2
     IFS= read -r mail_choice || hf_log_error "Entrée interrompue"
-    case "${mail_choice,,}" in
+    case "${mail_choice}" in
         Y|y)
             hfu_clear_mail
 
@@ -264,7 +267,7 @@ while true; do
             hfu_clear_mail
             hf_log_info "Retour au choix des alertes."
             ;;
-        n|non)
+        N|n|non)
             hf_log_info "Coupure des alertes e-mail"
             hfu_clear_mail
             HF_MAIL_ALERTS=0
@@ -272,10 +275,88 @@ while true; do
             break
             ;;
         *)
-            hf_log_warn "Répondez Y ou n."
+            hf_log_warn "Répondez Y ou N."
             ;;
     esac
 done
+
+hfu_clear_drive() {
+    local base
+    HF_RCLONE_ALERTS=0
+    base="${HF_CONFIG_BASE_DIRECTORY:-/opt/high-fortress-user}"
+    rm -f "${base}/cron/rclone.conf"
+}
+
+hfu_ask_drive_alert() {
+    local choice="" base config old_umask
+    base="${HF_CONFIG_BASE_DIRECTORY:-/opt/high-fortress-user}"
+    hf_log_title "Alertes vers Google Drive"
+    hf_log_info "Activer l'envoi des alertes vers Google Drive (Y/N)."
+    while true; do
+        echo ""
+        printf '         \e[34m%*s\e[0m : ' 12 "Drive" >&2
+        IFS= read -r choice || hf_log_error "Entrée interrompue"
+        case "${choice}" in
+            Y|y)
+                : "${HF_RCLONE_REMOTE:=gdrive}"
+                : "${HF_RCLONE_PATH:=high-fortress-alerts}"
+                hfu_prompt HF_RCLONE_REMOTE \
+                    "Distant" \
+                    "gdrive" \
+                    "${HF_RCLONE_REMOTE}" \
+                    remote \
+                    "Lettres, chiffres ou tiret, de 1 à 32 caractères."
+                hfu_prompt HF_RCLONE_PATH \
+                    "Dossier" \
+                    "high-fortress-alerts" \
+                    "${HF_RCLONE_PATH}" \
+                    drive_path \
+                    "Dossier distant, sans .. et sans chemin local."
+                if ! command -v rclone >/dev/null 2>&1; then
+                    hf_log_info "Installation de rclone."
+                    hf_run_silent_apt install --no-install-recommends -y rclone
+                fi
+                config="${base}/cron/rclone.conf"
+                mkdir -p "${base}/cron"
+                rm -f "${config}"
+                old_umask="$(umask)"
+                umask 077
+                if ! RCLONE_CONFIG="${config}" rclone config create "${HF_RCLONE_REMOTE}" drive; then
+                    umask "${old_umask}"
+                    rm -f "${config}"
+                    hf_log_warn "La configuration rclone a été refusée."
+                    hf_log_info "Retour au choix Google Drive."
+                    continue
+                fi
+                umask "${old_umask}"
+                if [[ ! -f "${config}" ]]; then
+                    hf_log_warn "La configuration rclone a été refusée."
+                    hf_log_info "Retour au choix Google Drive."
+                    continue
+                fi
+                chmod 600 "${config}"
+                if hf_check_drive_probe "${HF_RCLONE_REMOTE}" "${HF_RCLONE_PATH}" "${config}"; then
+                    HF_RCLONE_ALERTS=1
+                    hf_log_success "Essai Google Drive accepté."
+                    return 0
+                fi
+                rm -f "${config}"
+                hf_log_warn "L'essai Google Drive a été refusé."
+                hf_log_info "Retour au choix Google Drive."
+                ;;
+            N|n|non)
+                hfu_clear_drive
+                hf_log_success "Envoi Google Drive coupé."
+                return 0
+                ;;
+            *)
+                hf_log_warn "Répondez Y ou N."
+                ;;
+        esac
+    done
+}
+
+hfu_ask_drive_alert
 
 hf_log_title "Mode test"
 hf_log_info "1 : pas de retrait. 0 : question en fin d'installation."

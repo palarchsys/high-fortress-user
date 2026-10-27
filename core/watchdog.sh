@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : core/watchdog.sh
-# Updated at : 2026-10-22
+# Updated at : 2026-10-26
 # Creator    : palarchsys
 # =============================================================================
 
@@ -946,6 +946,49 @@ if blocks:
 PY
 }
 
+hf_write_alert_file() {
+    local alert="$1" summary="$2" excerpt="$3" note="$4" note_cmd="$5"
+    local dir
+    [[ -n "${alert}" ]] || return 0
+    dir="$(dirname -- "${alert}")"
+    mkdir -p "${dir}" 2>/dev/null || true
+    {
+        printf '%s\n' "${summary}"
+        if [[ -n "${excerpt}" ]]; then
+            printf '\n%s\n' "${excerpt}"
+        fi
+        if [[ -n "${note}" ]]; then
+            printf '\n%s\n' "${note}"
+        fi
+        if [[ -n "${note_cmd}" ]]; then
+            printf '\n%s\n' "${note_cmd}"
+        fi
+    } > "${alert}" || true
+}
+
+hf_copy_alert_drive() {
+    local alert="${1:-}"
+    local base remote path config
+    [[ "${HF_RCLONE_ALERTS:-0}" == "1" ]] || return 0
+    [[ -n "${alert}" && -f "${alert}" ]] || return 0
+    base="$(hf_get_product_base)"
+    remote="${HF_RCLONE_REMOTE:-}"
+    path="${HF_RCLONE_PATH:-}"
+    config="${base}/cron/rclone.conf"
+    if [[ -z "${remote}" || -z "${path}" || ! -f "${config}" ]]; then
+        printf '%s\n' "Copie Drive ignorée." >&2
+        return 0
+    fi
+    if ! command -v rclone >/dev/null 2>&1; then
+        printf '%s\n' "Copie Drive ignorée : rclone absent." >&2
+        return 0
+    fi
+    if ! RCLONE_CONFIG="${config}" rclone copy "${alert}" "${remote}:${path}" >/dev/null 2>&1; then
+        printf '%s\n' "Copie Drive refusée. Le fichier local est conservé." >&2
+    fi
+    return 0
+}
+
 hf_log_alert() {
     local summary="$*"
     local excerpt="" module log alert line send base note="" note_cmd=""
@@ -953,9 +996,7 @@ hf_log_alert() {
     alert="${ALERT_FILE:-}"
     excerpt="$(hf_get_alert_excerpt "${log}")"
     line="$(printf '%s %s' "$(date -Iseconds)" "${summary}")"
-    if [[ -n "${log}" && -n "${alert}" ]]; then
-        printf '%s\n' "${line}" | tee -a "${log}" "${alert}"
-    elif [[ -n "${log}" ]]; then
+    if [[ -n "${log}" ]]; then
         printf '%s\n' "${line}" | tee -a "${log}"
     else
         printf '%s\n' "${line}"
@@ -997,21 +1038,24 @@ hf_log_alert() {
             HF_PROJECT_NAME="High-Fortress"
         fi
     fi
-    if [[ "${HF_MAIL_ALERTS:-0}" != "1" || -z "${HF_WATCHDOG_MAIL:-}" ]]; then
-        return 0
-    fi
-    send="$(hf_send_path)" || return 0
-    TITLE="${TITLE}" \
-    MODULE_NAME="${module}" \
-    CONTENT="${summary}
+    hf_write_alert_file "${alert}" "${summary}" "${excerpt}" "${NOTE:-}" "${NOTE_CMD:-}"
+    if [[ "${HF_MAIL_ALERTS:-0}" == "1" && -n "${HF_WATCHDOG_MAIL:-}" ]]; then
+        send="$(hf_send_path)" || true
+        if [[ -n "${send}" ]]; then
+            TITLE="${TITLE}" \
+            MODULE_NAME="${module}" \
+            CONTENT="${summary}
 
 ${excerpt}" \
-    NOTE="${NOTE:-}" \
-    NOTE_CMD="${NOTE_CMD:-}" \
-    HF_WATCHDOG_MAIL="${HF_WATCHDOG_MAIL}" \
-    HF_PROJECT_NAME="${HF_PROJECT_NAME}" \
-    HF_MAIL_TEMPLATE="${HF_MAIL_TEMPLATE:-mail.html}" \
-        bash "${send}" || true
+            NOTE="${NOTE:-}" \
+            NOTE_CMD="${NOTE_CMD:-}" \
+            HF_WATCHDOG_MAIL="${HF_WATCHDOG_MAIL}" \
+            HF_PROJECT_NAME="${HF_PROJECT_NAME}" \
+            HF_MAIL_TEMPLATE="${HF_MAIL_TEMPLATE:-mail.html}" \
+                bash "${send}" || true
+        fi
+    fi
+    hf_copy_alert_drive "${alert}" || true
 }
 
 hf_report_clamav() {
@@ -1054,19 +1098,6 @@ hf_deliver_mail() {
     detail="$(printf '%s' "${CONTENT:-}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
     if [[ -z "${detail}" ]]; then
         echo "Mail non envoyé (${MODULE_NAME:-?}) : corps vide." >&2
-        exit 0
-    fi
-    if [[ "${HF_MAIL_REQUIRE_FLAG:-0}" == "1" ]]; then
-        if [[ "${HF_MAIL_ALERTS:-0}" != "1" || -z "${HF_WATCHDOG_MAIL:-}" ]]; then
-            echo "Mail non envoyé (${MODULE_NAME:-?}) : alertes e-mail coupées." >&2
-            exit 0
-        fi
-    elif [[ -z "${HF_WATCHDOG_MAIL:-}" ]]; then
-        echo "Mail non envoyé (${MODULE_NAME:-?}) : destinataire ou corps vide." >&2
-        exit 0
-    fi
-    if ! command -v mail >/dev/null 2>&1; then
-        echo "Mail non envoyé (${MODULE_NAME:-?}) : commande mail absente." >&2
         exit 0
     fi
     if [[ "${HF_MAIL_ABOUT:-0}" == "1" ]]; then
@@ -1129,6 +1160,20 @@ ${detail}"
     fi
     if [[ -n "${HTML_REPORT:-}" ]]; then
         printf '%s\n' "${MAIL_CONTENT}" > "${HTML_REPORT}" || true
+        hf_copy_alert_drive "${HTML_REPORT}" || true
+    fi
+    if [[ "${HF_MAIL_REQUIRE_FLAG:-0}" == "1" ]]; then
+        if [[ "${HF_MAIL_ALERTS:-0}" != "1" || -z "${HF_WATCHDOG_MAIL:-}" ]]; then
+            echo "Mail non envoyé (${MODULE_NAME:-?}) : alertes e-mail coupées." >&2
+            exit 0
+        fi
+    elif [[ -z "${HF_WATCHDOG_MAIL:-}" ]]; then
+        echo "Mail non envoyé (${MODULE_NAME:-?}) : destinataire ou corps vide." >&2
+        exit 0
+    fi
+    if ! command -v mail >/dev/null 2>&1; then
+        echo "Mail non envoyé (${MODULE_NAME:-?}) : commande mail absente." >&2
+        exit 0
     fi
     printf '%s\n' "${MAIL_CONTENT}" | mail -s "${HF_PROJECT_NAME} - ${HOSTNAME} - ${MODULE_NAME}" \
         -a "Content-Type: text/html; charset=UTF-8" \

@@ -102,6 +102,9 @@ if [[ "${HF_MAIL_ALERTS:-0}" == "1" ]]; then
     hf_run_step "${HF_INSTALL_DIRECTORY}" "service/postfix/install.sh"
     hf_run_step "${HF_INSTALL_DIRECTORY}" "service/postfix/configure.sh"
 fi
+if [[ "${HF_RCLONE_ALERTS:-0}" == "1" ]]; then
+    hf_run_step "${HF_INSTALL_DIRECTORY}" "service/rclone/install.sh"
+fi
 hf_run_step "${HF_INSTALL_DIRECTORY}" "${STEP_SSH_CONFIGURE[@]}"
 
 hf_run_step "${HF_INSTALL_DIRECTORY}" "${STEP_SECURITY_INSTALL[@]}"

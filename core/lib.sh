@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : core/lib.sh
-# Updated at : 2026-10-22
+# Updated at : 2026-10-27
 # Creator    : palarchsys
 # =============================================================================
 
@@ -313,24 +313,59 @@ hf_get_current_user() {
     export CURRENT_USER CURRENT_GROUP CURRENT_HOME
 }
 
-# Compare major.minor as integers. A third component on the detected release is ignored.
-hf_os_version_at_least() {
-    local found="$1"
-    local floor="$2"
-    local found_major found_minor floor_major floor_minor
-    [[ "${found}" =~ ^([0-9]+)\.([0-9]+) ]] || return 1
-    found_major="${BASH_REMATCH[1]}"
-    found_minor="${BASH_REMATCH[2]}"
-    [[ "${floor}" =~ ^([0-9]+)\.([0-9]+)$ ]] || return 1
-    floor_major="${BASH_REMATCH[1]}"
-    floor_minor="${BASH_REMATCH[2]}"
-    if (( 10#${found_major} > 10#${floor_major} )); then
-        return 0
+# Ubuntu 26.04 or newer, or a derivative whose Ubuntu base is 26.04 or newer.
+hf_check_ubuntu_base() {
+    local os_id="${ID:-}"
+    local os_like="${ID_LIKE:-}"
+    local os_codename="${UBUNTU_CODENAME:-}"
+    local version_id="${VERSION_ID:-}"
+    local pretty="${PRETTY_NAME:-${OS_PRETTY:-inconnu}}"
+    local compatible=0
+    local mapped=""
+    local base_version=""
+
+    if [[ "${os_id}" == "ubuntu" || "${os_id}" == "anduinos" ]]; then
+        compatible=1
     fi
-    if (( 10#${found_major} < 10#${floor_major} )); then
-        return 1
+    if [[ "${os_like}" == *ubuntu* ]]; then
+        compatible=1
     fi
-    (( 10#${found_minor} >= 10#${floor_minor} ))
+    if [[ -n "${os_codename}" ]]; then
+        compatible=1
+    fi
+    if [[ "${compatible}" -ne 1 ]]; then
+        hf_log_error "Ubuntu 26.04 ou plus récent, ou une dérivée de cette base, requis. Système détecté : ${pretty}."
+    fi
+
+    case "${os_codename}" in
+        focal) mapped="20.04" ;;
+        jammy) mapped="22.04" ;;
+        kinetic) mapped="22.10" ;;
+        lunar) mapped="23.04" ;;
+        mantic) mapped="23.10" ;;
+        noble) mapped="24.04" ;;
+        oracular) mapped="24.10" ;;
+        plucky) mapped="25.04" ;;
+        questing) mapped="25.10" ;;
+        resolute) mapped="26.04" ;;
+        stonking) mapped="26.10" ;;
+    esac
+
+    if [[ "${os_id}" == "ubuntu" && "${version_id}" =~ ^([0-9]+)\.([0-9]+) ]]; then
+        base_version="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
+    elif [[ -n "${mapped}" ]]; then
+        base_version="${mapped}"
+    fi
+    if [[ -z "${base_version}" ]]; then
+        hf_log_error "Base Ubuntu 26.04 ou plus récente requise. Nom de code détecté : ${os_codename:-aucun}."
+    fi
+
+    UBUNTU_BASE_VERSION="${base_version}"
+    UBUNTU_BASE_CODENAME="${os_codename:-inconnu}"
+    if ! dpkg --compare-versions "${UBUNTU_BASE_VERSION}" ge "26.04"; then
+        hf_log_error "Base Ubuntu ${UBUNTU_BASE_VERSION} (${UBUNTU_BASE_CODENAME}) refusée : elle n'est pas supérieure ou égale à 26.04."
+    fi
+    export UBUNTU_BASE_VERSION UBUNTU_BASE_CODENAME
 }
 
 hf_get_operating_system() {
@@ -340,19 +375,7 @@ hf_get_operating_system() {
     OS_VERSION_ID="${VERSION_ID:-}"
     OS_PRETTY="${PRETTY_NAME:-}"
     export OS_ID OS_VERSION_ID OS_PRETTY
-    local min_id min_ver
-    if [[ -n "${HFS_OS_VERSION:-}" ]]; then
-        min_id="${HFS_OS_ID:-}"
-        min_ver="${HFS_OS_VERSION}"
-    else
-        min_id="${HFU_OS_ID:-}"
-        min_ver="${HFU_OS_VERSION:-}"
-    fi
-    if [[ -z "${min_id}" || -z "${min_ver}" ]] \
-        || [[ "${OS_ID}" != "${min_id}" ]] \
-        || ! hf_os_version_at_least "${OS_VERSION_ID}" "${min_ver}"; then
-        hf_log_error "Ubuntu ${min_ver:-inconnu} ou plus récent requis. Détecté : ${OS_PRETTY:-inconnu}."
-    fi
+    hf_check_ubuntu_base
 }
 
 hfu_check_desktop_account() {

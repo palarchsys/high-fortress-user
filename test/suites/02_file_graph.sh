@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : test/suites/02_file_graph.sh
-# Updated at : 2026-10-25
+# Updated at : 2026-10-27
 # Creator    : palarchsys
 # =============================================================================
 
@@ -586,6 +586,91 @@ if grep -qF 'High-Fortress User' "${readme}" \
     hft_pass "graph.readme" "squelette du README et pages liées"
 else
     hft_fail "graph.readme" "le README du poste doit suivre agents/laws/readme.md"
+fi
+
+hft_section "archive d'alerte et Google Drive"
+alerts_ok=1
+for lang in en fr de es; do
+    page="${HFT_ROOT}/docs/${lang}/README.md"
+    grep -q '/opt/high-fortress-user/cron/alerts' "${page}" || alerts_ok=0
+    grep -q 'HF_RCLONE_ALERTS=1' "${page}" || alerts_ok=0
+    grep -q "Activer l'envoi des alertes vers Google Drive (Y/N)." "${page}" || alerts_ok=0
+    if grep -qF 'rclone.conf' "${page}"; then
+        alerts_ok=0
+    fi
+done
+if grep -qF 'rclone.conf' "${HFT_ROOT}/README.md"; then
+    alerts_ok=0
+fi
+if ! awk '
+    /HF_RCLONE_ALERTS:-0/ { gate = 1; next }
+    gate && /service\/rclone\/install.sh/ { hit = 1 }
+    gate && /^fi$/ { gate = 0 }
+    END { exit hit ? 0 : 1 }
+' "${HFT_ROOT}/scripts/run.sh"; then
+    alerts_ok=0
+fi
+if [[ "$(grep -c 'service/rclone/install.sh' "${HFT_ROOT}/scripts/run.sh")" -ne 1 ]]; then
+    alerts_ok=0
+fi
+if ! grep -q 'N|n|non' "${HFT_ROOT}/scripts/configure.sh"; then
+    alerts_ok=0
+fi
+if [[ "${alerts_ok}" -eq 1 ]]; then
+    hft_pass "graph.alerts" "dossier d'alertes, choix Drive, rclone seulement si le drapeau vaut 1"
+else
+    hft_fail "graph.alerts" "le README, configure.sh ou run.sh ne porte pas le choix d'alerte"
+fi
+
+alert_rc=0
+bash -s -- "${HFT_ROOT}" << 'ALERT' || alert_rc=$?
+set -euo pipefail
+root="$1"
+mono="$(cd -- "${root}/.." && pwd)"
+work="$(mktemp -d)"
+trap 'rm -rf "${work}"' EXIT
+mkdir -p "${work}/cron/bin" "${work}/bin"
+cat > "${work}/cron/bin/send.sh" << 'EOF'
+#!/usr/bin/env bash
+printf 'sent\n' > "${HFU_SENT}"
+EOF
+chmod 755 "${work}/cron/bin/send.sh"
+cat > "${work}/bin/rclone" << 'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "${HFU_RCLONE}"
+EOF
+chmod 755 "${work}/bin/rclone"
+export HFU_BASE="${work}" PATH="${work}/bin:${PATH}"
+export HFU_SENT="${work}/sent" HFU_RCLONE="${work}/rclone.log"
+# shellcheck disable=SC1091
+source "${mono}/core/watchdog.sh"
+LOG_FILE="${work}/sec.log"
+ALERT_FILE="${work}/cron/alerts/sample.txt"
+: > "${LOG_FILE}"
+HF_MAIL_ALERTS=0
+HF_RCLONE_ALERTS=0
+HF_WATCHDOG_MAIL=""
+NOTE=""
+NOTE_CMD=""
+TITLE=""
+hf_log_alert "essai archive"
+[[ -f "${ALERT_FILE}" ]]
+grep -q 'essai archive' "${ALERT_FILE}"
+[[ ! -e "${HFU_SENT}" ]]
+[[ ! -s "${HFU_RCLONE}" ]]
+HF_RCLONE_ALERTS=1
+HF_RCLONE_REMOTE="gdrive"
+HF_RCLONE_PATH="high-fortress-alerts"
+printf 'token\n' > "${work}/cron/rclone.conf"
+hf_log_alert "essai drive"
+grep -q 'gdrive:high-fortress-alerts' "${HFU_RCLONE}"
+[[ ! -e "${HFU_SENT}" ]]
+grep -q 'essai drive' "${ALERT_FILE}"
+ALERT
+if [[ "${alert_rc}" -eq 0 ]]; then
+    hft_pass "graph.alert-file" "fichier local sans courrier, copie Drive seulement si le drapeau vaut 1"
+else
+    hft_fail "graph.alert-file" "l'archive locale ou la copie Drive ne suit pas le drapeau"
 fi
 
 hft_section "surveillance du poste"

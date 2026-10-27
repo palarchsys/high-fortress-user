@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : test/suites/03_functions.sh
-# Updated at : 2026-10-22
+# Updated at : 2026-10-27
 # Creator    : palarchsys
 # =============================================================================
 
@@ -24,39 +24,91 @@ for name in hf_set_color_blue hf_require_root hf_set_step_visible hf_log_error h
     hf_copy_installed_logs; do
     hft_require_function "${name}" "${MONO}/core"
 done
-for name in hf_get_current_user hf_get_operating_system hf_os_version_at_least hfu_check_desktop_account hf_write_account_table \
+for name in hf_get_current_user hf_get_operating_system hf_check_ubuntu_base hfu_check_desktop_account hf_write_account_table \
     hf_record_account_snapshot hfu_strip_virt_groups hf_check_account_drift hf_get_ssh_port \
     hf_check_virtual_machine hf_check_app hf_check_password_unchanged hf_check_ubuntu_pro \
     hfu_collect_product_logs; do
     hft_require_function "${name}" "${HFT_ROOT}/core/lib.sh"
 done
-for name in hf_check_email hf_check_port hf_check_smtp hf_check_absolute_path hf_check_app_password; do
+for name in hf_check_email hf_check_port hf_check_smtp hf_check_absolute_path hf_check_drive_remote hf_check_drive_path hf_check_drive_probe hf_check_app_password; do
     hft_require_function "${name}" "${MONO}/core/config-validators.sh"
 done
 hft_require_function hfu_check_pro_token "${HFT_ROOT}/scripts/config-check.sh"
 hft_require_function hf_check_localhost_port "${MONO}/server/core/lib.sh"
 
-hft_section "version ubuntu"
-if bash -c "
+hft_section "base ubuntu"
+if bash -s -- "${HFT_ROOT}" << 'OSBASE'
 set -euo pipefail
-HF_INSTALL_DIRECTORY='${HFT_ROOT}'
-source \"\${HF_INSTALL_DIRECTORY}/core/lib.sh\"
-hf_os_version_at_least 26.04 26.04
-hf_os_version_at_least 26.10 26.04
-hf_os_version_at_least 28.04 26.04
-hf_os_version_at_least 26.04.1 26.04
-if hf_os_version_at_least 24.04 26.04; then exit 1; fi
-if hf_os_version_at_least 26.03 26.04; then exit 1; fi
-if hf_os_version_at_least foo 26.04; then exit 1; fi
-"; then
-    hft_pass "fn.os.floor" "26.04, 26.10 et 28.04 passent, 24.04 échoue"
+root="$1"
+HF_INSTALL_DIRECTORY="${root}"
+# shellcheck disable=SC1091
+source "${HF_INSTALL_DIRECTORY}/core/lib.sh"
+grep -q 'source /etc/os-release' "${HF_INSTALL_DIRECTORY}/core/lib.sh"
+grep -q 'dpkg --compare-versions' "${HF_INSTALL_DIRECTORY}/core/lib.sh"
+grep -q 'ge "26.04"' "${HF_INSTALL_DIRECTORY}/core/lib.sh"
+grep -q 'resolute) mapped="26.04"' "${HF_INSTALL_DIRECTORY}/core/lib.sh"
+grep -q 'stonking) mapped="26.10"' "${HF_INSTALL_DIRECTORY}/core/lib.sh"
+
+pass_os() {
+    local ID="$1"
+    local ID_LIKE="$2"
+    local UBUNTU_CODENAME="$3"
+    local PRETTY_NAME="$4"
+    local VERSION_ID="${5:-}"
+    local expect_version="$6"
+    local expect_code="$7"
+    unset UBUNTU_BASE_VERSION UBUNTU_BASE_CODENAME
+    hf_check_ubuntu_base
+    [[ "${UBUNTU_BASE_VERSION}" == "${expect_version}" ]]
+    [[ "${UBUNTU_BASE_CODENAME}" == "${expect_code}" ]]
+}
+
+fail_os() {
+    local needle="$1"
+    local id="$2"
+    local like="$3"
+    local code="$4"
+    local pretty="$5"
+    local version="${6:-}"
+    local out rc
+    set +e
+    out=$(
+        ID="${id}" ID_LIKE="${like}" UBUNTU_CODENAME="${code}" \
+            PRETTY_NAME="${pretty}" VERSION_ID="${version}" \
+            hf_check_ubuntu_base 2>&1
+    )
+    rc=$?
+    set -e
+    [[ "${rc}" -ne 0 ]]
+    printf '%s\n' "${out}" | grep -q '26.04'
+    printf '%s\n' "${out}" | grep -qF "${needle}"
+}
+
+pass_os ubuntu debian resolute "Ubuntu 26.04 LTS" "26.04" 26.04 resolute
+pass_os ubuntu debian resolute "Ubuntu 26.04.1 LTS" "26.04.1" 26.04 resolute
+pass_os ubuntu debian stonking "Ubuntu 26.10" "26.10" 26.10 stonking
+pass_os ubuntu debian later "Ubuntu 28.04 LTS" "28.04" 28.04 later
+pass_os ubuntu debian "" "Ubuntu 26.04" "26.04" 26.04 inconnu
+pass_os anduinos "" resolute "AnduinOS" "1.4" 26.04 resolute
+pass_os anduinos "" stonking "AnduinOS" "1.5" 26.10 stonking
+pass_os linuxmint "ubuntu debian" resolute "Linux Mint" "22" 26.04 resolute
+pass_os custom "" resolute "Custom derivative" "" 26.04 resolute
+fail_os questing ubuntu debian questing "Ubuntu questing" "25.10"
+fail_os noble ubuntu debian noble "Ubuntu noble" "24.04"
+fail_os jammy ubuntu debian jammy "Ubuntu jammy" "22.04"
+fail_os noble linuxmint "ubuntu debian" noble "Linux Mint" "26.04"
+fail_os aucun linuxmint "ubuntu debian" "" "Linux Mint" "26.04"
+fail_os Fedora fedora fedora "" "Fedora" "42"
+OSBASE
+then
+    hft_pass "fn.os.base" "26.04 ou plus récent, dérivée de cette base comprise"
 else
-    hft_fail "fn.os.floor" "comparaison de version"
+    hft_fail "fn.os.base" "la base Ubuntu n'accepte pas 26.04 ou plus récent"
 fi
 if grep -q '!= "26.04"' "${HFT_ROOT}/core/lib.sh"; then
-    hft_fail "fn.os.strict" "la version est comparée par égalité stricte"
+    hft_fail "fn.os.strict" "la version est comparée par égalité stricte sur VERSION_ID"
 else
-    hft_pass "fn.os.strict" "la version est comparée au plancher"
+    hft_pass "fn.os.strict" "la version est comparée au plancher 26.04"
 fi
 
 hft_section "journaux dans logs/"

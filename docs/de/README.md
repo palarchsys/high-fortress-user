@@ -21,7 +21,7 @@ Drei Punkte gehen der Installation voraus: das System, der Zugang und die extern
 
 ## ▪️ System
 
-Ubuntu 26.04 oder neuer.<br/>
+Ubuntu 26.04 oder neuer, oder eine Ableitung auf Ubuntu 26.04 oder neuer.<br/>
 Eine Neuinstallation ist vorzuziehen.<br/>
 Benutzen Sie eine lokale Konsole oder die bereits geöffnete grafische Sitzung.<br/>
 Die Maschine braucht Internetzugang.
@@ -66,11 +66,14 @@ sudo ./hf configure
 | Frage            | Erwartete Antwort                                                                                                                                                        |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Jeton Ubuntu Pro | Buchstaben und Ziffern, 6 bis 100, ohne Leerzeichen. Erforderlich.                                                                                                       |
-| Activer          | `Y` oder `y` schaltet die Alarme ein. `n` oder `non` schaltet sie aus. Jede andere Antwort zeigt `Répondez Y ou n.`                                                      |
+| Activer          | `Y` oder `y` schaltet die Post ein. `N`, `n` oder `non` schaltet sie aus. Ausgeschaltet wird Postfix nicht installiert. Jede andere Antwort zeigt `Répondez Y ou N.` |
 | Serveur          | `Host:Port`, zum Beispiel `smtp-mail.outlook.com:587`. Ohne Klammern. Nur wenn die Alarme eingeschaltet sind.                                                            |
 | Login            | Eine E-Mail-Adresse.                                                                                                                                                     |
 | Password         | Das Anwendungskennwort des Anbieters, 8 bis 128 Zeichen. Leerzeichen werden entfernt. Anführungszeichen, `$`, `\` und Backticks werden abgelehnt. Nie das Kontokennwort. |
 | From             | Eine E-Mail-Adresse. `HF_WATCHDOG_MAIL` erhält dieselbe Adresse.                                                                                                         |
+| Activer l'envoi des alertes vers Google Drive (Y/N). | `Y` oder `y` schaltet die Kopie ein. `N`, `n` oder `non` schaltet sie aus. Bei Aktivierung fragt das Programm nach dem Remote-Namen und dem Ordner und startet dann `rclone config`. Das Token bleibt auf der Maschine, Modus 600. Bei Deaktivierung wird rclone nicht installiert. |
+| Distant          | Name des Remote. Buchstaben, Ziffern oder Bindestrich, 1 bis 32 Zeichen. Nur wenn die Kopie eingeschaltet ist.                                                            |
+| Dossier          | Ordner auf dem Remote. Kein `..` und kein lokaler absoluter Pfad. Nur wenn die Kopie eingeschaltet ist.                                                                  |
 | Mode test        | `0` oder `1`.                                                                                                                                                            |
 
 ## Installierte Software und Dienste
@@ -94,6 +97,7 @@ Die Installation setzt die folgenden Pakete und Dienste.
 | aide                                            | Integritätsbasis `/var/lib/aide/aide.db`.                                                                                                          |
 | unattended-upgrades                             | Sicherheitsherkünfte. `Automatic-Reboot` ist `false`.                                                                                              |
 | postfix                                         | Sendet die Alarmpost. Installiert nur wenn `HF_MAIL_ALERTS=1`.                                                                                     |
+| rclone                                          | Kopiert eine Alarmdatei nach Google Drive. Installiert nur wenn `HF_RCLONE_ALERTS=1`.                                                               |
 | lynis                                           | Härtungsaudit.                                                                                                                                     |
 | ubuntu-pro-client                               | Hängt das Ubuntu-Pro-Token an.                                                                                                                     |
 | acct, sysstat, libpam-pwquality                 | Prozessabrechnung, Aktivitätsstatistik, Kennwortqualität.                                                                                          |
@@ -102,6 +106,9 @@ Die Installation setzt die folgenden Pakete und Dienste.
 
 ## 📋 Alarm-E-Mails
 
+Jede Alarmdatei liegt unter `/opt/high-fortress-user/cron/alerts`.<br/>
+Post geht nur ab, wenn `HF_MAIL_ALERTS=1`.<br/>
+Eine Kopie geht nur nach Google Drive, wenn `HF_RCLONE_ALERTS=1`, zum gewählten Remote und Ordner.<br/>
 Die Post geht nur ab, wenn `HF_MAIL_ALERTS=1`, wenn `HF_WATCHDOG_MAIL` gesetzt ist, und wenn `/opt/high-fortress-user/cron/bin/send.sh` ausführbar ist.<br/>
 Eine saubere Kontrolle sendet keine Post.<br/>
 Wenn eine Journalzeile unbekannt ist, starten Sie den Befehl nicht.<br/>

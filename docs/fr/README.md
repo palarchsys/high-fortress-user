@@ -21,7 +21,7 @@ Trois points précèdent l'installation : le système, l'accès, et les besoins 
 
 ## ▪️ Système
 
-Ubuntu 26.04 ou plus récent.<br/>
+Ubuntu 26.04 ou plus récent, ou une dérivée dont la base Ubuntu est 26.04 ou plus récente.<br/>
 Une installation neuve est préférable.<br/>
 Utilisez une console locale ou la session graphique déjà ouverte.<br/>
 La machine a besoin d'Internet.
@@ -66,11 +66,14 @@ sudo ./hf configure
 | Question | Réponse attendue |
 | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Jeton Ubuntu Pro | Lettres et chiffres, de 6 à 100, sans espace. Obligatoire. |
-| Activer | `Y` ou `y` active les alertes. `n` ou `non` les coupe. Toute autre réponse affiche `Répondez Y ou n.` |
+| Activer | `Y` ou `y` active le courrier. `N`, `n` ou `non` le coupe. Coupé, Postfix n'est pas installé. Toute autre réponse affiche `Répondez Y ou N.` |
 | Serveur | `hôte:port`, par exemple `smtp-mail.outlook.com:587`. Sans crochets. Demandé seulement si les alertes sont activées. |
 | Login | Une adresse e-mail. |
 | Password | Le mot de passe d'application du fournisseur, de 8 à 128 caractères. Les espaces sont retirés. Les guillemets, `$`, `\` et l'apostrophe inverse sont refusés. Jamais le mot de passe du compte. |
 | From | Une adresse e-mail. `HF_WATCHDOG_MAIL` reçoit la même adresse. |
+| Activer l'envoi des alertes vers Google Drive (Y/N). | `Y` ou `y` active la copie. `N`, `n` ou `non` la coupe. Activé demande le nom distant et le dossier, puis lance `rclone config`. Le jeton reste sur la machine, mode 600. Coupé, rclone n'est pas installé. |
+| Distant | Nom distant. Lettres, chiffres ou tiret, 1 à 32 caractères. Seulement si la copie est activée. |
+| Dossier | Dossier distant. Pas de `..` et pas de chemin local absolu. Seulement si la copie est activée. |
 | Mode test | `0` ou `1`. |
 
 ## Logiciels et services installés
@@ -94,6 +97,7 @@ L'installation pose les paquets et les services ci-dessous.
 | aide | Base d'intégrité `/var/lib/aide/aide.db`. |
 | unattended-upgrades | Origines de sécurité. `Automatic-Reboot` vaut `false`. |
 | postfix | Envoie le courrier d'alerte. Posé seulement lorsque `HF_MAIL_ALERTS=1`. |
+| rclone | Copie un fichier d'alerte vers Google Drive. Posé seulement lorsque `HF_RCLONE_ALERTS=1`. |
 | lynis | Audit de durcissement. |
 | ubuntu-pro-client | Attache le jeton Ubuntu Pro. |
 | acct, sysstat, libpam-pwquality | Comptabilité des processus, statistiques d'activité, qualité des mots de passe. |
@@ -102,6 +106,9 @@ L'installation pose les paquets et les services ci-dessous.
 
 ## 📋 E-mails d'alerte
 
+Chaque fichier d'alerte est sous `/opt/high-fortress-user/cron/alerts`.<br/>
+Le courrier part seulement si `HF_MAIL_ALERTS=1`.<br/>
+Une copie part vers Google Drive seulement si `HF_RCLONE_ALERTS=1`, vers le distant et le dossier choisis.<br/>
 Le courrier part seulement si `HF_MAIL_ALERTS=1`, si `HF_WATCHDOG_MAIL` est défini, et si `/opt/high-fortress-user/cron/bin/send.sh` est exécutable.<br/>
 Un contrôle propre n'envoie pas de courrier.<br/>
 Si une ligne du journal est inconnue, ne lancez pas la commande.<br/>

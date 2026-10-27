@@ -72,6 +72,9 @@ hfu_set_config_default() {
     : "${HF_WATCHDOG_LIMIT_IO_NICE:=3}"
     : "${HF_UBUNTU_PRO_TOKEN:=}"
     : "${HF_MAIL_ALERTS:=0}"
+    : "${HF_RCLONE_ALERTS:=0}"
+    : "${HF_RCLONE_REMOTE:=gdrive}"
+    : "${HF_RCLONE_PATH:=high-fortress-alerts}"
     : "${HF_MAIL_TEMPLATE:=mail.html}"
     : "${HF_POSTFIX_SMTP_LOGIN:=}"
     : "${HF_POSTFIX_MAIL_ADDRESS:=}"
@@ -135,6 +138,10 @@ HF_WATCHDOG_LIMIT_NICE=${HF_WATCHDOG_LIMIT_NICE}
 HF_WATCHDOG_LIMIT_IO_NICE=${HF_WATCHDOG_LIMIT_IO_NICE}
 
 HF_MAIL_ALERTS=${HF_MAIL_ALERTS}
+
+HF_RCLONE_ALERTS=${HF_RCLONE_ALERTS}
+HF_RCLONE_REMOTE="${HF_RCLONE_REMOTE}"
+HF_RCLONE_PATH="${HF_RCLONE_PATH}"
 
 HF_MAIL_TEMPLATE="${HF_MAIL_TEMPLATE}"
 
@@ -238,6 +245,13 @@ hfu_validate_values() {
     hf_check_port "${HF_WATCHDOG_LIMIT_NICE:-x}" 0 19 || hfu_log_config_error "${label_g} : HF_WATCHDOG_LIMIT_NICE invalide (« ${HF_WATCHDOG_LIMIT_NICE:-} »). exemple : 19"
     hf_check_port "${HF_WATCHDOG_LIMIT_IO_NICE:-x}" 0 7 || hfu_log_config_error "${label_g} : HF_WATCHDOG_LIMIT_IO_NICE invalide (« ${HF_WATCHDOG_LIMIT_IO_NICE:-} »). exemple : 3"
     [[ "${HF_MAIL_ALERTS:-}" =~ ^[01]$ ]] || hfu_log_config_error "${label_g} : HF_MAIL_ALERTS invalide (« ${HF_MAIL_ALERTS:-} »). exemple : 0 ou 1"
+    [[ "${HF_RCLONE_ALERTS:-}" =~ ^[01]$ ]] || hfu_log_config_error "${label_g} : HF_RCLONE_ALERTS invalide (« ${HF_RCLONE_ALERTS:-} »). exemple : 0 ou 1"
+    if [[ "${HF_RCLONE_ALERTS:-0}" == "1" || -n "${HF_RCLONE_REMOTE:-}" ]]; then
+        hf_check_drive_remote "${HF_RCLONE_REMOTE:-}" || hfu_log_config_error "${label_g} : HF_RCLONE_REMOTE invalide (« ${HF_RCLONE_REMOTE:-} »). exemple : gdrive"
+    fi
+    if [[ "${HF_RCLONE_ALERTS:-0}" == "1" || -n "${HF_RCLONE_PATH:-}" ]]; then
+        hf_check_drive_path "${HF_RCLONE_PATH:-}" || hfu_log_config_error "${label_g} : HF_RCLONE_PATH invalide (« ${HF_RCLONE_PATH:-} »). exemple : high-fortress-alerts"
+    fi
     [[ "${HF_MAIL_TEMPLATE:-mail.html}" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*\.html$ ]] || hfu_log_config_error "${label_g} : HF_MAIL_TEMPLATE invalide (« ${HF_MAIL_TEMPLATE:-} »). exemple : mail.html"
     if [[ -n "${HF_CONFIG_ROOT:-}" && -d "${HF_CONFIG_ROOT}/template" && ! -f "${HF_CONFIG_ROOT}/template/${HF_MAIL_TEMPLATE:-mail.html}" ]]; then
         hfu_log_config_error "${label_g} : HF_MAIL_TEMPLATE introuvable (${HF_MAIL_TEMPLATE:-mail.html}). exemple : un fichier .html du dossier template/"
