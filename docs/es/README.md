@@ -28,7 +28,7 @@ La máquina necesita Internet.
 
 ## ▪️ Acceso
 
-Usted necesita `sudo` para `./hf configure`, `./hf run` y los controles.
+Usted necesita `sudo` para `./liltress configure`, `./liltress run` y los controles.
 
 ## ▪️ Necesidades externas
 
@@ -40,7 +40,7 @@ Usted necesita `sudo` para `./hf configure`, `./hf run` y los controles.
 
 ## 📋 Instalación
 
-El puesto se prepara con el instalador curl, o con un clon seguido de `sudo ./hf configure`.
+El puesto se prepara con el instalador curl, o con un clon seguido de `sudo ./liltress configure`.
 
 ## ▪️ Curl
 
@@ -55,12 +55,12 @@ curl -fsSL https://raw.githubusercontent.com/palarchsys/liltress-workstation/mai
 ```bash
 git clone https://github.com/palarchsys/liltress-workstation
 cd liltress-workstation
-sudo ./hf configure
+sudo ./liltress configure
 ```
 
 ## Acción de configure.sh
 
-`sudo ./hf configure` hace las preguntas de abajo, escribe `global.conf` en modo `644` y `secrets.conf` en modo `600` como root, y después inicia `scripts/run.sh`.<br/>
+`sudo ./liltress configure` hace las preguntas de abajo, escribe `global.conf` en modo `644` y `secrets.conf` en modo `600` como root, y después inicia `scripts/run.sh`.<br/>
 `secrets.conf` permanece en la máquina. No lo copie en un mensaje, un ticket o un repositorio.<br/>
 
 | Pregunta         | Respuesta esperada                                                                                                                                                                   |
@@ -237,19 +237,19 @@ La forma del diario es `/opt/liltress-workstation/cron/security_logs/reboot-noti
 
 Lance estas órdenes desde el directorio de las fuentes (`/opt/liltress-workstation/src` después del instalador curl, o el directorio del clon).
 
-## ▪️ hf check
+## ▪️ liltress check
 
 ```bash
-sudo ./hf check
+sudo ./liltress check
 ```
 
 Comprueba `global.conf` y `secrets.conf`.<br/>
 La línea de éxito es `Configuration conforme`.<br/>
 
-## ▪️ hf run
+## ▪️ liltress run
 
 ```bash
-sudo ./hf run
+sudo ./liltress run
 ```
 
 Lanza la instalación a partir de los archivos preparados.<br/>
@@ -291,10 +291,10 @@ La línea de éxito es `Contrôle de démarrage : OK`.<br/>
 Una pasada todavía en curso muestra `Contrôle de démarrage : en cours` y termina con el código 1.<br/>
 Una diferencia muestra `Contrôle de démarrage : écarts` y termina con el código 1.
 
-## ▪️ hf lynis
+## ▪️ liltress lynis
 
 ```bash
-sudo ./hf lynis
+sudo ./liltress lynis
 ```
 
 Lanza `lynis audit system --quick --no-colors` y escribe el informe bajo `<source>/logs/lynis-<stamp>/`.<br/>

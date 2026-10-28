@@ -28,7 +28,7 @@ La machine a besoin d'Internet.
 
 ## ▪️ Accès
 
-Vous avez besoin de `sudo` pour `./hf configure`, `./hf run` et les contrôles.
+Vous avez besoin de `sudo` pour `./liltress configure`, `./liltress run` et les contrôles.
 
 ## ▪️ Besoins externes
 
@@ -40,7 +40,7 @@ Vous avez besoin de `sudo` pour `./hf configure`, `./hf run` et les contrôles.
 
 ## 📋 Installation
 
-Le poste se prépare par l'installeur curl, ou par un clone suivi de `sudo ./hf configure`.
+Le poste se prépare par l'installeur curl, ou par un clone suivi de `sudo ./liltress configure`.
 
 ## ▪️ Curl
 
@@ -55,12 +55,12 @@ curl -fsSL https://raw.githubusercontent.com/palarchsys/liltress-workstation/mai
 ```bash
 git clone https://github.com/palarchsys/liltress-workstation
 cd liltress-workstation
-sudo ./hf configure
+sudo ./liltress configure
 ```
 
 ## Action de configure.sh
 
-`sudo ./hf configure` pose les questions ci-dessous, écrit `global.conf` en mode `644` et `secrets.conf` en mode `600` en root, puis lance `scripts/run.sh`.<br/>
+`sudo ./liltress configure` pose les questions ci-dessous, écrit `global.conf` en mode `644` et `secrets.conf` en mode `600` en root, puis lance `scripts/run.sh`.<br/>
 `secrets.conf` reste sur la machine. Ne le copiez pas dans un message, un ticket ou un dépôt.<br/>
 
 | Question | Réponse attendue |
@@ -237,19 +237,19 @@ La forme du journal est `/opt/liltress-workstation/cron/security_logs/reboot-not
 
 Lancez ces commandes depuis le répertoire des sources (`/opt/liltress-workstation/src` après l'installeur curl, ou le répertoire du clone).
 
-## ▪️ hf check
+## ▪️ liltress check
 
 ```bash
-sudo ./hf check
+sudo ./liltress check
 ```
 
 Contrôle `global.conf` et `secrets.conf`.<br/>
 La ligne de succès est `Configuration conforme`.<br/>
 
-## ▪️ hf run
+## ▪️ liltress run
 
 ```bash
-sudo ./hf run
+sudo ./liltress run
 ```
 
 Lance l'installation à partir des fichiers préparés.<br/>
@@ -291,10 +291,10 @@ La ligne de succès est `Contrôle de démarrage : OK`.<br/>
 Une passe encore en cours affiche `Contrôle de démarrage : en cours` et termine avec le code 1.<br/>
 Un écart affiche `Contrôle de démarrage : écarts` et termine avec le code 1.
 
-## ▪️ hf lynis
+## ▪️ liltress lynis
 
 ```bash
-sudo ./hf lynis
+sudo ./liltress lynis
 ```
 
 Lance `lynis audit system --quick --no-colors` et écrit le rapport sous `<source>/logs/lynis-<stamp>/`.<br/>

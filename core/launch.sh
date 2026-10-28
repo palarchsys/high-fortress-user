@@ -27,7 +27,7 @@ g_launch() {
             ;;
         help|-h|--help)
             cat << EOF
-Usage : ${root}/hf <commande>
+Usage : ${root}/liltress <commande>
 
   configure   prépare global.conf et secrets.conf
   check       vérifie ces deux fichiers
@@ -51,8 +51,8 @@ EOF
             if [[ -f "${root}/verify/matrix.sh" ]]; then
                 cat << 'EOF'
 
-  sudo ./hf configure --basic   nom du projet + domaine ; le reste est calculé
-  sudo ./hf configure --avance  toutes les questions, sauf le profil serveur
+  sudo ./liltress configure --basic   nom du projet + domaine ; le reste est calculé
+  sudo ./liltress configure --avance  toutes les questions, sauf le profil serveur
 
 Vérification :
 
@@ -65,7 +65,7 @@ EOF
             ;;
         *)
             printf 'commande inconnue : %s\n' "${cmd}" >&2
-            printf 'Usage : %s/hf help\n' "${root}" >&2
+            printf 'Usage : %s/liltress help\n' "${root}" >&2
             exit 2
             ;;
     esac

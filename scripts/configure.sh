@@ -16,8 +16,8 @@ source "${DIR_SCRIPT}/core/lib.sh"
 w_show_usage() {
     cat << 'EOF'
 Usage :
-  sudo ./hf configure          questions, puis l'installation
-  ./hf check                   contrôle les fichiers, code 0 si conformes
+  sudo ./liltress configure          questions, puis l'installation
+  ./liltress check                   contrôle les fichiers, code 0 si conformes
 
 Le jeton Ubuntu Pro est obligatoire. Les alertes e-mail sont au choix.
 L'envoi vers Google Drive est au choix. Coupé, rclone n'est pas installé.
@@ -128,7 +128,7 @@ fi
 
 if [[ ! -t 0 ]]; then
     if [[ ! -r /dev/tty ]]; then
-        g_log_error "Pas de terminal pour les questions. Lancez : sudo bash ${DIR_SCRIPT}/hf configure"
+        g_log_error "Pas de terminal pour les questions. Lancez : sudo bash ${DIR_SCRIPT}/liltress configure"
     fi
     exec </dev/tty
 fi

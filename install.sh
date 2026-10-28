@@ -79,11 +79,11 @@ elif [[ -f "${config_base}/cron/scan-skip.paths" ]]; then
         chmod 644 "${INSTALL_ROOT}/config/clamav/scan-skip.paths" || true
     fi
 fi
-if [[ ! -f "${INSTALL_ROOT}/hf" ]]; then
-    printf 'hf absent après extraction.\n' >&2
+if [[ ! -f "${INSTALL_ROOT}/liltress" ]]; then
+    printf 'liltress absent après extraction.\n' >&2
     exit 1
 fi
-chmod 755 "${INSTALL_ROOT}/hf"
+chmod 755 "${INSTALL_ROOT}/liltress"
 
 if [[ "${keep}" != "1" ]]; then
     printf '\nTéléchargement terminé. Les sources sont dans %s.\n' "${INSTALL_ROOT}"

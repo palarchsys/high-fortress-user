@@ -14,8 +14,8 @@ export G_INSTALL_DIRECTORY
 source "${G_INSTALL_DIRECTORY}/scripts/config-check.sh"
 if ! w_require_prepared_config "${G_INSTALL_DIRECTORY}"; then
     printf '\nInstallation refusée. Préparez les deux fichiers :\n' >&2
-    printf '  bash %s/hf configure\n' "${G_INSTALL_DIRECTORY}" >&2
-    printf '  bash %s/hf check\n' "${G_INSTALL_DIRECTORY}" >&2
+    printf '  bash %s/liltress configure\n' "${G_INSTALL_DIRECTORY}" >&2
+    printf '  bash %s/liltress check\n' "${G_INSTALL_DIRECTORY}" >&2
     exit 1
 fi
 readonly G_INSTALL_DIRECTORY
@@ -28,7 +28,7 @@ source "${G_INSTALL_DIRECTORY}/config/global.conf"
 source "${G_INSTALL_DIRECTORY}/core/lib.sh"
 
 g_require_root
-chmod 755 "${G_INSTALL_DIRECTORY}/hf"
+chmod 755 "${G_INSTALL_DIRECTORY}/liltress"
 g_get_operating_system
 g_get_current_user
 g_get_ssh_port
@@ -159,7 +159,7 @@ fi
 g_set_step_hidden "Installation terminée"
 
 g_log_info "Journaux : ${G_LOG_DIR}"
-g_log_info "Lynis : sudo bash hf lynis"
+g_log_info "Lynis : sudo bash liltress lynis"
 reboot_needed=0
 [[ -f /var/run/reboot-required ]] && reboot_needed=1
 if command -v needrestart >/dev/null 2>&1; then

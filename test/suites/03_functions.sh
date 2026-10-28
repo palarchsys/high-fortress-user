@@ -249,14 +249,14 @@ if timeout 3 bash -c '
     work="$(mktemp -d)"
     trap "rm -rf -- \"${work}\"" EXIT
     mkdir -p "${work}/inst/scripts" "${work}/inst/config" "${work}/base"
-    printf x > "${work}/inst/hf"
+    printf x > "${work}/inst/liltress"
     printf x > "${work}/inst/scripts/run.sh"
     printf C > "${work}/inst/config/global.conf"
     inst="$(cd -- "${work}/inst" && pwd -P)"
     base="$(cd -- "${work}/base" && pwd -P)"
     out="$(G_INSTALL_DIRECTORY="${inst}" G_CONFIG_BASE_DIRECTORY="${base}" g_offer_remove_installer 2>&1)"
     [[ "${out}" != *[Ss]upprimer* ]]
-    [[ -f "${inst}/hf" && -f "${inst}/config/global.conf" ]]
+    [[ -f "${inst}/liltress" && -f "${inst}/config/global.conf" ]]
 ' bash "${MONO}/core/log.sh" "${T_ROOT}/config/global.conf"; then
     t_pass "user.mode-test.skip" "G_MODE_TEST=1 termine sans question"
 else

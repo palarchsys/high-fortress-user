@@ -6,7 +6,7 @@
 # =============================================================================
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
-    printf 'Utilisez : ./hf configure [--check]\n' >&2
+    printf 'Utilisez : ./liltress configure [--check]\n' >&2
     exit 1
 fi
 
@@ -221,7 +221,7 @@ w_scan_config_dollar() {
 w_validate_values() {
     local label_g="global.conf" label_s="secrets.conf"
 
-    [[ "${G_CONFIG_PREPARED:-}" == "1" ]] || w_log_config_error "${label_g} : G_CONFIG_PREPARED doit valoir 1. exemple : ./hf configure"
+    [[ "${G_CONFIG_PREPARED:-}" == "1" ]] || w_log_config_error "${label_g} : G_CONFIG_PREPARED doit valoir 1. exemple : ./liltress configure"
     [[ "${G_PROJECT_NAME:-}" =~ ^[A-Za-z0-9][A-Za-z0-9\ ._-]{0,62}$ ]] || w_log_config_error "${label_g} : G_PROJECT_NAME invalide (« ${G_PROJECT_NAME:-} »). exemple : Liltress Workstation"
     [[ "${W_PROJECT_SLUG:-}" == "liltress-workstation" ]] || w_log_config_error "${label_g} : W_PROJECT_SLUG invalide (« ${W_PROJECT_SLUG:-} »). exemple : liltress-workstation"
     [[ "${G_PROJECT_VERSION:-}" =~ ^[0-9]+(\.[0-9]+){0,2}$ ]] || w_log_config_error "${label_g} : G_PROJECT_VERSION invalide (« ${G_PROJECT_VERSION:-} »). exemple : 0.2"
@@ -259,7 +259,7 @@ w_validate_values() {
     [[ "${G_CONFIG_BASE_DIRECTORY:-}" == "/opt/liltress-workstation" ]] || w_log_config_error "${label_g} : G_CONFIG_BASE_DIRECTORY invalide (« ${G_CONFIG_BASE_DIRECTORY:-} »). exemple : /opt/liltress-workstation"
     [[ "${G_SECRET_DIRECTORY:-}" == "/opt/liltress-workstation/secrets" ]] || w_log_config_error "${label_g} : G_SECRET_DIRECTORY invalide (« ${G_SECRET_DIRECTORY:-} »). exemple : /opt/liltress-workstation/secrets"
 
-    [[ "${G_SECRET_PREPARED:-}" == "1" ]] || w_log_config_error "${label_s} : G_SECRET_PREPARED doit valoir 1. exemple : ./hf configure"
+    [[ "${G_SECRET_PREPARED:-}" == "1" ]] || w_log_config_error "${label_s} : G_SECRET_PREPARED doit valoir 1. exemple : ./liltress configure"
     w_check_pro_token "${G_UBUNTU_PRO_TOKEN:-}" || w_log_config_error "${label_s} : G_UBUNTU_PRO_TOKEN invalide. exemple : le jeton alphanumérique du tableau de bord Ubuntu Pro (https://ubuntu.com/pro/dashboard)"
     if [[ "${G_MAIL_ALERTS}" == "1" ]]; then
         g_check_email "${G_POSTFIX_SMTP_LOGIN:-}" || w_log_config_error "${label_s} : G_POSTFIX_SMTP_LOGIN doit être une adresse e-mail (« ${G_POSTFIX_SMTP_LOGIN:-} »). exemple : toi@exemple.com"
@@ -283,10 +283,10 @@ w_require_prepared_config() {
     w_reset_config
 
     if [[ ! -f "${g}" ]]; then
-        w_log_config_error "global.conf absent (${g}). exemple : ./hf configure"
+        w_log_config_error "global.conf absent (${g}). exemple : ./liltress configure"
     fi
     if [[ ! -f "${s}" ]]; then
-        w_log_config_error "secrets.conf absent (${s}). exemple : ./hf configure"
+        w_log_config_error "secrets.conf absent (${s}). exemple : ./liltress configure"
     fi
     if [[ ! -f "${g}" || ! -f "${s}" ]]; then
         w_emit_config
@@ -294,17 +294,17 @@ w_require_prepared_config() {
     fi
 
     if ! bash -n "${g}" 2>/dev/null; then
-        w_log_config_error "global.conf : syntaxe shell invalide. exemple : ./hf configure"
+        w_log_config_error "global.conf : syntaxe shell invalide. exemple : ./liltress configure"
     fi
     if ! bash -n "${s}" 2>/dev/null; then
-        w_log_config_error "secrets.conf : syntaxe shell invalide. exemple : ./hf configure"
+        w_log_config_error "secrets.conf : syntaxe shell invalide. exemple : ./liltress configure"
     fi
     w_scan_config_dollar "${g}" "global.conf"
     w_scan_config_dollar "${s}" "secrets.conf"
 
     src_count="$(grep -cE '(^|[[:space:]])(source|\.)[[:space:]]' "${g}" || true)"
     if [[ "${src_count}" != "1" ]] || ! grep -q 'source "${G_INSTALL_DIRECTORY}/config/secrets.conf"' "${g}"; then
-        w_log_config_error "global.conf : la seule commande source autorisée charge secrets.conf. exemple : ./hf configure"
+        w_log_config_error "global.conf : la seule commande source autorisée charge secrets.conf. exemple : ./liltress configure"
     fi
     if grep -qE '(^|[[:space:]])(source|\.)[[:space:]]' "${s}"; then
         w_log_config_error "secrets.conf : aucune commande source. exemple : uniquement des lignes CLE=\"valeur\""

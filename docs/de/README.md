@@ -28,7 +28,7 @@ Die Maschine braucht Internetzugang.
 
 ## ▪️ Zugang
 
-Sie brauchen `sudo` für `./hf configure`, `./hf run` und die Kontrollen.
+Sie brauchen `sudo` für `./liltress configure`, `./liltress run` und die Kontrollen.
 
 ## ▪️ Externe Voraussetzungen
 
@@ -40,7 +40,7 @@ Sie brauchen `sudo` für `./hf configure`, `./hf run` und die Kontrollen.
 
 ## 📋 Installation
 
-Der Arbeitsplatz wird durch den Curl-Installer vorbereitet, oder durch einen Klon gefolgt von `sudo ./hf configure`.
+Der Arbeitsplatz wird durch den Curl-Installer vorbereitet, oder durch einen Klon gefolgt von `sudo ./liltress configure`.
 
 ## ▪️ Curl
 
@@ -55,12 +55,12 @@ curl -fsSL https://raw.githubusercontent.com/palarchsys/liltress-workstation/mai
 ```bash
 git clone https://github.com/palarchsys/liltress-workstation
 cd liltress-workstation
-sudo ./hf configure
+sudo ./liltress configure
 ```
 
 ## Aktion von configure.sh
 
-`sudo ./hf configure` stellt die folgenden Fragen, schreibt `global.conf` mit Modus `644` und `secrets.conf` mit Modus `600` als root und startet dann `scripts/run.sh`.<br/>
+`sudo ./liltress configure` stellt die folgenden Fragen, schreibt `global.conf` mit Modus `644` und `secrets.conf` mit Modus `600` als root und startet dann `scripts/run.sh`.<br/>
 `secrets.conf` bleibt auf der Maschine. Kopieren Sie es nicht in eine Nachricht, ein Ticket oder ein Repository.<br/>
 
 | Frage            | Erwartete Antwort                                                                                                                                                        |
@@ -237,19 +237,19 @@ Die Journalform ist `/opt/liltress-workstation/cron/security_logs/reboot-notice-
 
 Starten Sie diese Befehle aus dem Quellverzeichnis (`/opt/liltress-workstation/src` nach dem Curl-Installer, oder das Klonverzeichnis).
 
-## ▪️ hf check
+## ▪️ liltress check
 
 ```bash
-sudo ./hf check
+sudo ./liltress check
 ```
 
 Prüft `global.conf` und `secrets.conf`.<br/>
 Die Erfolgszeile ist `Configuration conforme`.<br/>
 
-## ▪️ hf run
+## ▪️ liltress run
 
 ```bash
-sudo ./hf run
+sudo ./liltress run
 ```
 
 Startet die Installation aus den vorbereiteten Dateien.<br/>
@@ -291,10 +291,10 @@ Die Erfolgszeile ist `Contrôle de démarrage : OK`.<br/>
 Ein noch laufender Lauf zeigt `Contrôle de démarrage : en cours` und endet mit Code 1.<br/>
 Eine Abweichung zeigt `Contrôle de démarrage : écarts` und endet mit Code 1.
 
-## ▪️ hf lynis
+## ▪️ liltress lynis
 
 ```bash
-sudo ./hf lynis
+sudo ./liltress lynis
 ```
 
 Startet `lynis audit system --quick --no-colors` und schreibt den Bericht unter `<source>/logs/lynis-<stamp>/`.<br/>

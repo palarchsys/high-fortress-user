@@ -63,7 +63,7 @@ if g_check_ubuntu_pro; then
     g_log_success "Ubuntu Pro : déjà attachée"
 else
     if [[ -z "${G_UBUNTU_PRO_TOKEN// /}" ]]; then
-        g_log_error "Ubuntu Pro : jeton manquant dans secrets.conf. Relancer : bash ${G_INSTALL_DIRECTORY}/hf configure"
+        g_log_error "Ubuntu Pro : jeton manquant dans secrets.conf. Relancer : bash ${G_INSTALL_DIRECTORY}/liltress configure"
     fi
     g_log_info "Attachement d'Ubuntu Pro"
     attach_out=$(pro attach "${G_UBUNTU_PRO_TOKEN}" 2>&1) && attach_rc=0 || attach_rc=$?

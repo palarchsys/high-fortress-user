@@ -387,7 +387,7 @@ g_check_installer_directory() {
             ;;
     esac
     [[ "${root#/}" == */* ]] || return 1
-    [[ -f "${root}/hf" && -f "${root}/scripts/run.sh" ]] || return 1
+    [[ -f "${root}/liltress" && -f "${root}/scripts/run.sh" ]] || return 1
     [[ -n "${base}" && "${base}" == /* && -d "${base}" ]] || return 1
     [[ "${base}" != *[[:space:]]* ]] || return 1
 
@@ -433,7 +433,7 @@ g_remove_installer_tree() {
     if [[ -n "${back}" && -d "${back}" ]]; then
         cd -- "${back}" || true
     fi
-    if [[ "${rm_rc}" -ne 0 || -e "${root}/hf" || -e "${root}/config/secrets.conf" || -e "${root}/scripts/run.sh" ]]; then
+    if [[ "${rm_rc}" -ne 0 || -e "${root}/liltress" || -e "${root}/config/secrets.conf" || -e "${root}/scripts/run.sh" ]]; then
         return 3
     fi
     [[ -f "${base}/src/config/global.conf" && -f "${base}/src/core/mail.sh" ]] || return 4
@@ -513,8 +513,8 @@ g_offer_remove_installer() {
         0)
             g_log_success "Installeur retiré."
             g_log_info "Services, secrets et cron conservés."
-            if [[ ! -e "${root}/hf" && ! -e "${base}/src/hf" ]]; then
-                g_log_info "La commande hf est absente."
+            if [[ ! -e "${root}/liltress" && ! -e "${base}/src/liltress" ]]; then
+                g_log_info "La commande liltress est absente."
             fi
             g_refresh_aide_after_remove || true
             ;;

@@ -57,7 +57,7 @@ for row in rows:
     commands.append(command)
 blob = "\n".join(commands)
 for verb in ("configure", "check", "run", "lynis", "logs", "help"):
-    if f"hf {verb}" not in blob:
+    if f"liltress {verb}" not in blob:
         print(f"verbe absent : {verb}")
         sys.exit(1)
     arm = "help|" if verb == "help" else f"{verb})"
@@ -120,8 +120,8 @@ if [[ -n "${root}" ]]; then
     t_check_route compat.sasl "sasl 26.10" $'agents/laws/compat.md\nagents/maps/versions.md'
     t_check_route compat.esm "esm-infra" $'agents/laws/compat.md\nagents/maps/versions.md'
 
-    help_user="$(bash "${root}/workstation/hf" help)"
-    help_server="$(bash "${root}/server/hf" help)"
+    help_user="$(bash "${root}/workstation/liltress" help)"
+    help_server="$(bash "${root}/server/liltress" help)"
     if [[ "${help_user}" == *"verify/workstation.sh"* && "${help_user}" == *"/opt/liltress-workstation/bin/scan-skip.sh"* && "${help_user}" != *"--basic"* ]]; then
         t_pass "help.user" "commandes du poste"
     else

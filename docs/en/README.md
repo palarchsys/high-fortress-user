@@ -28,7 +28,7 @@ The machine needs Internet access.
 
 ## ▪️ Access
 
-You need `sudo` for `./hf configure`, `./hf run`, and the checks.
+You need `sudo` for `./liltress configure`, `./liltress run`, and the checks.
 
 ## ▪️ External needs
 
@@ -40,7 +40,7 @@ You need `sudo` for `./hf configure`, `./hf run`, and the checks.
 
 ## 📋 Installation
 
-The workstation is prepared by the curl installer, or by a clone followed by `sudo ./hf configure`.
+The workstation is prepared by the curl installer, or by a clone followed by `sudo ./liltress configure`.
 
 ## ▪️ Curl
 
@@ -55,12 +55,12 @@ curl -fsSL https://raw.githubusercontent.com/palarchsys/liltress-workstation/mai
 ```bash
 git clone https://github.com/palarchsys/liltress-workstation
 cd liltress-workstation
-sudo ./hf configure
+sudo ./liltress configure
 ```
 
 ## What configure.sh does
 
-`sudo ./hf configure` asks the questions below, writes `global.conf` mode `644` and `secrets.conf` mode `600` as root, then starts `scripts/run.sh`.<br/>
+`sudo ./liltress configure` asks the questions below, writes `global.conf` mode `644` and `secrets.conf` mode `600` as root, then starts `scripts/run.sh`.<br/>
 `secrets.conf` stays on the machine. Do not copy it into a message, a ticket, or a repository.<br/>
 
 | Question         | Expected answer                                                                                                                                     |
@@ -237,19 +237,19 @@ The journal form is `/opt/liltress-workstation/cron/security_logs/reboot-notice-
 
 Run these commands from the source directory (`/opt/liltress-workstation/src` after the curl installer, or the clone directory).
 
-## ▪️ hf check
+## ▪️ liltress check
 
 ```bash
-sudo ./hf check
+sudo ./liltress check
 ```
 
 Checks `global.conf` and `secrets.conf`.<br/>
 The success line is `Configuration conforme`.<br/>
 
-## ▪️ hf run
+## ▪️ liltress run
 
 ```bash
-sudo ./hf run
+sudo ./liltress run
 ```
 
 Starts the installation from the prepared files.<br/>
@@ -291,10 +291,10 @@ The success line is `Contrôle de démarrage : OK`.<br/>
 A pass still running prints `Contrôle de démarrage : en cours` and exits with code 1.<br/>
 A gap prints `Contrôle de démarrage : écarts` and exits with code 1.
 
-## ▪️ hf lynis
+## ▪️ liltress lynis
 
 ```bash
-sudo ./hf lynis
+sudo ./liltress lynis
 ```
 
 Runs `lynis audit system --quick --no-colors` and writes the report under `<source>/logs/lynis-<stamp>/`.<br/>
