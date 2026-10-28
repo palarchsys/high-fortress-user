@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/scan-skip-lib.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
-HFU_BASE="${HFU_BASE:-/opt/high-fortress-user}"
+W_BASE="${W_BASE:-/opt/liltress-workstation}"
 
-hfu_render_scan_skip_path() {
+w_render_scan_skip_path() {
     python3 - "$1" << 'PY'
 import os
 import sys
@@ -18,26 +18,26 @@ print(os.path.normpath(raw))
 PY
 }
 
-hfu_check_scan_skip_forbidden() {
+w_check_scan_skip_forbidden() {
     printf '%s\n' / /home /opt /tmp /etc /usr /var /boot /root
     if [[ -f /etc/clamav/clamd.conf ]]; then
         awk '/^OnAccessIncludePath[[:space:]]/{print $2}' /etc/clamav/clamd.conf
     fi
 }
 
-hfu_get_scan_skip_home() {
+w_get_scan_skip_home() {
     local line trimmed home homes=""
-    if [[ "${HFU_SCAN_SKIP_HOME:-}" =~ ^/home/[^/]+$ ]]; then
-        printf '%s\n' "${HFU_SCAN_SKIP_HOME}"
+    if [[ "${W_SCAN_SKIP_HOME:-}" =~ ^/home/[^/]+$ ]]; then
+        printf '%s\n' "${W_SCAN_SKIP_HOME}"
         return 0
     fi
-    [[ -f "${HFU_SCAN_SKIP_FILE}" ]] || return 1
+    [[ -f "${W_SCAN_SKIP_FILE}" ]] || return 1
     while IFS= read -r line || [[ -n "${line}" ]]; do
         if [[ "${line}" =~ ^[[:space:]]*#[[:space:]]*home=(/home/[^/]+)[[:space:]]*$ ]]; then
             printf '%s\n' "${BASH_REMATCH[1]}"
             return 0
         fi
-    done < "${HFU_SCAN_SKIP_FILE}"
+    done < "${W_SCAN_SKIP_FILE}"
     while IFS= read -r line || [[ -n "${line}" ]]; do
         trimmed="${line#"${line%%[![:space:]]*}"}"
         trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"
@@ -49,17 +49,17 @@ hfu_get_scan_skip_home() {
                 *) homes="${homes}|${home}|" ;;
             esac
         fi
-    done < "${HFU_SCAN_SKIP_FILE}"
+    done < "${W_SCAN_SKIP_FILE}"
     homes="${homes#|}"
     homes="${homes%|}"
     [[ -n "${homes}" && "${homes}" != *"|"* ]] || return 1
     printf '%s\n' "${homes}"
 }
 
-hfu_check_scan_skip_path() {
+w_check_scan_skip_path() {
     local norm bad home=""
-    norm="$(hfu_render_scan_skip_path "$1")" || return 1
-    home="$(hfu_get_scan_skip_home || true)"
+    norm="$(w_render_scan_skip_path "$1")" || return 1
+    home="$(w_get_scan_skip_home || true)"
     if [[ "${norm}" == /var/jeux || "${norm}" == /var/jeux/* ]]; then
         :
     elif [[ -n "${home}" && "${norm}" == "${home}/"* ]]; then
@@ -71,40 +71,40 @@ hfu_check_scan_skip_path() {
         [[ -z "${bad}" ]] && continue
         [[ "${norm}" == "${bad}" ]] && return 1
         [[ "${bad}" == "${norm}/"* ]] && return 1
-    done < <(hfu_check_scan_skip_forbidden)
+    done < <(w_check_scan_skip_forbidden)
     [[ "${norm}" =~ ^/home/[^/]+$ ]] && return 1
     printf '%s\n' "${norm}"
 }
 
-hfu_collect_scan_skip_path() {
-    HFU_SCAN_SKIP_VALID=()
-    HFU_SCAN_SKIP_BAD=()
-    [[ -f "${HFU_SCAN_SKIP_FILE}" ]] || return 0
+w_collect_scan_skip_path() {
+    W_SCAN_SKIP_VALID=()
+    W_SCAN_SKIP_BAD=()
+    [[ -f "${W_SCAN_SKIP_FILE}" ]] || return 0
     local line norm seen="|"
     while IFS= read -r line || [[ -n "${line}" ]]; do
         line="${line#"${line%%[![:space:]]*}"}"
         line="${line%"${line##*[![:space:]]}"}"
         [[ -z "${line}" || "${line}" == \#* ]] && continue
-        if norm="$(hfu_check_scan_skip_path "${line}")"; then
+        if norm="$(w_check_scan_skip_path "${line}")"; then
             [[ "${seen}" == *"|${norm}|"* ]] && continue
             seen="${seen}${norm}|"
-            HFU_SCAN_SKIP_VALID+=("${norm}")
+            W_SCAN_SKIP_VALID+=("${norm}")
         else
-            HFU_SCAN_SKIP_BAD+=("${line}")
+            W_SCAN_SKIP_BAD+=("${line}")
         fi
-    done < "${HFU_SCAN_SKIP_FILE}"
+    done < "${W_SCAN_SKIP_FILE}"
 }
 
-hfu_locate_scan_skip_file() {
+w_locate_scan_skip_file() {
     local here candidate found
     here="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-    if ! declare -F hf_locate_config_file >/dev/null 2>&1; then
+    if ! declare -F g_locate_config_file >/dev/null 2>&1; then
         for candidate in \
-            "${HF_INSTALL_DIRECTORY:-}/core/fs.sh" \
+            "${G_INSTALL_DIRECTORY:-}/core/fs.sh" \
             "${here}/../../../core/fs.sh" \
             "${here}/../../../../core/fs.sh" \
             "${here}/../../src/core/fs.sh" \
-            "${HFU_BASE}/src/core/fs.sh"
+            "${W_BASE}/src/core/fs.sh"
         do
             [[ -n "${candidate}" && -f "${candidate}" ]] || continue
             # shellcheck disable=SC1090
@@ -112,41 +112,41 @@ hfu_locate_scan_skip_file() {
             break
         done
     fi
-    if declare -F hf_locate_config_file >/dev/null 2>&1; then
-        if found="$(hf_locate_config_file clamav/scan-skip.paths)"; then
+    if declare -F g_locate_config_file >/dev/null 2>&1; then
+        if found="$(g_locate_config_file clamav/scan-skip.paths)"; then
             printf '%s\n' "${found}"
             return 0
         fi
     fi
     for candidate in \
-        "${HF_INSTALL_DIRECTORY:-}/config/clamav/scan-skip.paths" \
+        "${G_INSTALL_DIRECTORY:-}/config/clamav/scan-skip.paths" \
         "${here}/../../../config/clamav/scan-skip.paths" \
         "${here}/../../src/config/clamav/scan-skip.paths" \
-        "${HFU_BASE}/src/config/clamav/scan-skip.paths"
+        "${W_BASE}/src/config/clamav/scan-skip.paths"
     do
         [[ -n "${candidate}" && -f "${candidate}" ]] || continue
         printf '%s\n' "${candidate}"
         return 0
     done
-    if [[ -n "${HF_INSTALL_DIRECTORY:-}" ]]; then
-        printf '%s\n' "${HF_INSTALL_DIRECTORY}/config/clamav/scan-skip.paths"
+    if [[ -n "${G_INSTALL_DIRECTORY:-}" ]]; then
+        printf '%s\n' "${G_INSTALL_DIRECTORY}/config/clamav/scan-skip.paths"
         return 0
     fi
-    printf '%s\n' "${HFU_BASE}/src/config/clamav/scan-skip.paths"
+    printf '%s\n' "${W_BASE}/src/config/clamav/scan-skip.paths"
 }
 
-hfu_ensure_scan_skip_file() {
+w_ensure_scan_skip_file() {
     local home="$1"
     local template legacy dest base
-    template="$(hfu_locate_scan_skip_file)"
-    legacy="${HFU_BASE}/cron/scan-skip.paths"
+    template="$(w_locate_scan_skip_file)"
+    legacy="${W_BASE}/cron/scan-skip.paths"
     dest="${template}"
-    if [[ "${dest}" != "${HFU_BASE}/"* ]]; then
-        if [[ -z "${HF_CONFIG_BASE_DIRECTORY:-}" || "${dest}" != "${HF_CONFIG_BASE_DIRECTORY}/"* ]]; then
-            dest="${HFU_BASE}/src/config/clamav/scan-skip.paths"
+    if [[ "${dest}" != "${W_BASE}/"* ]]; then
+        if [[ -z "${G_CONFIG_BASE_DIRECTORY:-}" || "${dest}" != "${G_CONFIG_BASE_DIRECTORY}/"* ]]; then
+            dest="${W_BASE}/src/config/clamav/scan-skip.paths"
         fi
     fi
-    HFU_SCAN_SKIP_FILE="${dest}"
+    W_SCAN_SKIP_FILE="${dest}"
     if [[ -f "${dest}" ]] && ! grep -q '__HOME__' "${dest}"; then
         return 0
     fi
@@ -159,7 +159,7 @@ hfu_ensure_scan_skip_file() {
     fi
     [[ "${home}" =~ ^/home/[^/]+$ && -d "${home}" ]] || return 1
     [[ -f "${template}" ]] || return 1
-    base="${HFU_BASE}"
+    base="${W_BASE}"
     install -d -m 755 "$(dirname "${dest}")"
     sed -e "s|__HOME__|${home}|g" -e "s|__HFU_BASE__|${base}|g" "${template}" > "${dest}.new"
     cat "${dest}.new" > "${dest}"
@@ -168,4 +168,4 @@ hfu_ensure_scan_skip_file() {
     chown root:root "${dest}"
 }
 
-HFU_SCAN_SKIP_FILE="$(hfu_locate_scan_skip_file)"
+W_SCAN_SKIP_FILE="$(w_locate_scan_skip_file)"

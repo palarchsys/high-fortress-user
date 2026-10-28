@@ -1,43 +1,43 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/egress-watch.sh
-# Updated at : 2026-10-25
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 # -----------------------------------------------------------------------------
-# Note       : The stamp lives under the High-Fortress cron directory.
+# Note       : The stamp lives under the Liltress cron directory.
 # Note       : The first pass writes the stamp and stays silent.
 # Note       : A temporary or quarantined executable holds that one destination.
 # -----------------------------------------------------------------------------
 
 set -euo pipefail
-HFU_BASE="${HFU_BASE:-/opt/high-fortress-user}"
+W_BASE="${W_BASE:-/opt/liltress-workstation}"
 # shellcheck disable=SC1091
-source "${HFU_BASE}/cron/bin/common.sh"
-if [[ -f "${HFU_BASE}/cron/egress.conf" ]]; then
+source "${W_BASE}/cron/bin/common.sh"
+if [[ -f "${W_BASE}/cron/egress.conf" ]]; then
     # shellcheck disable=SC1091
-    source "${HFU_BASE}/cron/egress.conf"
+    source "${W_BASE}/cron/egress.conf"
 fi
 LOG_FILE="${LOG_DIR}/egress-${STAMP}.log"
 ALERT_FILE="${ALERT_DIR}/egress-${STAMP}.txt"
 MODULE_NAME="Ufw"
 
 if ! command -v journalctl >/dev/null 2>&1; then
-    hfu_log_pass "journalctl absent"
+    w_log_pass "journalctl absent"
     exit 0
 fi
 
-stamp="${HFU_BASE}/cron/egress.stamp"
+stamp="${W_BASE}/cron/egress.stamp"
 
-hfu_record_egress_stamp() {
+w_record_egress_stamp() {
     local moment
     moment="$(date '+%Y-%m-%d %H:%M:%S')"
-    install -d -m 750 "${HFU_BASE}/cron"
+    install -d -m 750 "${W_BASE}/cron"
     printf '%s\n' "${moment}" > "${stamp}"
     chmod 600 "${stamp}"
 }
 
-hfu_get_egress_field() {
+w_get_egress_field() {
     local line="$1"
     local key="$2"
     local chunk="${line}"
@@ -50,13 +50,13 @@ hfu_get_egress_field() {
 }
 
 # Quiet when the flow is time sync, mDNS multicast, DHCP, or broadcast SNMP.
-hfu_check_egress_routine() {
+w_check_egress_routine() {
     local line="$1"
     local proto dpt spt dst folded
-    proto="$(hfu_get_egress_field "${line}" PROTO)"
-    dpt="$(hfu_get_egress_field "${line}" DPT)"
-    spt="$(hfu_get_egress_field "${line}" SPT)"
-    dst="$(hfu_get_egress_field "${line}" DST)"
+    proto="$(w_get_egress_field "${line}" PROTO)"
+    dpt="$(w_get_egress_field "${line}" DPT)"
+    spt="$(w_get_egress_field "${line}" SPT)"
+    dst="$(w_get_egress_field "${line}" DST)"
     proto="${proto^^}"
     folded="${dst,,}"
     case "${proto}:${dpt}" in
@@ -94,41 +94,41 @@ hfu_check_egress_routine() {
     return 1
 }
 
-hfu_strip_egress_routine() {
+w_strip_egress_routine() {
     local source="$1"
     local kept="$2"
     local line
     : > "${kept}"
     while IFS= read -r line || [[ -n "${line}" ]]; do
-        if [[ "${line}" == *hfu-egress* ]] && hfu_check_egress_routine "${line}"; then
+        if [[ "${line}" == *w-egress* ]] && w_check_egress_routine "${line}"; then
             continue
         fi
         printf '%s\n' "${line}" >> "${kept}"
     done < "${source}"
 }
 
-hfu_get_isolate_seconds() {
-    local sec="${HFU_NET_ISOLATE_SEC:-120}"
+w_get_isolate_seconds() {
+    local sec="${W_NET_ISOLATE_SEC:-120}"
     if [[ ! "${sec}" =~ ^[0-9]+$ ]] || [[ "${sec}" -lt 30 ]] || [[ "${sec}" -gt 300 ]]; then
         sec=120
     fi
     printf '%s\n' "${sec}"
 }
 
-hfu_list_egress_suspects() {
+w_list_egress_suspects() {
     local kernel="$1"
     local audit="$2"
     local registry="$3"
-    HFU_EGRESS_KERNEL="${kernel}" HFU_EGRESS_AUDIT="${audit}" HFU_EGRESS_REGISTRY="${registry}" python3 - << 'PY'
+    W_EGRESS_KERNEL="${kernel}" W_EGRESS_AUDIT="${audit}" W_EGRESS_REGISTRY="${registry}" python3 - << 'PY'
 import ipaddress
 import os
 import re
 import sys
 from pathlib import Path
 
-kernel_path = Path(os.environ.get("HFU_EGRESS_KERNEL", ""))
-audit_path = Path(os.environ.get("HFU_EGRESS_AUDIT", ""))
-registry_path = Path(os.environ.get("HFU_EGRESS_REGISTRY", ""))
+kernel_path = Path(os.environ.get("W_EGRESS_KERNEL", ""))
+audit_path = Path(os.environ.get("W_EGRESS_AUDIT", ""))
+registry_path = Path(os.environ.get("W_EGRESS_REGISTRY", ""))
 
 def parse_sockaddr(token):
     token = token.strip().strip('"')
@@ -221,7 +221,7 @@ field_re = {
 if kernel_path.is_file():
     for raw in kernel_path.read_text(errors="replace").splitlines():
         line = raw.rstrip("\n")
-        if "hfu-egress" not in line:
+        if "w-egress" not in line:
             continue
         found = {name: rx.search(line) for name, rx in field_re.items()}
         if not all(found.values()):
@@ -238,19 +238,19 @@ if kernel_path.is_file():
 PY
 }
 
-hfu_ensure_egress_hold() {
-    if nft list table inet hfu_flow_hold >/dev/null 2>&1; then
+w_ensure_egress_hold() {
+    if nft list table inet w_flow_hold >/dev/null 2>&1; then
         return 0
     fi
-    nft add table inet hfu_flow_hold || return 1
-    nft add set inet hfu_flow_hold v4 '{ type ipv4_addr . inet_proto . inet_service; flags timeout; }' || return 1
-    nft add set inet hfu_flow_hold v6 '{ type ipv6_addr . inet_proto . inet_service; flags timeout; }' || return 1
-    nft add chain inet hfu_flow_hold output '{ type filter hook output priority -10 ; policy accept ; }' || return 1
-    nft add rule inet hfu_flow_hold output ip daddr . meta l4proto . th dport @v4 reject || return 1
-    nft add rule inet hfu_flow_hold output ip6 daddr . meta l4proto . th dport @v6 reject || return 1
+    nft add table inet w_flow_hold || return 1
+    nft add set inet w_flow_hold v4 '{ type ipv4_addr . inet_proto . inet_service; flags timeout; }' || return 1
+    nft add set inet w_flow_hold v6 '{ type ipv6_addr . inet_proto . inet_service; flags timeout; }' || return 1
+    nft add chain inet w_flow_hold output '{ type filter hook output priority -10 ; policy accept ; }' || return 1
+    nft add rule inet w_flow_hold output ip daddr . meta l4proto . th dport @v4 reject || return 1
+    nft add rule inet w_flow_hold output ip6 daddr . meta l4proto . th dport @v6 reject || return 1
 }
 
-hfu_install_egress_hold() {
+w_install_egress_hold() {
     local dst="$1"
     local proto="$2"
     local dpt="$3"
@@ -263,52 +263,52 @@ hfu_install_egress_hold() {
     if [[ "${dst}" == *:* ]]; then
         set_name="v6"
     fi
-    hfu_ensure_egress_hold || return 1
-    nft add element inet hfu_flow_hold "${set_name}" "{ ${dst} . ${lower} . ${dpt} timeout ${sec}s }"
+    w_ensure_egress_hold || return 1
+    nft add element inet w_flow_hold "${set_name}" "{ ${dst} . ${lower} . ${dpt} timeout ${sec}s }"
 }
 
 if [[ ! -s "${stamp}" ]] || ! grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$' "${stamp}"; then
-    hfu_record_egress_stamp
-    hfu_log_pass "repère initial écrit"
+    w_record_egress_stamp
+    w_log_pass "repère initial écrit"
     exit 0
 fi
 
-install -d -m 755 /run/high-fortress-user
-found="$(mktemp -p /run/high-fortress-user)"
-audit_tmp="$(mktemp -p /run/high-fortress-user)"
-kept="$(mktemp -p /run/high-fortress-user)"
-suspects="$(mktemp -p /run/high-fortress-user)"
-blocked_lines="$(mktemp -p /run/high-fortress-user)"
+install -d -m 755 /run/liltress-workstation
+found="$(mktemp -p /run/liltress-workstation)"
+audit_tmp="$(mktemp -p /run/liltress-workstation)"
+kept="$(mktemp -p /run/liltress-workstation)"
+suspects="$(mktemp -p /run/liltress-workstation)"
+blocked_lines="$(mktemp -p /run/liltress-workstation)"
 trap 'rm -f "${found}" "${audit_tmp}" "${kept}" "${suspects}" "${blocked_lines}"' EXIT
 start="$(head -n 1 "${stamp}")"
-journalctl -k --since "${start}" -g 'hfu-egress' --no-pager > "${found}" 2>/dev/null || true
-hfu_strip_egress_routine "${found}" "${kept}"
+journalctl -k --since "${start}" -g 'w-egress' --no-pager > "${found}" 2>/dev/null || true
+w_strip_egress_routine "${found}" "${kept}"
 mv -f "${kept}" "${found}"
-hfu_record_egress_stamp
-if ! grep -q 'hfu-egress' "${found}"; then
-    hfu_log_pass "aucun flux sortant inattendu"
+w_record_egress_stamp
+if ! grep -q 'w-egress' "${found}"; then
+    w_log_pass "aucun flux sortant inattendu"
     exit 0
 fi
 if command -v ausearch >/dev/null 2>&1; then
     formatted="$(date -d "${start}" '+%m/%d/%Y %H:%M:%S' 2>/dev/null || true)"
     if [[ -n "${formatted}" ]]; then
         # shellcheck disable=SC2086
-        ausearch -k hfu-egress --start ${formatted} > "${audit_tmp}" 2>/dev/null || true
+        ausearch -k w-egress --start ${formatted} > "${audit_tmp}" 2>/dev/null || true
     fi
 fi
-hfu_list_egress_suspects "${found}" "${audit_tmp}" "${HFU_BASE}/cron/quarantine.registry" > "${suspects}" || true
+w_list_egress_suspects "${found}" "${audit_tmp}" "${W_BASE}/cron/quarantine.registry" > "${suspects}" || true
 if [[ ! -s "${suspects}" ]]; then
-    hfu_log_pass "aucun flux sortant suspect"
+    w_log_pass "aucun flux sortant suspect"
     exit 0
 fi
-sec="$(hfu_get_isolate_seconds)"
+sec="$(w_get_isolate_seconds)"
 declare -A held_flows=()
 blocked=0
 while IFS=$'\t' read -r proto dst dpt exe kline || [[ -n "${proto}" ]]; do
     [[ -n "${proto}" && -n "${dst}" && -n "${dpt}" ]] || continue
     flow_key="${proto}|${dst}|${dpt}"
     if [[ -z "${held_flows[${flow_key}]:-}" ]]; then
-        if hfu_install_egress_hold "${dst}" "${proto}" "${dpt}" "${sec}"; then
+        if w_install_egress_hold "${dst}" "${proto}" "${dpt}" "${sec}"; then
             held_flows["${flow_key}"]=1
             blocked=1
             printf '%s\n' "bloqué ${dst} ${proto,,}/${dpt} pendant ${sec}s — ${exe}" >> "${LOG_FILE}"
@@ -319,13 +319,13 @@ while IFS=$'\t' read -r proto dst dpt exe kline || [[ -n "${proto}" ]]; do
     fi
 done < "${suspects}"
 if [[ "${blocked}" -eq 0 ]]; then
-    hfu_log_pass "blocage refusé"
+    w_log_pass "blocage refusé"
     exit 0
 fi
-if declare -F hf_format_egress_body >/dev/null 2>&1; then
-    hf_format_egress_body "${blocked_lines}" "${audit_tmp}" >> "${LOG_FILE}" || true
+if declare -F g_format_egress_body >/dev/null 2>&1; then
+    g_format_egress_body "${blocked_lines}" "${audit_tmp}" >> "${LOG_FILE}" || true
 else
     cat "${blocked_lines}" >> "${LOG_FILE}"
 fi
-hf_log_alert "flux sortant suspect bloqué"
+g_log_alert "flux sortant suspect bloqué"
 exit 0

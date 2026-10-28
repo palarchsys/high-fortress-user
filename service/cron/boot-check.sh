@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/boot-check.sh
-# Updated at : 2026-10-27
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
 set -u
-HFU_BASE="${HFU_BASE:-/opt/high-fortress-user}"
+W_BASE="${W_BASE:-/opt/liltress-workstation}"
 
 if [[ "${EUID}" -ne 0 ]]; then
     printf 'Lancez cette commande avec sudo.\n' >&2
@@ -17,7 +17,7 @@ ok_n=0
 ecart_n=0
 cours_n=0
 
-hfu_record_boot_mark() {
+w_record_boot_mark() {
     case "$1" in
         OK) ok_n=$((ok_n + 1)) ;;
         ECART) ecart_n=$((ecart_n + 1)) ;;
@@ -26,7 +26,7 @@ hfu_record_boot_mark() {
     printf '%-10s %s\n' "$1" "$2"
 }
 
-hfu_get_millisecond() {
+w_get_millisecond() {
     python3 - "$1" << 'PY'
 import sys
 s = sys.argv[1].strip()
@@ -46,8 +46,8 @@ limit=50
 nice_want=19
 global_conf=""
 for candidate in \
-    "${HFU_BASE}/src/config/global.conf" \
-    "${HFU_BASE}/config/global.conf"
+    "${W_BASE}/src/config/global.conf" \
+    "${W_BASE}/config/global.conf"
 do
     if [[ -f "${candidate}" ]]; then
         global_conf="${candidate}"
@@ -55,9 +55,9 @@ do
     fi
 done
 if [[ -n "${global_conf}" ]]; then
-    value="$(grep -E '^HF_WATCHDOG_CPU_LIMIT=' "${global_conf}" | tail -1 | cut -d= -f2-)"
+    value="$(grep -E '^G_WATCHDOG_CPU_LIMIT=' "${global_conf}" | tail -1 | cut -d= -f2-)"
     [[ "${value}" =~ ^[0-9]+$ ]] && limit="${value}"
-    value="$(grep -E '^HF_WATCHDOG_LIMIT_NICE=' "${global_conf}" | tail -1 | cut -d= -f2-)"
+    value="$(grep -E '^G_WATCHDOG_LIMIT_NICE=' "${global_conf}" | tail -1 | cut -d= -f2-)"
     [[ "${value}" =~ ^[0-9]+$ ]] && nice_want="${value}"
 fi
 want_pct=$((limit * nproc_n))
@@ -73,102 +73,102 @@ for unit in ssh clamav-daemon clamav-freshclam crowdsec crowdsec-firewall-bounce
     enabled="$(systemctl is-enabled "${unit}" 2>/dev/null || echo absent)"
     active="$(systemctl is-active "${unit}" 2>/dev/null || echo absent)"
     if [[ "${active}" == "active" ]]; then
-        hfu_record_boot_mark OK "${unit} enabled=${enabled} active=${active}"
+        w_record_boot_mark OK "${unit} enabled=${enabled} active=${active}"
     else
-        hfu_record_boot_mark ECART "${unit} enabled=${enabled} active=${active}"
+        w_record_boot_mark ECART "${unit} enabled=${enabled} active=${active}"
     fi
 done
 if systemctl is-active --quiet clamav-clamonacc.service || systemctl is-active --quiet clamonacc.service; then
-    hfu_record_boot_mark OK "clamonacc actif"
+    w_record_boot_mark OK "clamonacc actif"
 else
-    hfu_record_boot_mark ECART "clamonacc inactif"
+    w_record_boot_mark ECART "clamonacc inactif"
 fi
 if systemctl is-active --quiet usbguard; then
-    hfu_record_boot_mark OK "usbguard actif"
+    w_record_boot_mark OK "usbguard actif"
 elif [[ -f /etc/usbguard/rules.conf ]] && ! grep -qF 'allow with-interface equals { 03:*:* }' /etc/usbguard/rules.conf; then
-    hfu_record_boot_mark OK "usbguard arrêté : ligne clavier/souris absente"
+    w_record_boot_mark OK "usbguard arrêté : ligne clavier/souris absente"
 else
-    hfu_record_boot_mark ECART "usbguard inactif"
+    w_record_boot_mark ECART "usbguard inactif"
 fi
 ufw_line="$(ufw status 2>/dev/null | head -1 || true)"
 if printf '%s' "${ufw_line}" | grep -Eqi 'inactive|inactif'; then
-    hfu_record_boot_mark ECART "ufw ${ufw_line}"
+    w_record_boot_mark ECART "ufw ${ufw_line}"
 elif printf '%s' "${ufw_line}" | grep -Eqi 'active|actif'; then
-    hfu_record_boot_mark OK "ufw ${ufw_line}"
+    w_record_boot_mark OK "ufw ${ufw_line}"
 else
-    hfu_record_boot_mark ECART "ufw ${ufw_line:-illisible}"
+    w_record_boot_mark ECART "ufw ${ufw_line:-illisible}"
 fi
-if [[ -f "${HFU_BASE}/cron/mail.conf" ]] && grep -q '^HF_MAIL_ALERTS="1"$' "${HFU_BASE}/cron/mail.conf"; then
+if [[ -f "${W_BASE}/cron/mail.conf" ]] && grep -q '^G_MAIL_ALERTS="1"$' "${W_BASE}/cron/mail.conf"; then
     if systemctl is-active --quiet postfix; then
-        hfu_record_boot_mark OK "postfix actif"
+        w_record_boot_mark OK "postfix actif"
     else
-        hfu_record_boot_mark ECART "postfix inactif"
+        w_record_boot_mark ECART "postfix inactif"
     fi
 else
-    hfu_record_boot_mark OK "alertes e-mail coupées"
+    w_record_boot_mark OK "alertes e-mail coupées"
 fi
 root_login="$(sshd -T 2>/dev/null | awk 'tolower($1)=="permitrootlogin"{print tolower($2); exit}')"
 password_auth="$(sshd -T 2>/dev/null | awk 'tolower($1)=="passwordauthentication"{print tolower($2); exit}')"
 if [[ "${root_login}" == "no" && "${password_auth}" == "yes" ]]; then
-    hfu_record_boot_mark OK "sshd PermitRootLogin=no PasswordAuthentication=yes"
+    w_record_boot_mark OK "sshd PermitRootLogin=no PasswordAuthentication=yes"
 else
-    hfu_record_boot_mark ECART "sshd PermitRootLogin=${root_login:-?} PasswordAuthentication=${password_auth:-?}"
+    w_record_boot_mark ECART "sshd PermitRootLogin=${root_login:-?} PasswordAuthentication=${password_auth:-?}"
 fi
 
 printf '\n===== minuteries =====\n'
-for timer in hfu-boot-chain hfu-idle-scan hfu-reboot-notice hfu-hourly-scan; do
+for timer in w-boot-chain w-idle-scan w-reboot-notice w-hourly-scan; do
     enabled="$(systemctl is-enabled "${timer}.timer" 2>/dev/null || echo absent)"
     active="$(systemctl is-active "${timer}.timer" 2>/dev/null || echo absent)"
     if [[ "${enabled}" == "enabled" && "${active}" == "active" ]]; then
-        hfu_record_boot_mark OK "${timer}.timer"
+        w_record_boot_mark OK "${timer}.timer"
     else
-        hfu_record_boot_mark ECART "${timer}.timer enabled=${enabled} active=${active}"
+        w_record_boot_mark ECART "${timer}.timer enabled=${enabled} active=${active}"
     fi
 done
-if [[ -f /etc/systemd/system/hfu-boot-scan.timer ]]; then
-    hfu_record_boot_mark ECART "hfu-boot-scan.timer encore présent"
+if [[ -f /etc/systemd/system/w-boot-scan.timer ]]; then
+    w_record_boot_mark ECART "w-boot-scan.timer encore présent"
 else
-    hfu_record_boot_mark OK "hfu-boot-scan.timer absent"
+    w_record_boot_mark OK "w-boot-scan.timer absent"
 fi
-if grep -q '^OnBootSec=' /etc/systemd/system/hfu-idle-scan.timer 2>/dev/null \
-    || grep -q '^OnBootSec=' /etc/systemd/system/hfu-reboot-notice.timer 2>/dev/null; then
-    hfu_record_boot_mark ECART "une minuterie répétée a encore OnBootSec"
+if grep -q '^OnBootSec=' /etc/systemd/system/w-idle-scan.timer 2>/dev/null \
+    || grep -q '^OnBootSec=' /etc/systemd/system/w-reboot-notice.timer 2>/dev/null; then
+    w_record_boot_mark ECART "une minuterie répétée a encore OnBootSec"
 else
-    hfu_record_boot_mark OK "les répétitions n'ont pas de délai fixe au démarrage"
+    w_record_boot_mark OK "les répétitions n'ont pas de délai fixe au démarrage"
 fi
 
 printf '\n===== plafond CPU =====\n'
-for unit in hfu-boot-scan hfu-idle-scan hfu-reboot-notice hfu-hourly-scan; do
+for unit in w-boot-scan w-idle-scan w-reboot-notice w-hourly-scan; do
     unit_file="/etc/systemd/system/${unit}.service"
     file_quota="$(grep -E '^CPUQuota=' "${unit_file}" 2>/dev/null | cut -d= -f2-)"
     file_nice="$(grep -E '^Nice=' "${unit_file}" 2>/dev/null | cut -d= -f2-)"
     file_io="$(grep -E '^IOSchedulingClass=' "${unit_file}" 2>/dev/null | cut -d= -f2-)"
     show_quota="$(systemctl show -p CPUQuotaPerSecUSec --value "${unit}.service")"
-    got_ms="$(hfu_get_millisecond "${show_quota}")"
+    got_ms="$(w_get_millisecond "${show_quota}")"
     show_io="$(systemctl show -p IOSchedulingClass --value "${unit}.service")"
     if [[ "${file_quota}" == "${want_pct}%" && "${file_nice}" == "${nice_want}" && "${file_io}" == "idle" \
         && "${got_ms}" == "${want_ms}" && ( "${show_io}" == "idle" || "${show_io}" == "3" ) ]]; then
-        hfu_record_boot_mark OK "${unit} CPUQuota=${file_quota} effectif=${show_quota}"
+        w_record_boot_mark OK "${unit} CPUQuota=${file_quota} effectif=${show_quota}"
     else
-        hfu_record_boot_mark ECART "${unit} fichier=${file_quota:-absent} effectif=${show_quota:-absent} attendu=${want_pct}%"
+        w_record_boot_mark ECART "${unit} fichier=${file_quota:-absent} effectif=${show_quota:-absent} attendu=${want_pct}%"
     fi
 done
 
-chain_state="$(systemctl show -p ActiveState --value hfu-boot-chain.service)"
+chain_state="$(systemctl show -p ActiveState --value w-boot-chain.service)"
 printf '\n===== passes de ce démarrage =====\n'
 if [[ "${chain_state}" == "active" || "${chain_state}" == "activating" ]]; then
-    hfu_record_boot_mark EN_COURS "hfu-boot-chain.service état=${chain_state}"
+    w_record_boot_mark EN_COURS "w-boot-chain.service état=${chain_state}"
 else
-    chain_result="$(systemctl show -p Result --value hfu-boot-chain.service)"
-    chain_when="$(systemctl show -p ExecMainStartTimestamp --value hfu-boot-chain.service)"
+    chain_result="$(systemctl show -p Result --value w-boot-chain.service)"
+    chain_when="$(systemctl show -p ExecMainStartTimestamp --value w-boot-chain.service)"
     chain_epoch=0
     if [[ -n "${chain_when}" && "${chain_when}" != "n/a" ]]; then
         chain_epoch="$(date -d "${chain_when}" +%s 2>/dev/null || echo 0)"
     fi
     if [[ "${chain_epoch}" -ge "${boot_epoch}" && "${chain_result}" == "success" ]]; then
-        hfu_record_boot_mark OK "hfu-boot-chain.service result=success début=${chain_when}"
+        w_record_boot_mark OK "w-boot-chain.service result=success début=${chain_when}"
     else
-        hfu_record_boot_mark ECART "hfu-boot-chain.service result=${chain_result:-?} début=${chain_when:-jamais}"
+        w_record_boot_mark ECART "w-boot-chain.service result=${chain_result:-?} début=${chain_when:-jamais}"
     fi
 fi
 
@@ -176,7 +176,7 @@ fi
 # disappears and Result becomes success. This boot's journal keeps
 # the job id, independent of language.
 # 7d4958e8 start, 39f53479 success, be02cf68 or d9b373ed failure.
-hfu_get_journal_mark() {
+w_get_journal_mark() {
     local unit="$1"
     local rows last started when
     rows="$(journalctl -b -u "${unit}" --no-pager -o cat --output-fields=MESSAGE_ID \
@@ -192,26 +192,26 @@ hfu_get_journal_mark() {
         if [[ "${started}" =~ ^[0-9]{4}- ]]; then
             when="${started%% *}"
         fi
-        hfu_record_boot_mark OK "${unit} result=success début=${when} (journal)"
+        w_record_boot_mark OK "${unit} result=success début=${when} (journal)"
         return 0
     fi
     if [[ "${last}" == "be02cf6855d2428ba40df7e9d022f03d" || "${last}" == "d9b373ed55a64feb8242e02dbe79a49c" ]]; then
-        hfu_record_boot_mark ECART "${unit} échec dans le journal de ce démarrage"
+        w_record_boot_mark ECART "${unit} échec dans le journal de ce démarrage"
         return 0
     fi
     if [[ "${chain_state}" == "active" || "${chain_state}" == "activating" ]]; then
-        hfu_record_boot_mark EN_COURS "${unit} pas encore lancé par la chaîne"
+        w_record_boot_mark EN_COURS "${unit} pas encore lancé par la chaîne"
         return 0
     fi
-    hfu_record_boot_mark ECART "${unit} pas lancé depuis ce démarrage"
+    w_record_boot_mark ECART "${unit} pas lancé depuis ce démarrage"
 }
 
-hfu_check_boot_unit() {
+w_check_boot_unit() {
     local unit="$1"
     local state result when epoch
     state="$(systemctl show -p ActiveState --value "${unit}")"
     if [[ "${state}" == "active" || "${state}" == "activating" ]]; then
-        hfu_record_boot_mark EN_COURS "${unit} état=${state}"
+        w_record_boot_mark EN_COURS "${unit} état=${state}"
         return 0
     fi
     result="$(systemctl show -p Result --value "${unit}")"
@@ -221,44 +221,44 @@ hfu_check_boot_unit() {
         epoch="$(date -d "${when}" +%s 2>/dev/null || echo 0)"
     fi
     if [[ "${epoch}" -lt "${boot_epoch}" ]]; then
-        hfu_get_journal_mark "${unit}"
+        w_get_journal_mark "${unit}"
         return 0
     fi
     if [[ "${result}" == "success" ]]; then
-        hfu_record_boot_mark OK "${unit} result=success début=${when}"
+        w_record_boot_mark OK "${unit} result=success début=${when}"
     else
-        hfu_record_boot_mark ECART "${unit} result=${result:-?} début=${when}"
+        w_record_boot_mark ECART "${unit} result=${result:-?} début=${when}"
     fi
 }
 
-hfu_check_boot_unit hfu-boot-scan.service
-hfu_check_boot_unit hfu-idle-scan.service
-hfu_check_boot_unit hfu-reboot-notice.service
+w_check_boot_unit w-boot-scan.service
+w_check_boot_unit w-idle-scan.service
+w_check_boot_unit w-reboot-notice.service
 
 printf '\n===== journaux depuis ce démarrage =====\n'
 
-hfu_get_latest_log() {
-    find "${HFU_BASE}/cron/security_logs" -maxdepth 1 -type f -name "$1-*.log" -newermt "$(uptime -s)" -printf '%T@ %p\n' 2>/dev/null \
+w_get_latest_log() {
+    find "${W_BASE}/cron/security_logs" -maxdepth 1 -type f -name "$1-*.log" -newermt "$(uptime -s)" -printf '%T@ %p\n' 2>/dev/null \
         | sort -n | tail -1 | cut -d' ' -f2-
 }
 
 for name in aide integrity rkhunter behavior chkrootkit clamav debsums egress idle-scan reboot-notice; do
-    log_file="$(hfu_get_latest_log "${name}")"
+    log_file="$(w_get_latest_log "${name}")"
     if [[ -z "${log_file}" ]]; then
         if [[ "${chain_state}" == "active" || "${chain_state}" == "activating" ]]; then
-            hfu_record_boot_mark EN_COURS "${name} : journal pas encore écrit"
+            w_record_boot_mark EN_COURS "${name} : journal pas encore écrit"
         else
-            hfu_record_boot_mark ECART "${name} : aucun journal depuis le démarrage"
+            w_record_boot_mark ECART "${name} : aucun journal depuis le démarrage"
         fi
         continue
     fi
     last_line="$(grep -E '.' "${log_file}" | tail -1 || true)"
     if [[ -z "${last_line}" ]]; then
-        hfu_record_boot_mark ECART "${name} $(basename "${log_file}") vide"
+        w_record_boot_mark ECART "${name} $(basename "${log_file}") vide"
     elif printf '%s' "${last_line}" | grep -Eq 'planté|erreur rc='; then
-        hfu_record_boot_mark ECART "${name} $(basename "${log_file}") | ${last_line}"
+        w_record_boot_mark ECART "${name} $(basename "${log_file}") | ${last_line}"
     else
-        hfu_record_boot_mark OK "${name} $(basename "${log_file}") | ${last_line}"
+        w_record_boot_mark OK "${name} $(basename "${log_file}") | ${last_line}"
     fi
 done
 

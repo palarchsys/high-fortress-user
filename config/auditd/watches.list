@@ -1,6 +1,6 @@
 # =============================================================================
 # File       : config/auditd/watches.list
-# Updated at : 2026-10-20
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
@@ -12,7 +12,7 @@ any /etc/group identity
 any /etc/shadow identity
 any /etc/gshadow identity
 any /etc/apparmor.d apparmor
-any __HF_BASE__ hfu-config
+any __HF_BASE__ w-config
 any /etc/ufw ufw-config
 any /root root-activity
 any /etc/localtime time-change

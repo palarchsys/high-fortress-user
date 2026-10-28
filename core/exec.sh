@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : core/exec.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
-hf_run_silent() {
+g_run_silent() {
     local cmd_output
     local exit_code=0
 
@@ -15,35 +15,35 @@ hf_run_silent() {
         return 0
     fi
 
-    hf_log_error "$cmd_output"
+    g_log_error "$cmd_output"
 }
 
-hf_run_quiet() {
+g_run_quiet() {
     local cmd_output
     local exit_code=0
 
     cmd_output=$("$@" 2>&1) || exit_code=$?
-    if [[ -n "${HF_LOG_FILE:-}" && -n "${cmd_output}" ]]; then
-        printf '%s\n' "${cmd_output}" >> "${HF_LOG_FILE}"
+    if [[ -n "${G_LOG_FILE:-}" && -n "${cmd_output}" ]]; then
+        printf '%s\n' "${cmd_output}" >> "${G_LOG_FILE}"
     fi
     if [[ "${exit_code}" -ne 0 ]]; then
-        hf_log_error "${cmd_output:-commande échouée (rc=${exit_code})}"
+        g_log_error "${cmd_output:-commande échouée (rc=${exit_code})}"
     fi
 }
 
-hf_run_optional() {
+g_run_optional() {
     local cmd_output
     local exit_code=0
 
     cmd_output=$("$@" 2>&1) || exit_code=$?
     if [[ $exit_code -ne 0 && -n "$cmd_output" ]]; then
-        hf_log_debug "$cmd_output"
+        g_log_debug "$cmd_output"
     fi
 
     return 0
 }
 
-hf_run_silent_apt() {
+g_run_silent_apt() {
     local cmd_output
     local exit_code=0
     local attempt=0
@@ -73,17 +73,17 @@ hf_run_silent_apt() {
             continue
         fi
 
-        hf_log_error "$cmd_output"
+        g_log_error "$cmd_output"
     done
 
     echo ""
     echo ""
 
-    hf_log_error "Timeout : verrou apt toujours occupé après ${max_attempts} tentatives !" >&2
+    g_log_error "Timeout : verrou apt toujours occupé après ${max_attempts} tentatives !" >&2
     exit 1
 }
 
-hf_run_step() {
+g_run_step() {
     local dir_install_path="$1"
     local server_type=""
     shift
@@ -100,42 +100,42 @@ hf_run_step() {
     local -a steps=("$@")
 
     [[ ${#steps[@]} -eq 0 ]] && {
-        hf_log_error "Aucun step fourni"
+        g_log_error "Aucun step fourni"
         return 1
     }
 
     [[ -z "$dir_install_path" || ! -d "$dir_install_path" ]] && {
-        hf_log_error "dir_install_path invalide : '$dir_install_path'"
+        g_log_error "dir_install_path invalide : '$dir_install_path'"
         return 1
     }
 
     local step full_path step_exit step_log
     for step in "${steps[@]}"; do
         full_path="${dir_install_path}/${step}"
-        hf_set_step_visible "Exécution de ${step}"
+        g_set_step_visible "Exécution de ${step}"
 
         if [[ ! -f "$full_path" ]]; then
-            hf_log_error "Fichier introuvable : $full_path"
+            g_log_error "Fichier introuvable : $full_path"
             exit 1
         fi
 
         step_exit=0
         step_log=""
-        if [[ -n "${HF_LOG_DIR:-}" ]]; then
-            step_log="${HF_LOG_DIR}/steps/$(echo "$step" | tr '/' '-').log"
-            mkdir -p "${HF_LOG_DIR}/steps"
+        if [[ -n "${G_LOG_DIR:-}" ]]; then
+            step_log="${G_LOG_DIR}/steps/$(echo "$step" | tr '/' '-').log"
+            mkdir -p "${G_LOG_DIR}/steps"
             set +e
             bash "$full_path" "$dir_install_path" "$server_type" 2>&1 | tee -a "$step_log"
             step_exit=${PIPESTATUS[0]}
             set -e
-            hf_log_index_append "${step}" "${step_exit}" "${step_log}"
-            hf_publish_repo_logs "${HF_LOG_DIR}"
+            g_log_index_append "${step}" "${step_exit}" "${step_log}"
+            g_publish_repo_logs "${G_LOG_DIR}"
         else
             set +e
             bash "$full_path" "$dir_install_path" "$server_type"
             step_exit=$?
             set -e
-            hf_log_index_append "${step}" "${step_exit}" ""
+            g_log_index_append "${step}" "${step_exit}" ""
         fi
 
         if [[ $step_exit -ne 0 ]]; then

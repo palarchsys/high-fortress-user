@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/record-mirrors.sh
-# Updated at : 2026-10-07
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
 set -euo pipefail
 
-HFU_BASE="${HFU_BASE:-/opt/high-fortress-user}"
+W_BASE="${W_BASE:-/opt/liltress-workstation}"
 file="/var/lib/rkhunter/db/mirrors.dat"
-stamp="${HFU_BASE}/cron/rkhunter-mirrors.sha256"
+stamp="${W_BASE}/cron/rkhunter-mirrors.sha256"
 mode="${1:-save}"
 
 if [[ ! -f "${file}" ]]; then

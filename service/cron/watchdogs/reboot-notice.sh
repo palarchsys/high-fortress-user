@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/reboot-notice.sh
-# Updated at : 2026-10-20
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
 set -euo pipefail
-HFU_BASE="${HFU_BASE:-/opt/high-fortress-user}"
+W_BASE="${W_BASE:-/opt/liltress-workstation}"
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
-source "${HFU_BASE}/cron/bin/common.sh"
+source "${W_BASE}/cron/bin/common.sh"
 LOG_FILE="${LOG_DIR}/reboot-notice-${STAMP}.log"
 ALERT_FILE="${ALERT_DIR}/reboot-notice-${STAMP}.txt"
 : > "${LOG_FILE}"
 MODULE_NAME="reboot"
-hf_arm_crash_mail "avis de redémarrage"
+g_arm_crash_mail "avis de redémarrage"
 
 busy=""
 for name in lutris heroic gamescope; do
@@ -24,7 +24,7 @@ for name in lutris heroic gamescope; do
     fi
 done
 if [[ -n "${busy}" ]]; then
-    hfu_log_pass "avis de redémarrage reporté : ${busy} tourne"
+    w_log_pass "avis de redémarrage reporté : ${busy} tourne"
     exit 0
 fi
 
@@ -45,18 +45,18 @@ if command -v fwupdmgr >/dev/null 2>&1; then
 fi
 body="$(printf '%s' "${body}" | sed '/^$/d')"
 if [[ -z "${body}" ]]; then
-    hfu_log_pass "aucun redémarrage utile"
+    w_log_pass "aucun redémarrage utile"
     exit 0
 fi
 
-seen="${HFU_BASE}/cron/reboot-notice.seen"
+seen="${W_BASE}/cron/reboot-notice.seen"
 digest="$(printf '%s' "${body}" | sha256sum | awk '{print $1}')"
 if [[ -f "${seen}" ]] && [[ "$(cat "${seen}")" == "${digest}" ]]; then
-    hfu_log_pass "avis de redémarrage déjà envoyé"
+    w_log_pass "avis de redémarrage déjà envoyé"
     exit 0
 fi
 printf '%s\n' "${body}" >> "${LOG_FILE}"
-hf_log_alert "Un redémarrage est utile. La machine n'a pas été redémarrée."
+g_log_alert "Un redémarrage est utile. La machine n'a pas été redémarrée."
 umask 077
 printf '%s\n' "${digest}" > "${seen}"
 chmod 600 "${seen}"

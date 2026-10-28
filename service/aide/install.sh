@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/aide/install.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
-HF_INSTALL_DIRECTORY="${1}"
-export HF_INSTALL_DIRECTORY
-source "${HF_INSTALL_DIRECTORY}/core/lib.sh"
-source "${HF_INSTALL_DIRECTORY}/config/global.conf"
-hf_require_root
+G_INSTALL_DIRECTORY="${1}"
+export G_INSTALL_DIRECTORY
+source "${G_INSTALL_DIRECTORY}/core/lib.sh"
+source "${G_INSTALL_DIRECTORY}/config/global.conf"
+g_require_root
 
-hf_log_title "Installation AIDE"
-hf_log_info "Installation d'AIDE"
-hf_run_silent_apt install -y aide aide-common
-hf_log_success "AIDE installé"
+g_log_title "Installation AIDE"
+g_log_info "Installation d'AIDE"
+g_run_silent_apt install -y aide aide-common
+g_log_success "AIDE installé"

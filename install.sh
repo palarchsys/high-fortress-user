@@ -7,8 +7,8 @@
 
 set -euo pipefail
 
-REPO_URL="${HF_REPO_URL:-https://github.com/palarchsys/high-fortress-user}"
-BRANCH="${HF_BRANCH:-main}"
+REPO_URL="${G_REPO_URL:-https://github.com/palarchsys/liltress-workstation}"
+BRANCH="${G_BRANCH:-main}"
 
 if [[ "${EUID}" -ne 0 ]]; then
     echo "Ce script doit être exécuté en root (sudo)." >&2
@@ -33,17 +33,17 @@ if [[ -z "${extracted}" || ! -f "${extracted}/config/global.conf" ]]; then
 fi
 
 config_base="$(
-    unset HF_INSTALL_DIRECTORY
+    unset G_INSTALL_DIRECTORY
     set +u
     # shellcheck disable=SC1091
     source "${extracted}/config/global.conf"
-    printf '%s\n' "${HF_CONFIG_BASE_DIRECTORY}"
+    printf '%s\n' "${G_CONFIG_BASE_DIRECTORY}"
 )"
 if [[ -z "${config_base}" || "${config_base}" != /opt/* || "${config_base}" == *..* || "${config_base}" == *[[:space:]]* ]]; then
-    echo "HF_CONFIG_BASE_DIRECTORY invalide dans global.conf (${config_base:-vide})." >&2
+    echo "G_CONFIG_BASE_DIRECTORY invalide dans global.conf (${config_base:-vide})." >&2
     exit 1
 fi
-INSTALL_ROOT="${HF_INSTALL_ROOT:-${config_base}/src}"
+INSTALL_ROOT="${G_INSTALL_ROOT:-${config_base}/src}"
 if [[ "${INSTALL_ROOT}" != /* || "${INSTALL_ROOT}" == "/" || "${INSTALL_ROOT}" == *..* || "${INSTALL_ROOT}" == *[[:space:]]* ]]; then
     echo "Racine d'install refusée : ${INSTALL_ROOT}" >&2
     exit 1
@@ -52,7 +52,7 @@ fi
 mkdir -p "${INSTALL_ROOT}"
 keep=""
 mkdir -p "${tmp}/keep"
-if [[ -f "${INSTALL_ROOT}/config/global.conf" ]] && grep -q '^HF_CONFIG_PREPARED=1$' "${INSTALL_ROOT}/config/global.conf" && [[ -f "${INSTALL_ROOT}/config/secrets.conf" ]]; then
+if [[ -f "${INSTALL_ROOT}/config/global.conf" ]] && grep -q '^G_CONFIG_PREPARED=1$' "${INSTALL_ROOT}/config/global.conf" && [[ -f "${INSTALL_ROOT}/config/secrets.conf" ]]; then
     cp -a "${INSTALL_ROOT}/config/global.conf" "${INSTALL_ROOT}/config/secrets.conf" "${tmp}/keep/"
     keep=1
 fi

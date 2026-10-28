@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🛡️ High-Fortress User 🛡️
+# 🛡️ Liltress Workstation 🛡️
 
 ![Ubuntu 26.04 or newer](https://img.shields.io/badge/Ubuntu-26.04%2B-E95420?logo=ubuntu&logoColor=white)
 ![Workstation](https://img.shields.io/badge/profile-workstation-1f6feb)
@@ -8,7 +8,7 @@
 ![UFW](https://img.shields.io/badge/firewall-UFW-0055A4)
 ![Security checks](https://img.shields.io/badge/checks-AIDE%20%C2%B7%20ClamAV%20%C2%B7%20Lynis-2ea44f)
 
-High-Fortress User prepares an Ubuntu 26.04 or newer workstation.<br/>
+Liltress Workstation prepares an Ubuntu 26.04 or newer workstation.<br/>
 It installs the local DNS resolver, the firewall, and the security checks.
 
 </div>
@@ -16,7 +16,7 @@ It installs the local DNS resolver, the firewall, and the security checks.
 ```bash
 sudo apt-get update
 sudo apt-get install -y ca-certificates curl git swaks tar
-curl -fsSL https://raw.githubusercontent.com/palarchsys/high-fortress-user/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/palarchsys/liltress-workstation/main/install.sh | sudo bash
 ```
 
 ## Documentation

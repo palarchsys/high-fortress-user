@@ -1,23 +1,23 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : test/suites/09_watchdog_branches.sh
-# Updated at : 2026-10-25
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 # -----------------------------------------------------------------------------
 # Purpose    : Run each workstation watchdog branch in a sandbox.
 # -----------------------------------------------------------------------------
 
-hft_section "branches des contrôles poste"
+t_section "branches des contrôles poste"
 
 holder_pid=""
 work=""
 bin=""
 base=""
-parent="$(cd -- "${HFT_ROOT}/.." && pwd)"
+parent="$(cd -- "${T_ROOT}/.." && pwd)"
 probe="${parent}/scripts/vm-probe.sh"
 
-hft_stop_holder() {
+t_stop_holder() {
     if [[ -n "${holder_pid}" ]]; then
         kill -TERM "${holder_pid}" 2>/dev/null || true
         wait "${holder_pid}" 2>/dev/null || true
@@ -25,7 +25,7 @@ hft_stop_holder() {
     fi
 }
 
-hft_link_tools() {
+t_link_tools() {
     local dest="$1"
     local name src
     mkdir -p "${dest}"
@@ -37,23 +37,23 @@ hft_link_tools() {
     done
 }
 
-hft_prepare_user() {
+t_prepare_user() {
     local name="$1"
-    hft_stop_holder
-    work="${HF_ARTIFACTS}/branch/${name}"
+    t_stop_holder
+    work="${G_ARTIFACTS}/branch/${name}"
     rm -rf "${work}"
     base="${work}/base"
     bin="${base}/cron/bin"
     mkdir -p "${bin}" "${work}/path" "${work}/run" "${work}/samples" "${work}/bin" "${work}/quarantine"
-    hft_link_tools "${work}/path"
-    cp "${HFT_ROOT}/service/cron/watchdogs/common.sh" "${bin}/common.sh"
-    cp "${HFT_ROOT}/service/cron/watchdogs/${name}" "${bin}/${name}"
+    t_link_tools "${work}/path"
+    cp "${T_ROOT}/service/cron/watchdogs/common.sh" "${bin}/common.sh"
+    cp "${T_ROOT}/service/cron/watchdogs/${name}" "${bin}/${name}"
     chmod 755 "${bin}/${name}"
     cat > "${bin}/watchdog.sh" << EOF
-hf_log_alert() { printf '%s\n' "\$*" >> "${base}/alert.log"; }
-hf_get_crash_sentence() { printf 'crash %s %s' "\$1" "\$2"; }
-hf_arm_crash_mail() { :; }
-hf_run_limited() { "\$@"; }
+g_log_alert() { printf '%s\n' "\$*" >> "${base}/alert.log"; }
+g_get_crash_sentence() { printf 'crash %s %s' "\$1" "\$2"; }
+g_arm_crash_mail() { :; }
+g_run_limited() { "\$@"; }
 EOF
     cat > "${work}/path/lsof" << EOF
 #!/bin/bash
@@ -95,14 +95,14 @@ EOF
     chmod 755 "${work}/path/nft"
 }
 
-hft_write_runner() {
+t_write_runner() {
     local script="$1"
     local extra="${2:-}"
     cat > "${work}/run.sh" << EOF
 #!/usr/bin/env bash
 export PATH="${work}/path"
-export HFU_BASE="${base}"
-export HFU_CLAMAV_QUARANTINE_DIR="${work}/quarantine"
+export W_BASE="${base}"
+export W_CLAMAV_QUARANTINE_DIR="${work}/quarantine"
 ${extra}
 set +e
 /usr/bin/bash "${script}" > "${work}/stdout.txt" 2> "${work}/stderr.txt"
@@ -110,7 +110,7 @@ printf '%s\n' "\$?" > "${work}/status"
 EOF
 }
 
-hft_box() {
+t_box() {
     local proc_bind="${1:-}"
     local -a args
     args=(
@@ -122,7 +122,7 @@ hft_box() {
         --dev /dev
         --setenv PATH "${work}/path"
         --setenv HOME "${work}"
-        --setenv HFU_BASE "${base}"
+        --setenv W_BASE "${base}"
     )
     if [[ -n "${proc_bind}" ]]; then
         args+=(--bind "${proc_bind}" /proc)
@@ -132,33 +132,33 @@ hft_box() {
     bwrap "${args[@]}" /usr/bin/bash "${work}/run.sh"
 }
 
-hft_run_user() {
+t_run_user() {
     local script="$1"
     local proc_bind="${2:-}"
     local extra="${3:-}"
-    hft_write_runner "${script}" "${extra}"
-    if ! hft_box "${proc_bind}"; then
+    t_write_runner "${script}" "${extra}"
+    if ! t_box "${proc_bind}"; then
         printf '%s\n' "bwrap" > "${work}/status"
     fi
 }
 
-hft_got_status() {
+t_got_status() {
     cat "${work}/status" 2>/dev/null || printf '%s\n' "missing"
 }
 
-hft_stdout_has() {
+t_stdout_has() {
     grep -F -q -- "$1" "${work}/stdout.txt" 2>/dev/null
 }
 
-hft_alert_has() {
+t_alert_has() {
     grep -F -q -- "$1" "${base}/alert.log" 2>/dev/null
 }
 
-hft_log_has() {
+t_log_has() {
     grep -R -F -q -- "$1" "${base}/cron/security_logs" 2>/dev/null
 }
 
-hft_start_holder() {
+t_start_holder() {
     local name="$1"
     local exe="${work}/bin/${name}"
     local tries=0
@@ -174,7 +174,7 @@ hft_start_holder() {
     done
 }
 
-hft_ausearch_stub() {
+t_ausearch_stub() {
     local code="$1"
     local body="$2"
     cat > "${work}/path/ausearch" << EOF
@@ -185,7 +185,7 @@ EOF
     chmod 755 "${work}/path/ausearch"
 }
 
-hft_journal_stub() {
+t_journal_stub() {
     local body="$1"
     cat > "${work}/path/journalctl" << EOF
 #!/bin/bash
@@ -196,225 +196,225 @@ EOF
 }
 
 if ! command -v bwrap >/dev/null 2>&1; then
-    hft_fail "branch.bwrap" "bwrap absent"
+    t_fail "branch.bwrap" "bwrap absent"
 else
-    hft_pass "branch.bwrap" "bwrap présent"
+    t_pass "branch.bwrap" "bwrap présent"
 fi
 
-hft_prepare_user integrity.sh
-hft_run_user "${bin}/integrity.sh"
-if [[ "$(hft_got_status)" == "0" ]] && hft_stdout_has "liste d'intégrité absente" && [[ ! -e "${base}/alert.log" ]]; then
-    hft_pass "branch.usr.integrity.missing" "liste absente, pas de courrier"
+t_prepare_user integrity.sh
+t_run_user "${bin}/integrity.sh"
+if [[ "$(t_got_status)" == "0" ]] && t_stdout_has "liste d'intégrité absente" && [[ ! -e "${base}/alert.log" ]]; then
+    t_pass "branch.usr.integrity.missing" "liste absente, pas de courrier"
 else
-    hft_fail "branch.usr.integrity.missing" "statut $(hft_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
+    t_fail "branch.usr.integrity.missing" "statut $(t_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
 fi
 
-hft_prepare_user integrity.sh
+t_prepare_user integrity.sh
 printf 'alpha\n' > "${base}/file-a"
 mkdir -p "${base}/src/config/integrity"
 cat > "${base}/src/config/integrity/paths.list" << EOF
 # comment
-/no/such/high-fortress-file
+/no/such/liltress-file
 ${base}/file-a
 EOF
-hft_run_user "${bin}/integrity.sh"
+t_run_user "${bin}/integrity.sh"
 stamp="${base}/cron/integrity.sha256"
 mode="$(stat -c '%a' "${stamp}" 2>/dev/null || echo missing)"
 lines="$(grep -c . "${stamp}" 2>/dev/null || echo 0)"
-if [[ "$(hft_got_status)" == "0" ]] && hft_stdout_has "empreinte initiale écrite" \
+if [[ "$(t_got_status)" == "0" ]] && t_stdout_has "empreinte initiale écrite" \
     && [[ "${mode}" == "600" ]] && [[ "${lines}" == "1" ]] && [[ ! -e "${base}/alert.log" ]]; then
-    hft_pass "branch.usr.integrity.first" "empreinte initiale, mode 600"
-    hft_pass "branch.usr.integrity.skip" "un seul fichier retenu"
+    t_pass "branch.usr.integrity.first" "empreinte initiale, mode 600"
+    t_pass "branch.usr.integrity.skip" "un seul fichier retenu"
 else
-    hft_fail "branch.usr.integrity.first" "statut $(hft_got_status) mode ${mode} lignes ${lines} $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
-    hft_fail "branch.usr.integrity.skip" "lignes ${lines}"
+    t_fail "branch.usr.integrity.first" "statut $(t_got_status) mode ${mode} lignes ${lines} $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
+    t_fail "branch.usr.integrity.skip" "lignes ${lines}"
 fi
 saved="$(mktemp)"
 cp "${stamp}" "${saved}"
-hft_run_user "${bin}/integrity.sh"
-if [[ "$(hft_got_status)" == "0" ]] && hft_stdout_has "intégrité inchangée" && cmp -s "${saved}" "${stamp}" && [[ ! -e "${base}/alert.log" ]]; then
-    hft_pass "branch.usr.integrity.same" "empreinte inchangée"
+t_run_user "${bin}/integrity.sh"
+if [[ "$(t_got_status)" == "0" ]] && t_stdout_has "intégrité inchangée" && cmp -s "${saved}" "${stamp}" && [[ ! -e "${base}/alert.log" ]]; then
+    t_pass "branch.usr.integrity.same" "empreinte inchangée"
 else
-    hft_fail "branch.usr.integrity.same" "statut $(hft_got_status)"
+    t_fail "branch.usr.integrity.same" "statut $(t_got_status)"
 fi
 printf 'beta\n' > "${base}/file-a"
-hft_run_user "${bin}/integrity.sh"
-if [[ "$(hft_got_status)" == "0" ]] && hft_alert_has "intégrité : empreinte modifiée" && ! cmp -s "${saved}" "${stamp}"; then
-    hft_pass "branch.usr.integrity.change" "courrier"
+t_run_user "${bin}/integrity.sh"
+if [[ "$(t_got_status)" == "0" ]] && t_alert_has "intégrité : empreinte modifiée" && ! cmp -s "${saved}" "${stamp}"; then
+    t_pass "branch.usr.integrity.change" "courrier"
 else
-    hft_fail "branch.usr.integrity.change" "statut $(hft_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
+    t_fail "branch.usr.integrity.change" "statut $(t_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
 fi
 rm -f "${saved}"
 
-hft_prepare_user behavior.sh
+t_prepare_user behavior.sh
 rm -f "${work}/path/ausearch"
-hft_run_user "${bin}/behavior.sh"
-if [[ "$(hft_got_status)" == "0" ]] && hft_stdout_has "ausearch absent" && [[ ! -e "${base}/cron/behavior.stamp" ]] && [[ ! -e "${base}/alert.log" ]]; then
-    hft_pass "branch.usr.behavior.absent" "ausearch absent"
+t_run_user "${bin}/behavior.sh"
+if [[ "$(t_got_status)" == "0" ]] && t_stdout_has "ausearch absent" && [[ ! -e "${base}/cron/behavior.stamp" ]] && [[ ! -e "${base}/alert.log" ]]; then
+    t_pass "branch.usr.behavior.absent" "ausearch absent"
 else
-    hft_fail "branch.usr.behavior.absent" "statut $(hft_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
+    t_fail "branch.usr.behavior.absent" "statut $(t_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
 fi
 
-hft_prepare_user behavior.sh
+t_prepare_user behavior.sh
 printf '%s\n' 'nope' > "${base}/cron/behavior.stamp"
-hft_ausearch_stub 0 "unused"
-hft_run_user "${bin}/behavior.sh"
-if [[ "$(hft_got_status)" == "0" ]] && hft_stdout_has "repère initial écrit" \
+t_ausearch_stub 0 "unused"
+t_run_user "${bin}/behavior.sh"
+if [[ "$(t_got_status)" == "0" ]] && t_stdout_has "repère initial écrit" \
     && grep -Eq '^[0-9]{2}/[0-9]{2}/[0-9]{4} [0-9]{2}:[0-9]{2}:[0-9]{2}$' "${base}/cron/behavior.stamp" \
     && [[ "$(stat -c '%a' "${base}/cron/behavior.stamp")" == "600" ]]; then
-    hft_pass "branch.usr.behavior.stamp" "repère réécrit"
+    t_pass "branch.usr.behavior.stamp" "repère réécrit"
 else
-    hft_fail "branch.usr.behavior.stamp" "statut $(hft_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
+    t_fail "branch.usr.behavior.stamp" "statut $(t_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
 fi
 
-hft_prepare_user behavior.sh
+t_prepare_user behavior.sh
 printf '%s\n' '01/02/2026 03:04:05' > "${base}/cron/behavior.stamp"
 cp "${base}/cron/behavior.stamp" "${work}/saved.stamp"
-hft_ausearch_stub 1 "no match"
-hft_run_user "${bin}/behavior.sh"
-if [[ "$(hft_got_status)" == "0" ]] && hft_stdout_has "aucune exécution temporaire" \
+t_ausearch_stub 1 "no match"
+t_run_user "${bin}/behavior.sh"
+if [[ "$(t_got_status)" == "0" ]] && t_stdout_has "aucune exécution temporaire" \
     && ! cmp -s "${work}/saved.stamp" "${base}/cron/behavior.stamp" && [[ ! -e "${base}/alert.log" ]]; then
-    hft_pass "branch.usr.behavior.clean" "silence et repère avancé"
+    t_pass "branch.usr.behavior.clean" "silence et repère avancé"
 else
-    hft_fail "branch.usr.behavior.clean" "statut $(hft_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
+    t_fail "branch.usr.behavior.clean" "statut $(t_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
 fi
 
-hft_prepare_user behavior.sh
+t_prepare_user behavior.sh
 printf '%s\n' '01/02/2026 03:04:05' > "${base}/cron/behavior.stamp"
 cp "${base}/cron/behavior.stamp" "${work}/saved.stamp"
-hft_ausearch_stub 130 "boom"
-hft_run_user "${bin}/behavior.sh"
-if [[ "$(hft_got_status)" == "0" ]] && hft_stdout_has "aucune exécution temporaire" \
+t_ausearch_stub 130 "boom"
+t_run_user "${bin}/behavior.sh"
+if [[ "$(t_got_status)" == "0" ]] && t_stdout_has "aucune exécution temporaire" \
     && ! cmp -s "${work}/saved.stamp" "${base}/cron/behavior.stamp" && [[ ! -e "${base}/alert.log" ]]; then
-    hft_pass "branch.usr.behavior.nonzero" "échec ausearch, pas de courrier"
+    t_pass "branch.usr.behavior.nonzero" "échec ausearch, pas de courrier"
 else
-    hft_fail "branch.usr.behavior.nonzero" "statut $(hft_got_status)"
+    t_fail "branch.usr.behavior.nonzero" "statut $(t_got_status)"
 fi
 
-hft_prepare_user behavior.sh
+t_prepare_user behavior.sh
 printf '%s\n' '01/02/2026 03:04:05' > "${base}/cron/behavior.stamp"
-hft_ausearch_stub 0 "type=EXECVE key=exec-tmp"
-hft_run_user "${bin}/behavior.sh"
-if [[ "$(hft_got_status)" == "0" ]] && hft_alert_has "exécution depuis un répertoire temporaire"; then
-    hft_pass "branch.usr.behavior.hit" "courrier"
+t_ausearch_stub 0 "type=EXECVE key=exec-tmp"
+t_run_user "${bin}/behavior.sh"
+if [[ "$(t_got_status)" == "0" ]] && t_alert_has "exécution depuis un répertoire temporaire"; then
+    t_pass "branch.usr.behavior.hit" "courrier"
 else
-    hft_fail "branch.usr.behavior.hit" "statut $(hft_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
+    t_fail "branch.usr.behavior.hit" "statut $(t_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
 fi
 
-hft_prepare_user egress-watch.sh
+t_prepare_user egress-watch.sh
 rm -f "${work}/path/journalctl"
-hft_run_user "${bin}/egress-watch.sh"
-if [[ "$(hft_got_status)" == "0" ]] && hft_stdout_has "journalctl absent" && [[ ! -e "${base}/cron/egress.stamp" ]]; then
-    hft_pass "branch.usr.egress.absent" "journalctl absent"
+t_run_user "${bin}/egress-watch.sh"
+if [[ "$(t_got_status)" == "0" ]] && t_stdout_has "journalctl absent" && [[ ! -e "${base}/cron/egress.stamp" ]]; then
+    t_pass "branch.usr.egress.absent" "journalctl absent"
 else
-    hft_fail "branch.usr.egress.absent" "statut $(hft_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
+    t_fail "branch.usr.egress.absent" "statut $(t_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
 fi
 
-hft_prepare_user egress-watch.sh
+t_prepare_user egress-watch.sh
 printf '%s\n' 'nope' > "${base}/cron/egress.stamp"
-hft_journal_stub "unused"
-hft_run_user "${bin}/egress-watch.sh"
-if [[ "$(hft_got_status)" == "0" ]] && hft_stdout_has "repère initial écrit" \
+t_journal_stub "unused"
+t_run_user "${bin}/egress-watch.sh"
+if [[ "$(t_got_status)" == "0" ]] && t_stdout_has "repère initial écrit" \
     && grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$' "${base}/cron/egress.stamp"; then
-    hft_pass "branch.usr.egress.stamp" "repère réécrit"
+    t_pass "branch.usr.egress.stamp" "repère réécrit"
 else
-    hft_fail "branch.usr.egress.stamp" "statut $(hft_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
+    t_fail "branch.usr.egress.stamp" "statut $(t_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
 fi
 
-hft_prepare_user egress-watch.sh
+t_prepare_user egress-watch.sh
 printf '%s\n' '2026-01-02 03:04:05' > "${base}/cron/egress.stamp"
 cp "${base}/cron/egress.stamp" "${work}/saved.stamp"
-hft_journal_stub "kernel: nothing"
-hft_run_user "${bin}/egress-watch.sh"
-if [[ "$(hft_got_status)" == "0" ]] && hft_stdout_has "aucun flux sortant inattendu" \
+t_journal_stub "kernel: nothing"
+t_run_user "${bin}/egress-watch.sh"
+if [[ "$(t_got_status)" == "0" ]] && t_stdout_has "aucun flux sortant inattendu" \
     && ! cmp -s "${work}/saved.stamp" "${base}/cron/egress.stamp" && [[ ! -e "${base}/alert.log" ]]; then
-    hft_pass "branch.usr.egress.clean" "silence et repère avancé"
+    t_pass "branch.usr.egress.clean" "silence et repère avancé"
 else
-    hft_fail "branch.usr.egress.clean" "statut $(hft_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
+    t_fail "branch.usr.egress.clean" "statut $(t_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
 fi
 
-hft_prepare_user egress-watch.sh
+t_prepare_user egress-watch.sh
 printf '%s\n' '2026-01-02 03:04:05' > "${base}/cron/egress.stamp"
-hft_journal_stub "hfu-egress OUT=eth0"
-hft_run_user "${bin}/egress-watch.sh"
-if [[ "$(hft_got_status)" == "0" ]] && hft_stdout_has "aucun flux sortant suspect" && [[ ! -e "${base}/alert.log" ]]; then
-    hft_pass "branch.usr.egress.plain" "ligne sans exécutable, pas de courrier"
+t_journal_stub "w-egress OUT=eth0"
+t_run_user "${bin}/egress-watch.sh"
+if [[ "$(t_got_status)" == "0" ]] && t_stdout_has "aucun flux sortant suspect" && [[ ! -e "${base}/alert.log" ]]; then
+    t_pass "branch.usr.egress.plain" "ligne sans exécutable, pas de courrier"
 else
-    hft_fail "branch.usr.egress.plain" "statut $(hft_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
+    t_fail "branch.usr.egress.plain" "statut $(t_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
 fi
 
-hft_prepare_user egress-watch.sh
+t_prepare_user egress-watch.sh
 printf '%s\n' '2026-01-02 03:04:05' > "${base}/cron/egress.stamp"
-hft_journal_stub "$(printf '%s\n' \
-    'oct. 25 06:10:42 host kernel: hfu-egress IN= OUT=lo SRC=127.0.0.1 DST=224.0.0.251 PROTO=UDP SPT=5353 DPT=5353' \
-    'oct. 25 06:10:43 host kernel: hfu-egress IN= OUT=enp1s0 SRC=192.168.122.110 DST=224.0.0.251 PROTO=UDP SPT=5353 DPT=5353' \
-    'oct. 25 06:10:53 host kernel: hfu-egress IN= OUT=enp1s0 SRC=fe80::1 DST=ff02:0000:0000:0000:0000:0000:0000:00fb PROTO=UDP SPT=5353 DPT=5353' \
-    'oct. 25 06:10:43 host kernel: hfu-egress IN= OUT=enp1s0 SRC=192.168.122.110 DST=185.125.190.122 PROTO=TCP SPT=46814 DPT=4460' \
-    'oct. 25 06:10:44 host kernel: hfu-egress IN= OUT=enp1s0 SRC=192.168.122.110 DST=192.168.122.255 PROTO=UDP SPT=47406 DPT=161' \
-    'oct. 25 06:11:54 host kernel: hfu-egress IN= OUT=enp1s0 SRC=192.168.122.110 DST=91.189.91.111 PROTO=UDP SPT=50257 DPT=123' \
-    'oct. 25 06:12:00 host kernel: hfu-egress IN= OUT=enp1s0 SRC=192.168.122.110 DST=192.168.122.1 PROTO=UDP SPT=68 DPT=67' \
-    'oct. 25 06:12:01 host kernel: hfu-egress IN= OUT=enp1s0 SRC=fe80::1 DST=ff02::1:2 PROTO=UDP SPT=546 DPT=547')"
-hft_run_user "${bin}/egress-watch.sh"
-if [[ "$(hft_got_status)" == "0" ]] && hft_stdout_has "aucun flux sortant inattendu" && [[ ! -e "${base}/alert.log" ]]; then
-    hft_pass "branch.usr.egress.routine" "mDNS NTP DHCP SNMP sans courrier"
+t_journal_stub "$(printf '%s\n' \
+    'oct. 25 06:10:42 host kernel: w-egress IN= OUT=lo SRC=127.0.0.1 DST=224.0.0.251 PROTO=UDP SPT=5353 DPT=5353' \
+    'oct. 25 06:10:43 host kernel: w-egress IN= OUT=enp1s0 SRC=192.168.122.110 DST=224.0.0.251 PROTO=UDP SPT=5353 DPT=5353' \
+    'oct. 25 06:10:53 host kernel: w-egress IN= OUT=enp1s0 SRC=fe80::1 DST=ff02:0000:0000:0000:0000:0000:0000:00fb PROTO=UDP SPT=5353 DPT=5353' \
+    'oct. 25 06:10:43 host kernel: w-egress IN= OUT=enp1s0 SRC=192.168.122.110 DST=185.125.190.122 PROTO=TCP SPT=46814 DPT=4460' \
+    'oct. 25 06:10:44 host kernel: w-egress IN= OUT=enp1s0 SRC=192.168.122.110 DST=192.168.122.255 PROTO=UDP SPT=47406 DPT=161' \
+    'oct. 25 06:11:54 host kernel: w-egress IN= OUT=enp1s0 SRC=192.168.122.110 DST=91.189.91.111 PROTO=UDP SPT=50257 DPT=123' \
+    'oct. 25 06:12:00 host kernel: w-egress IN= OUT=enp1s0 SRC=192.168.122.110 DST=192.168.122.1 PROTO=UDP SPT=68 DPT=67' \
+    'oct. 25 06:12:01 host kernel: w-egress IN= OUT=enp1s0 SRC=fe80::1 DST=ff02::1:2 PROTO=UDP SPT=546 DPT=547')"
+t_run_user "${bin}/egress-watch.sh"
+if [[ "$(t_got_status)" == "0" ]] && t_stdout_has "aucun flux sortant inattendu" && [[ ! -e "${base}/alert.log" ]]; then
+    t_pass "branch.usr.egress.routine" "mDNS NTP DHCP SNMP sans courrier"
 else
-    hft_fail "branch.usr.egress.routine" "statut $(hft_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
+    t_fail "branch.usr.egress.routine" "statut $(t_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
 fi
 
-hft_prepare_user egress-watch.sh
+t_prepare_user egress-watch.sh
 printf '%s\n' '2026-01-02 03:04:05' > "${base}/cron/egress.stamp"
-hft_journal_stub "$(printf '%s\n' \
-    'oct. 25 06:10:42 host kernel: hfu-egress IN= OUT=lo SRC=127.0.0.1 DST=224.0.0.251 PROTO=UDP SPT=5353 DPT=5353' \
-    'oct. 25 06:11:54 host kernel: hfu-egress IN= OUT=enp1s0 SRC=192.168.122.110 DST=91.189.91.111 PROTO=UDP SPT=50257 DPT=123' \
-    'oct. 25 06:12:10 host kernel: hfu-egress IN= OUT=enp1s0 SRC=192.168.122.110 DST=203.0.113.10 PROTO=UDP SPT=47406 DPT=161' \
-    'oct. 25 06:12:11 host kernel: hfu-egress IN= OUT=enp1s0 SRC=192.168.122.110 DST=1.2.3.4 PROTO=TCP SPT=40000 DPT=587')"
-hft_ausearch_stub 0 "$(printf '%s\n' \
+t_journal_stub "$(printf '%s\n' \
+    'oct. 25 06:10:42 host kernel: w-egress IN= OUT=lo SRC=127.0.0.1 DST=224.0.0.251 PROTO=UDP SPT=5353 DPT=5353' \
+    'oct. 25 06:11:54 host kernel: w-egress IN= OUT=enp1s0 SRC=192.168.122.110 DST=91.189.91.111 PROTO=UDP SPT=50257 DPT=123' \
+    'oct. 25 06:12:10 host kernel: w-egress IN= OUT=enp1s0 SRC=192.168.122.110 DST=203.0.113.10 PROTO=UDP SPT=47406 DPT=161' \
+    'oct. 25 06:12:11 host kernel: w-egress IN= OUT=enp1s0 SRC=192.168.122.110 DST=1.2.3.4 PROTO=TCP SPT=40000 DPT=587')"
+t_ausearch_stub 0 "$(printf '%s\n' \
     'type=SYSCALL msg=audit(1.1:1): arch=c000003e syscall=42 success=yes comm="mail" exe="/usr/bin/swaks" pid=20 uid=1000' \
     'type=SOCKADDR msg=audit(1.1:1): saddr=0200024B01020304')"
-hft_run_user "${bin}/egress-watch.sh"
-if [[ "$(hft_got_status)" == "0" ]] && hft_stdout_has "aucun flux sortant suspect" \
-    && [[ ! -e "${base}/alert.log" ]] && ! hft_log_has "DPT=587"; then
-    hft_pass "branch.usr.egress.mixed" "port inhabituel sans signal, pas de courrier"
+t_run_user "${bin}/egress-watch.sh"
+if [[ "$(t_got_status)" == "0" ]] && t_stdout_has "aucun flux sortant suspect" \
+    && [[ ! -e "${base}/alert.log" ]] && ! t_log_has "DPT=587"; then
+    t_pass "branch.usr.egress.mixed" "port inhabituel sans signal, pas de courrier"
 else
-    hft_fail "branch.usr.egress.mixed" "statut $(hft_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
+    t_fail "branch.usr.egress.mixed" "statut $(t_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
 fi
 
-hft_prepare_user egress-watch.sh
+t_prepare_user egress-watch.sh
 printf '%s\n' '2026-01-02 03:04:05' > "${base}/cron/egress.stamp"
-printf '%s\n' 'HFU_NET_ISOLATE_SEC=45' > "${base}/cron/egress.conf"
-hft_journal_stub "oct. 25 06:20:00 host kernel: hfu-egress IN= OUT=enp1s0 SRC=192.168.122.110 DST=203.0.113.50 PROTO=TCP SPT=40000 DPT=4444"
-hft_ausearch_stub 0 "$(printf '%s\n' \
+printf '%s\n' 'W_NET_ISOLATE_SEC=45' > "${base}/cron/egress.conf"
+t_journal_stub "oct. 25 06:20:00 host kernel: w-egress IN= OUT=enp1s0 SRC=192.168.122.110 DST=203.0.113.50 PROTO=TCP SPT=40000 DPT=4444"
+t_ausearch_stub 0 "$(printf '%s\n' \
     'type=SYSCALL msg=audit(1.1:2): arch=c000003e syscall=42 success=yes comm="evil" exe="/tmp/evil" pid=30 uid=1000' \
     'type=SOCKADDR msg=audit(1.1:2): saddr=0200115CCB007132')"
-hft_run_user "${bin}/egress-watch.sh"
-if [[ "$(hft_got_status)" == "0" ]] && hft_alert_has "flux sortant suspect bloqué" \
-    && hft_log_has "203.0.113.50 tcp/4444 pendant 45s" \
-    && hft_log_has "/tmp/evil" \
+t_run_user "${bin}/egress-watch.sh"
+if [[ "$(t_got_status)" == "0" ]] && t_alert_has "flux sortant suspect bloqué" \
+    && t_log_has "203.0.113.50 tcp/4444 pendant 45s" \
+    && t_log_has "/tmp/evil" \
     && grep -q '203.0.113.50 . tcp . 4444 timeout 45s' "${work}/nft.log" \
-    && ! grep -q 'hfu_isolate' "${work}/nft.log"; then
-    hft_pass "branch.usr.egress.suspect" "destination tenue 45 s"
+    && ! grep -q 'w_isolate' "${work}/nft.log"; then
+    t_pass "branch.usr.egress.suspect" "destination tenue 45 s"
 else
-    hft_fail "branch.usr.egress.suspect" "statut $(hft_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true) $(tr '\n' ' ' < "${work}/nft.log" 2>/dev/null || true)"
+    t_fail "branch.usr.egress.suspect" "statut $(t_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true) $(tr '\n' ' ' < "${work}/nft.log" 2>/dev/null || true)"
 fi
 
-hft_prepare_user egress-watch.sh
+t_prepare_user egress-watch.sh
 printf '%s\n' '2026-01-02 03:04:05' > "${base}/cron/egress.stamp"
-printf '%s\n' 'HFU_NET_ISOLATE_SEC=10' > "${base}/cron/egress.conf"
+printf '%s\n' 'W_NET_ISOLATE_SEC=10' > "${base}/cron/egress.conf"
 printf '%s\n' $'20261025-010101-1-curl\t2026-10-25T01:01:01+02:00\tclamav\t/usr/bin/curl\t/var/lib/clamav/quarantine/20261025-010101-1-curl\tEicar' > "${base}/cron/quarantine.registry"
-hft_journal_stub "oct. 25 06:21:00 host kernel: hfu-egress IN= OUT=enp1s0 SRC=192.168.122.110 DST=198.51.100.8 PROTO=TCP SPT=41000 DPT=8443"
-hft_ausearch_stub 0 "$(printf '%s\n' \
+t_journal_stub "oct. 25 06:21:00 host kernel: w-egress IN= OUT=enp1s0 SRC=192.168.122.110 DST=198.51.100.8 PROTO=TCP SPT=41000 DPT=8443"
+t_ausearch_stub 0 "$(printf '%s\n' \
     'type=SYSCALL msg=audit(1.1:3): arch=c000003e syscall=42 success=yes comm="curl" exe="/usr/bin/curl" pid=31 uid=1000' \
     'type=SOCKADDR msg=audit(1.1:3): saddr=020020FBC6336408')"
-hft_run_user "${bin}/egress-watch.sh"
-if [[ "$(hft_got_status)" == "0" ]] && hft_alert_has "flux sortant suspect bloqué" \
-    && hft_log_has "198.51.100.8 tcp/8443 pendant 120s" \
+t_run_user "${bin}/egress-watch.sh"
+if [[ "$(t_got_status)" == "0" ]] && t_alert_has "flux sortant suspect bloqué" \
+    && t_log_has "198.51.100.8 tcp/8443 pendant 120s" \
     && grep -q '198.51.100.8 . tcp . 8443 timeout 120s' "${work}/nft.log"; then
-    hft_pass "branch.usr.egress.quarantine" "binaire en quarantaine, durée plancher"
+    t_pass "branch.usr.egress.quarantine" "binaire en quarantaine, durée plancher"
 else
-    hft_fail "branch.usr.egress.quarantine" "statut $(hft_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true) $(tr '\n' ' ' < "${work}/nft.log" 2>/dev/null || true)"
+    t_fail "branch.usr.egress.quarantine" "statut $(t_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true) $(tr '\n' ' ' < "${work}/nft.log" 2>/dev/null || true)"
 fi
 
-hft_prepare_user boot-scan.sh
+t_prepare_user boot-scan.sh
 order_names=(apply-scan-skip.sh aide.sh integrity.sh rkhunter.sh behavior.sh chkrootkit.sh clamav.sh debsums.sh egress-watch.sh)
 for name in "${order_names[@]}"; do
     if [[ "${name}" == "rkhunter.sh" ]]; then
@@ -429,172 +429,172 @@ exit ${code}
 EOF
     chmod 755 "${bin}/${name}"
 done
-hft_run_user "${bin}/boot-scan.sh"
+t_run_user "${bin}/boot-scan.sh"
 expected="$(printf '%s\n' "${order_names[@]}")"
-if [[ "$(hft_got_status)" == "0" ]] && [[ "$(cat "${work}/trace" 2>/dev/null || true)" == "${expected}" ]]; then
-    hft_pass "branch.usr.boot.order" "neuf contrôles"
+if [[ "$(t_got_status)" == "0" ]] && [[ "$(cat "${work}/trace" 2>/dev/null || true)" == "${expected}" ]]; then
+    t_pass "branch.usr.boot.order" "neuf contrôles"
 else
-    hft_fail "branch.usr.boot.order" "$(tr '\n' ' ' < "${work}/trace" 2>/dev/null || true) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
+    t_fail "branch.usr.boot.order" "$(tr '\n' ' ' < "${work}/trace" 2>/dev/null || true) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
 fi
-if hft_alert_has "crash rkhunter 1"; then
-    hft_pass "branch.usr.boot.continue" "échec puis suite"
+if t_alert_has "crash rkhunter 1"; then
+    t_pass "branch.usr.boot.continue" "échec puis suite"
 else
-    hft_fail "branch.usr.boot.continue" "courrier absent"
+    t_fail "branch.usr.boot.continue" "courrier absent"
 fi
 
-hft_prepare_user clamav-event.sh
+t_prepare_user clamav-event.sh
 sample="${work}/samples/.clamav-quarantine-lock.1"
 printf 'lock\n' > "${sample}"
-hft_run_user "${bin}/clamav-event.sh" "" "export CLAM_VIRUSEVENT_FILENAME=${sample}
+t_run_user "${bin}/clamav-event.sh" "" "export CLAM_VIRUSEVENT_FILENAME=${sample}
 export CLAM_VIRUSEVENT_VIRUSNAME=Eicar"
-if [[ "$(hft_got_status)" == "0" ]] && [[ ! -e "${base}/alert.log" ]] && ! hft_log_has "quarantaine"; then
-    hft_pass "branch.usr.clamav.lock" "verrou avant la réponse"
+if [[ "$(t_got_status)" == "0" ]] && [[ ! -e "${base}/alert.log" ]] && ! t_log_has "quarantaine"; then
+    t_pass "branch.usr.clamav.lock" "verrou avant la réponse"
 else
-    hft_fail "branch.usr.clamav.lock" "statut $(hft_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
+    t_fail "branch.usr.clamav.lock" "statut $(t_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
 fi
 
-hft_prepare_user clamav-response.sh
+t_prepare_user clamav-response.sh
 sample="${work}/samples/note.txt"
 printf 'note\n' > "${sample}"
 : > "${work}/holder.pid"
-hft_run_user "${bin}/clamav-response.sh" "" "export HFU_CLAMAV_EVENT_FILE=${sample}
-export HFU_CLAMAV_EVENT_VIRUS=Eicar"
-if [[ "$(hft_got_status)" == "0" ]] && hft_log_has "déplacé en quarantaine" \
+t_run_user "${bin}/clamav-response.sh" "" "export W_CLAMAV_EVENT_FILE=${sample}
+export W_CLAMAV_EVENT_VIRUS=Eicar"
+if [[ "$(t_got_status)" == "0" ]] && t_log_has "déplacé en quarantaine" \
     && [[ -n "$(find "${work}/quarantine" -type f -print)" ]] \
-    && grep -q 'hfu_isolate' "${work}/nft.log" && grep -q 'dport 53' "${work}/nft.log" \
+    && grep -q 'w_isolate' "${work}/nft.log" && grep -q 'dport 53' "${work}/nft.log" \
     && grep -q 'reject' "${work}/nft.log" && grep -q -- '--on-active=120' "${work}/systemd-run.log"; then
-    hft_pass "branch.usr.response.move" "fichier en quarantaine"
-    hft_pass "branch.usr.response.nft" "isolation 120"
+    t_pass "branch.usr.response.move" "fichier en quarantaine"
+    t_pass "branch.usr.response.nft" "isolation 120"
 else
-    hft_fail "branch.usr.response.move" "statut $(hft_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
-    hft_fail "branch.usr.response.nft" "$(tr '\n' ' ' < "${work}/nft.log" 2>/dev/null || true)"
+    t_fail "branch.usr.response.move" "statut $(t_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
+    t_fail "branch.usr.response.nft" "$(tr '\n' ' ' < "${work}/nft.log" 2>/dev/null || true)"
 fi
 
-hft_prepare_user clamav-response.sh
-hft_run_user "${bin}/clamav-response.sh" "" "export HFU_CLAMAV_EVENT_FILE=${work}/samples/missing.txt
-export HFU_CLAMAV_EVENT_VIRUS=Eicar"
-if [[ "$(hft_got_status)" == "0" ]] && hft_log_has "fichier déjà absent"; then
-    hft_pass "branch.usr.response.absent" "fichier déjà absent"
+t_prepare_user clamav-response.sh
+t_run_user "${bin}/clamav-response.sh" "" "export W_CLAMAV_EVENT_FILE=${work}/samples/missing.txt
+export W_CLAMAV_EVENT_VIRUS=Eicar"
+if [[ "$(t_got_status)" == "0" ]] && t_log_has "fichier déjà absent"; then
+    t_pass "branch.usr.response.absent" "fichier déjà absent"
 else
-    hft_fail "branch.usr.response.absent" "statut $(hft_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
+    t_fail "branch.usr.response.absent" "statut $(t_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
 fi
 
-hft_prepare_user clamav-response.sh
+t_prepare_user clamav-response.sh
 sample="${work}/samples/note.txt"
 printf 'note\n' > "${sample}"
 printf '1\n' > "${work}/holder.pid"
-hft_run_user "${bin}/clamav-response.sh" "" "export HFU_CLAMAV_EVENT_FILE=${sample}
-export HFU_CLAMAV_EVENT_VIRUS=Eicar"
-if [[ "$(hft_got_status)" == "0" ]] && hft_log_has "pid 1"; then
-    hft_pass "branch.usr.response.pid1" "pid 1 conservé"
+t_run_user "${bin}/clamav-response.sh" "" "export W_CLAMAV_EVENT_FILE=${sample}
+export W_CLAMAV_EVENT_VIRUS=Eicar"
+if [[ "$(t_got_status)" == "0" ]] && t_log_has "pid 1"; then
+    t_pass "branch.usr.response.pid1" "pid 1 conservé"
 else
-    hft_fail "branch.usr.response.pid1" "statut $(hft_got_status)"
+    t_fail "branch.usr.response.pid1" "statut $(t_got_status)"
 fi
 
-hft_prepare_user clamav-response.sh
+t_prepare_user clamav-response.sh
 sample="${work}/samples/note.txt"
 printf 'note\n' > "${sample}"
 printf '42424242\n' > "${work}/holder.pid"
-hft_run_user "${bin}/clamav-response.sh" "" "export HFU_CLAMAV_EVENT_FILE=${sample}
-export HFU_CLAMAV_EVENT_VIRUS=Eicar"
-if [[ "$(hft_got_status)" == "0" ]] && hft_log_has "uid 0"; then
-    hft_pass "branch.usr.response.uid" "uid 0 conservé"
+t_run_user "${bin}/clamav-response.sh" "" "export W_CLAMAV_EVENT_FILE=${sample}
+export W_CLAMAV_EVENT_VIRUS=Eicar"
+if [[ "$(t_got_status)" == "0" ]] && t_log_has "uid 0"; then
+    t_pass "branch.usr.response.uid" "uid 0 conservé"
 else
-    hft_fail "branch.usr.response.uid" "statut $(hft_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
+    t_fail "branch.usr.response.uid" "statut $(t_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
 fi
 
-hft_prepare_user clamav-response.sh
+t_prepare_user clamav-response.sh
 sample="${work}/samples/note.txt"
 printf 'note\n' > "${sample}"
 mkdir -p "${work}/fakeproc/42424242"
 : > "${work}/fakeproc/42424242/comm"
 printf '42424242\n' > "${work}/holder.pid"
-hft_run_user "${bin}/clamav-response.sh" "${work}/fakeproc" "export HFU_CLAMAV_EVENT_FILE=${sample}
-export HFU_CLAMAV_EVENT_VIRUS=Eicar"
-if [[ "$(hft_got_status)" == "0" ]] && hft_log_has "nom absent"; then
-    hft_pass "branch.usr.response.empty" "nom vide conservé"
+t_run_user "${bin}/clamav-response.sh" "${work}/fakeproc" "export W_CLAMAV_EVENT_FILE=${sample}
+export W_CLAMAV_EVENT_VIRUS=Eicar"
+if [[ "$(t_got_status)" == "0" ]] && t_log_has "nom absent"; then
+    t_pass "branch.usr.response.empty" "nom vide conservé"
 else
-    hft_fail "branch.usr.response.empty" "statut $(hft_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
+    t_fail "branch.usr.response.empty" "statut $(t_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
 fi
 
-hft_prepare_user clamav-response.sh
+t_prepare_user clamav-response.sh
 sample="${work}/samples/note.txt"
 printf 'note\n' > "${sample}"
-hft_start_holder gamescope
-hft_run_user "${bin}/clamav-response.sh" "" "export HFU_CLAMAV_EVENT_FILE=${sample}
-export HFU_CLAMAV_EVENT_VIRUS=Eicar"
-if [[ "$(hft_got_status)" == "0" ]] && hft_log_has "non arrêté : gamescope" && kill -0 "${holder_pid}" 2>/dev/null; then
-    hft_pass "branch.usr.response.deny" "gamescope conservé"
+t_start_holder gamescope
+t_run_user "${bin}/clamav-response.sh" "" "export W_CLAMAV_EVENT_FILE=${sample}
+export W_CLAMAV_EVENT_VIRUS=Eicar"
+if [[ "$(t_got_status)" == "0" ]] && t_log_has "non arrêté : gamescope" && kill -0 "${holder_pid}" 2>/dev/null; then
+    t_pass "branch.usr.response.deny" "gamescope conservé"
 else
-    hft_fail "branch.usr.response.deny" "statut $(hft_got_status) $(grep -R -F -h 'processus' "${base}/cron/security_logs" 2>/dev/null | tr '\n' ' ')"
+    t_fail "branch.usr.response.deny" "statut $(t_got_status) $(grep -R -F -h 'processus' "${base}/cron/security_logs" 2>/dev/null | tr '\n' ' ')"
 fi
-hft_stop_holder
+t_stop_holder
 
-hft_prepare_user clamav-response.sh
+t_prepare_user clamav-response.sh
 sample="${work}/samples/note.txt"
 printf 'note\n' > "${sample}"
-hft_start_holder worker
-hft_run_user "${bin}/clamav-response.sh" "" "export HFU_CLAMAV_EVENT_FILE=${sample}
-export HFU_CLAMAV_EVENT_VIRUS=Eicar"
-if [[ "$(hft_got_status)" == "0" ]] && hft_log_has ") arrêté" && ! kill -0 "${holder_pid}" 2>/dev/null; then
-    hft_pass "branch.usr.response.term" "TERM envoyé"
+t_start_holder worker
+t_run_user "${bin}/clamav-response.sh" "" "export W_CLAMAV_EVENT_FILE=${sample}
+export W_CLAMAV_EVENT_VIRUS=Eicar"
+if [[ "$(t_got_status)" == "0" ]] && t_log_has ") arrêté" && ! kill -0 "${holder_pid}" 2>/dev/null; then
+    t_pass "branch.usr.response.term" "TERM envoyé"
 else
-    hft_fail "branch.usr.response.term" "statut $(hft_got_status) $(grep -R -F -h 'processus' "${base}/cron/security_logs" 2>/dev/null | tr '\n' ' ')"
+    t_fail "branch.usr.response.term" "statut $(t_got_status) $(grep -R -F -h 'processus' "${base}/cron/security_logs" 2>/dev/null | tr '\n' ' ')"
 fi
-hft_stop_holder
+t_stop_holder
 
-hft_prepare_user clamav-response.sh
+t_prepare_user clamav-response.sh
 sample="${work}/samples/note.txt"
 printf 'note\n' > "${sample}"
 mkdir -p "${work}/fakeproc/42424242"
 printf '%s' 'worker' > "${work}/fakeproc/42424242/comm"
 printf '42424242\n' > "${work}/holder.pid"
-hft_run_user "${bin}/clamav-response.sh" "${work}/fakeproc" "export HFU_CLAMAV_EVENT_FILE=${sample}
-export HFU_CLAMAV_EVENT_VIRUS=Eicar"
-if [[ "$(hft_got_status)" == "0" ]] && hft_log_has "signal refusé"; then
-    hft_pass "branch.usr.response.refused" "signal refusé"
+t_run_user "${bin}/clamav-response.sh" "${work}/fakeproc" "export W_CLAMAV_EVENT_FILE=${sample}
+export W_CLAMAV_EVENT_VIRUS=Eicar"
+if [[ "$(t_got_status)" == "0" ]] && t_log_has "signal refusé"; then
+    t_pass "branch.usr.response.refused" "signal refusé"
 else
-    hft_fail "branch.usr.response.refused" "statut $(hft_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
+    t_fail "branch.usr.response.refused" "statut $(t_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
 fi
 
-hft_prepare_user clamav-response.sh
+t_prepare_user clamav-response.sh
 sample="${work}/samples/note.txt"
 printf 'note\n' > "${sample}"
 rm -f "${work}/path/nft"
-hft_run_user "${bin}/clamav-response.sh" "" "export HFU_CLAMAV_EVENT_FILE=${sample}
-export HFU_CLAMAV_EVENT_VIRUS=Eicar"
-if [[ "$(hft_got_status)" == "0" ]] && hft_log_has "nft absent" && [[ ! -e "${work}/nft.log" ]]; then
-    hft_pass "branch.usr.response.nft-absent" "nft absent"
+t_run_user "${bin}/clamav-response.sh" "" "export W_CLAMAV_EVENT_FILE=${sample}
+export W_CLAMAV_EVENT_VIRUS=Eicar"
+if [[ "$(t_got_status)" == "0" ]] && t_log_has "nft absent" && [[ ! -e "${work}/nft.log" ]]; then
+    t_pass "branch.usr.response.nft-absent" "nft absent"
 else
-    hft_fail "branch.usr.response.nft-absent" "statut $(hft_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
+    t_fail "branch.usr.response.nft-absent" "statut $(t_got_status) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
 fi
 
-hft_check_user_sec() {
+t_check_user_sec() {
     local id="$1"
     local raw="$2"
     local expect="$3"
-    hft_prepare_user clamav-response.sh
+    t_prepare_user clamav-response.sh
     printf 'note\n' > "${work}/samples/note.txt"
-    printf 'HFU_NET_ISOLATE_SEC=%s\n' "${raw}" > "${base}/cron/egress.conf"
-    hft_run_user "${bin}/clamav-response.sh" "" "export HFU_CLAMAV_EVENT_FILE=${work}/samples/note.txt
-export HFU_CLAMAV_EVENT_VIRUS=Eicar"
-    if [[ "$(hft_got_status)" == "0" ]] && hft_log_has "isolation ${expect}s" \
+    printf 'W_NET_ISOLATE_SEC=%s\n' "${raw}" > "${base}/cron/egress.conf"
+    t_run_user "${bin}/clamav-response.sh" "" "export W_CLAMAV_EVENT_FILE=${work}/samples/note.txt
+export W_CLAMAV_EVENT_VIRUS=Eicar"
+    if [[ "$(t_got_status)" == "0" ]] && t_log_has "isolation ${expect}s" \
         && grep -q -- "--on-active=${expect}" "${work}/systemd-run.log"; then
-        hft_pass "${id}" "durée ${expect}"
+        t_pass "${id}" "durée ${expect}"
     else
-        hft_fail "${id}" "statut $(hft_got_status) $(tr '\n' ' ' < "${work}/systemd-run.log" 2>/dev/null || true)"
+        t_fail "${id}" "statut $(t_got_status) $(tr '\n' ' ' < "${work}/systemd-run.log" 2>/dev/null || true)"
     fi
 }
-hft_check_user_sec branch.usr.response.clamp-low 10 120
-hft_check_user_sec branch.usr.response.clamp-high 400 120
-hft_check_user_sec branch.usr.response.sec 45 45
+t_check_user_sec branch.usr.response.clamp-low 10 120
+t_check_user_sec branch.usr.response.clamp-high 400 120
+t_check_user_sec branch.usr.response.sec 45 45
 
-hft_prepare_user egress-watch.sh
+t_prepare_user egress-watch.sh
 cat > "${work}/probe.sh" << EOF
 #!/usr/bin/env bash
 set +e
-export HFU_BASE="${base}"
-export HFU_CLAMAV_QUARANTINE_DIR="${work}/quarantine"
+export W_BASE="${base}"
+export W_CLAMAV_QUARANTINE_DIR="${work}/quarantine"
 source "${parent}/core/watchdog.sh"
 result="${work}/quarantine-result.txt"
 : > "\${result}"
@@ -603,23 +603,23 @@ printf 'plain\n' > "\${sample}"
 log="${work}/warn.log"
 printf '%s\n' "Rootkit Hunter version 1.4.6" "Warning: The file properties have changed" "\${sample}" > "\${log}"
 : > "${work}/holder.pid"
-hf_quarantine_confirmed_log rkhunter "\${log}" systemd sshd unbound fail2ban gamescope > "${work}/warn.out"
-if [[ "\${HF_CONFIRMED_COUNT}" -eq 0 ]] && [[ ! -e "${base}/cron/quarantine.registry" ]] && [[ -f "\${sample}" ]]; then
+g_quarantine_confirmed_log rkhunter "\${log}" systemd sshd unbound fail2ban gamescope > "${work}/warn.out"
+if [[ "\${G_CONFIRMED_COUNT}" -eq 0 ]] && [[ ! -e "${base}/cron/quarantine.registry" ]] && [[ -f "\${sample}" ]]; then
     printf '%s\n' "warn-ok" >> "\${result}"
 fi
 evil="${work}/samples/evil.bin"
 printf 'evil\n' > "\${evil}"
 printf '%s\n' "INFECTED: \${evil}" > "\${log}"
-hf_quarantine_confirmed_log rkhunter "\${log}" systemd sshd unbound fail2ban gamescope > "${work}/move.out"
+g_quarantine_confirmed_log rkhunter "\${log}" systemd sshd unbound fail2ban gamescope > "${work}/move.out"
 if [[ ! -e "\${evil}" ]] && grep -q "\${evil}" "${base}/cron/quarantine.registry" && grep -q 'quarantine-restore.sh' "${base}/cron/quarantine.pending"; then
     printf '%s\n' "move-ok" >> "\${result}"
 fi
-hf_take_quarantine_note
+g_take_quarantine_note
 if printf '%s\n' "\${NOTE_CMD}" | grep -q 'quarantine-restore.sh' && [[ ! -e "${base}/cron/quarantine.pending" ]]; then
     printf '%s\n' "take-ok" >> "\${result}"
 fi
 printf '%s\n' "INFECTED: /etc/passwd" > "\${log}"
-hf_quarantine_confirmed_log rkhunter "\${log}" systemd sshd unbound fail2ban gamescope > "${work}/prot.out"
+g_quarantine_confirmed_log rkhunter "\${log}" systemd sshd unbound fail2ban gamescope > "${work}/prot.out"
 if [[ -f /etc/passwd ]] && grep -q 'non mis en quarantaine' "${work}/prot.out" && ! grep -q '/etc/passwd' "${base}/cron/quarantine.registry"; then
     printf '%s\n' "prot-ok" >> "\${result}"
 fi
@@ -627,18 +627,18 @@ held="${work}/samples/held.bin"
 printf 'held\n' > "\${held}"
 printf '1\n' > "${work}/holder.pid"
 printf '%s\n' "Rootkit \${held}" > "\${log}"
-hf_quarantine_confirmed_log rkhunter "\${log}" systemd sshd unbound fail2ban gamescope > "${work}/pid.out"
+g_quarantine_confirmed_log rkhunter "\${log}" systemd sshd unbound fail2ban gamescope > "${work}/pid.out"
 if [[ -f "\${held}" ]] && grep -q 'non mis en quarantaine : pid 1' "${work}/pid.out"; then
     printf '%s\n' "pid-ok" >> "\${result}"
 fi
-printf '%s\n' 'oct. 22 06:20:42 host kernel: hfu-egress IN= OUT=eth0 SRC=10.0.0.1 DST=74.125.206.109 PROTO=TCP SPT=34730 DPT=587' 'oct. 22 06:20:42 host kernel: hfu-egress IN= OUT=eth0 SRC=10.0.0.1 DST=74.125.206.109 PROTO=TCP SPT=34730 DPT=587' 'oct. 22 06:20:43 host kernel: hfu-egress IN= OUT=eth0 SRC=10.0.0.1 DST=1.2.3.4 PROTO=TCP SPT=9 DPT=9' > "${work}/kern.txt"
+printf '%s\n' 'oct. 22 06:20:42 host kernel: w-egress IN= OUT=eth0 SRC=10.0.0.1 DST=74.125.206.109 PROTO=TCP SPT=34730 DPT=587' 'oct. 22 06:20:42 host kernel: w-egress IN= OUT=eth0 SRC=10.0.0.1 DST=74.125.206.109 PROTO=TCP SPT=34730 DPT=587' 'oct. 22 06:20:43 host kernel: w-egress IN= OUT=eth0 SRC=10.0.0.1 DST=1.2.3.4 PROTO=TCP SPT=9 DPT=9' > "${work}/kern.txt"
 printf '%s\n' 'type=SYSCALL msg=audit(1.1:1): arch=c000003e syscall=42 success=yes comm="curl" pid=1842 uid=1000' 'type=SOCKADDR msg=audit(1.1:1): saddr=0200024B4A7DCE6D' > "${work}/audit.txt"
-hf_format_egress_body "${work}/kern.txt" "${work}/audit.txt" > "${work}/egress.out"
+g_format_egress_body "${work}/kern.txt" "${work}/audit.txt" > "${work}/egress.out"
 if grep -q 'Processus : curl (pid 1842) uid 1000' "${work}/egress.out" && grep -q 'Processus : non associé' "${work}/egress.out" && [[ "\$(grep -c 'DPT=587' "${work}/egress.out")" -eq 1 ]]; then
     printf '%s\n' "egress-ok" >> "\${result}"
 fi
-hf_format_egress_body "${work}/kern.txt" "" > "${work}/egress-plain.out"
-if grep -q 'hfu-egress' "${work}/egress-plain.out" && ! grep -q 'Processus' "${work}/egress-plain.out"; then
+g_format_egress_body "${work}/kern.txt" "" > "${work}/egress-plain.out"
+if grep -q 'w-egress' "${work}/egress-plain.out" && ! grep -q 'Processus' "${work}/egress-plain.out"; then
     printf '%s\n' "plain-ok" >> "\${result}"
 fi
 restore_out="\$(bash "${parent}/core/quarantine-restore.sh" 20261022-010101-1-evil 2>&1)"
@@ -649,8 +649,8 @@ fi
 exit 0
 EOF
 chmod 755 "${work}/probe.sh"
-hft_run_user "${work}/probe.sh"
-if [[ "$(hft_got_status)" == "0" ]] \
+t_run_user "${work}/probe.sh"
+if [[ "$(t_got_status)" == "0" ]] \
     && grep -qx 'warn-ok' "${work}/quarantine-result.txt" \
     && grep -qx 'move-ok' "${work}/quarantine-result.txt" \
     && grep -qx 'take-ok' "${work}/quarantine-result.txt" \
@@ -659,24 +659,24 @@ if [[ "$(hft_got_status)" == "0" ]] \
     && grep -qx 'egress-ok' "${work}/quarantine-result.txt" \
     && grep -qx 'plain-ok' "${work}/quarantine-result.txt" \
     && grep -qx 'restore-ok' "${work}/quarantine-result.txt"; then
-    hft_pass "branch.usr.quarantine" "registre, chemin protégé et processus du flux"
+    t_pass "branch.usr.quarantine" "registre, chemin protégé et processus du flux"
 else
-    hft_fail "branch.usr.quarantine" "statut $(hft_got_status) $(tr '\n' ' ' < "${work}/quarantine-result.txt" 2>/dev/null || true) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
+    t_fail "branch.usr.quarantine" "statut $(t_got_status) $(tr '\n' ' ' < "${work}/quarantine-result.txt" 2>/dev/null || true) $(tr '\n' ' ' < "${work}/stderr.txt" 2>/dev/null || true)"
 fi
 
-hft_stop_holder
+t_stop_holder
 
 for id in usr.collect.install usr.base usr.integrity.bin usr.integrity.list usr.integrity.stamp usr.behavior.bin usr.behavior.stamp usr.egress.bin usr.egress.stamp usr.egress.table usr.isolate.state usr.net.ufw usr.boot.order usr.boot.timer usr.boot.scan-timer usr.periodic.timer usr.hourly.timer usr.clamav.lock usr.clamav.deny usr.conf.order usr.conf.base; do
     if grep -q "${id}" "${probe}"; then
-        hft_pass "probe.id.${id}" "présent"
+        t_pass "probe.id.${id}" "présent"
     else
-        hft_fail "probe.id.${id}" "absent de vm-probe.sh"
+        t_fail "probe.id.${id}" "absent de vm-probe.sh"
     fi
 done
 for unit in auditd clamav-daemon clamav-freshclam clamonacc fail2ban crowdsec; do
     if grep -q "for unit in auditd clamav-daemon clamav-freshclam clamonacc fail2ban crowdsec; do" "${probe}"; then
-        hft_pass "probe.id.usr.service.${unit}" "présent"
+        t_pass "probe.id.usr.service.${unit}" "présent"
     else
-        hft_fail "probe.id.usr.service.${unit}" "boucle absente"
+        t_fail "probe.id.usr.service.${unit}" "boucle absente"
     fi
 done

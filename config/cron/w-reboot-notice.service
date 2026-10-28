@@ -1,6 +1,6 @@
 # =============================================================================
-# File       : config/cron/hfu-reboot-notice.service
-# Updated at : 2026-10-15
+# File       : config/cron/w-reboot-notice.service
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
@@ -10,7 +10,7 @@ After=local-fs.target multi-user.target
 
 [Service]
 Type=oneshot
-Nice=${HF_WATCHDOG_LIMIT_NICE}
+Nice=${G_WATCHDOG_LIMIT_NICE}
 IOSchedulingClass=idle
 CPUQuota=${cpu_quota}%
-ExecStart=${HF_CONFIG_BASE_DIRECTORY}/cron/bin/reboot-notice.sh
+ExecStart=${G_CONFIG_BASE_DIRECTORY}/cron/bin/reboot-notice.sh

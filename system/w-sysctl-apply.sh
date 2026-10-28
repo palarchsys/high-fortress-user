@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # =============================================================================
-# File       : system/hfu-sysctl-apply.sh
-# Updated at : 2026-10-05
+# File       : system/w-sysctl-apply.sh
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
 set -u
-conf="/etc/sysctl.d/99-zzz-high-fortress-user.conf"
+conf="/etc/sysctl.d/99-zzz-liltress-workstation.conf"
 [[ -f "${conf}" ]] || exit 0
 while IFS= read -r line || [[ -n "${line}" ]]; do
     line="${line%%#*}"

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : test/suites/01_bash_syntax.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
-hft_check_cartouche() {
+t_check_cartouche() {
     local file="$1"
     local rel="$2"
     local start=1
@@ -23,28 +23,28 @@ hft_check_cartouche() {
     [[ "${l4}" == "$(printf '# %-11s: %s' Creator palarchsys)" ]] || return 1
 }
 
-hft_section "bash -n"
-MONO="$(cd -- "${HFT_ROOT}/.." && pwd)"
-find_paths=("${HFT_ROOT}")
+t_section "bash -n"
+MONO="$(cd -- "${T_ROOT}/.." && pwd)"
+find_paths=("${T_ROOT}")
 for extra in "${MONO}/core" "${MONO}/scripts" "${MONO}/agents"; do
     [[ -d "${extra}" ]] && find_paths+=("${extra}")
 done
 while IFS= read -r file; do
     rel="${file#"${MONO}/"}"
-    if [[ "${file}" == "${HFT_ROOT}/"* ]]; then
-        cart_rel="${file#"${HFT_ROOT}/"}"
+    if [[ "${file}" == "${T_ROOT}/"* ]]; then
+        cart_rel="${file#"${T_ROOT}/"}"
     else
         cart_rel="${rel}"
     fi
-    if hft_check_cartouche "${file}" "${cart_rel}"; then
-        hft_pass "syntax.cartouche:${rel}" "cartouche"
+    if t_check_cartouche "${file}" "${cart_rel}"; then
+        t_pass "syntax.cartouche:${rel}" "cartouche"
     else
-        hft_fail "syntax.cartouche:${rel}" "cartouche absent ou différent de la loi style"
+        t_fail "syntax.cartouche:${rel}" "cartouche absent ou différent de la loi style"
     fi
-    if bash -n "${file}" 2>"${HF_ARTIFACTS}/bash-n.err"; then
-        hft_pass "syntax:${rel}" "bash -n"
+    if bash -n "${file}" 2>"${G_ARTIFACTS}/bash-n.err"; then
+        t_pass "syntax:${rel}" "bash -n"
     else
-        hft_fail "syntax:${rel}" "$(tr '\n' ' ' < "${HF_ARTIFACTS}/bash-n.err")"
+        t_fail "syntax:${rel}" "$(tr '\n' ' ' < "${G_ARTIFACTS}/bash-n.err")"
     fi
 done < <(find "${find_paths[@]}" \
     -name '*.sh' -type f \

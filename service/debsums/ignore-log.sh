@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/debsums/ignore-log.sh
-# Updated at : 2026-10-05
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
 set -euo pipefail
-HFU_BASE="${HFU_BASE:-/opt/high-fortress-user}"
+W_BASE="${W_BASE:-/opt/liltress-workstation}"
 if [[ "${EUID}" -ne 0 ]]; then
     printf 'Lancez cette commande avec sudo.\n' >&2
     exit 1
@@ -14,11 +14,11 @@ fi
 if [[ $# -ne 1 || ! -f "$1" ]]; then
     printf 'Indiquez le journal debsums cité dans l'\''e-mail.\n' >&2
     printf 'Exemple : sudo bash %s/bin/debsums-ignore-log.sh %s/cron/security_logs/debsums-DATE.log\n' \
-        "${HFU_BASE}" "${HFU_BASE}" >&2
+        "${W_BASE}" "${W_BASE}" >&2
     exit 1
 fi
 
-python3 - "${HFU_BASE}" "$1" << 'PY'
+python3 - "${W_BASE}" "$1" << 'PY'
 import re
 import sys
 from pathlib import Path

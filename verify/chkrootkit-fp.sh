@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : verify/chkrootkit-fp.sh
-# Updated at : 2026-10-05
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
@@ -17,14 +17,14 @@ if ! command -v chkrootkit >/dev/null 2>&1; then
     exit 1
 fi
 
-log_dir="/var/log/high-fortress-user"
+log_dir="/var/log/liltress-workstation"
 mkdir -p "${log_dir}"
 stamp="$(date +%Y%m%d-%H%M%S)"
 log_file="${log_dir}/chkrootkit-fp-${stamp}.log"
 version="$(chkrootkit -V 2>&1 | head -5)"
 
 {
-    echo "High-Fortress User — relevé chkrootkit (faux positifs)"
+    echo "Liltress Workstation — relevé chkrootkit (faux positifs)"
     echo "date : $(date -Iseconds)"
     echo "hôte : $(hostname)"
     echo "démarrage : $(uptime -s 2>/dev/null || who -b)"

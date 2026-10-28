@@ -1,27 +1,27 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/chkrootkit.sh
-# Updated at : 2026-10-22
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
 set -euo pipefail
-HFU_BASE="${HFU_BASE:-/opt/high-fortress-user}"
+W_BASE="${W_BASE:-/opt/liltress-workstation}"
 # shellcheck disable=SC1091
-source "${HFU_BASE}/cron/bin/common.sh"
+source "${W_BASE}/cron/bin/common.sh"
 LOG_FILE="${LOG_DIR}/chkrootkit-${STAMP}.log"
 ALERT_FILE="${ALERT_DIR}/chkrootkit-${STAMP}.txt"
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-if [[ -f "${HFU_BASE}/src/core/fs.sh" ]]; then
+if [[ -f "${W_BASE}/src/core/fs.sh" ]]; then
     # shellcheck disable=SC1091
-    source "${HFU_BASE}/src/core/fs.sh"
+    source "${W_BASE}/src/core/fs.sh"
 elif [[ -f "${HERE}/../../../core/fs.sh" ]]; then
     # shellcheck disable=SC1091
     source "${HERE}/../../../core/fs.sh"
 fi
 IGNORE=""
-if declare -F hf_locate_config_file >/dev/null 2>&1; then
-    IGNORE="$(hf_locate_config_file chkrootkit/patterns.ignore || true)"
+if declare -F g_locate_config_file >/dev/null 2>&1; then
+    IGNORE="$(g_locate_config_file chkrootkit/patterns.ignore || true)"
 fi
 if [[ ! -f "${IGNORE}" && -f "${HERE}/../../../config/chkrootkit/patterns.ignore" ]]; then
     IGNORE="${HERE}/../../../config/chkrootkit/patterns.ignore"
@@ -30,12 +30,12 @@ if [[ ! -f "${IGNORE}" && -f "${HERE}/chkrootkit.ignore" ]]; then
     IGNORE="${HERE}/chkrootkit.ignore"
 fi
 if [[ ! -f "${IGNORE}" ]]; then
-    IGNORE="${HFU_BASE}/src/config/chkrootkit/patterns.ignore"
+    IGNORE="${W_BASE}/src/config/chkrootkit/patterns.ignore"
 fi
 
-LOCAL_IGNORE="${HFU_BASE}/cron/chkrootkit.local.ignore"
+LOCAL_IGNORE="${W_BASE}/cron/chkrootkit.local.ignore"
 if ! command -v chkrootkit >/dev/null; then
-    hfu_log_pass "chkrootkit absent — skip"
+    w_log_pass "chkrootkit absent — skip"
     exit 0
 fi
 set +e
@@ -44,7 +44,7 @@ rc=$?
 set -e
 crashed=0
 if [[ "${rc}" -ge 128 ]]; then
-    hf_log_alert "$(hf_get_crash_sentence "chkrootkit" "${rc}")"
+    g_log_alert "$(g_get_crash_sentence "chkrootkit" "${rc}")"
     crashed=1
 fi
 if [[ -f "${IGNORE}" || -f "${LOCAL_IGNORE}" ]]; then
@@ -98,21 +98,21 @@ while i < len(kept):
 Path(log_path).write_text(("\n".join(out) + "\n") if out else "")
 PY
 fi
-HF_CONFIRMED_COUNT=0
+G_CONFIRMED_COUNT=0
 confirmed_tmp="$(mktemp)"
-hf_quarantine_confirmed_log chkrootkit "${LOG_FILE}" systemd sshd unbound fail2ban gamescope > "${confirmed_tmp}" || true
+g_quarantine_confirmed_log chkrootkit "${LOG_FILE}" systemd sshd unbound fail2ban gamescope > "${confirmed_tmp}" || true
 if [[ -s "${confirmed_tmp}" ]]; then
     cat "${confirmed_tmp}" >> "${LOG_FILE}"
 fi
 rm -f "${confirmed_tmp}"
 if [[ -s "${LOG_FILE}" ]]; then
-    if [[ "${HF_CONFIRMED_COUNT:-0}" -eq 0 ]]; then
-        HFU_CHKROOTKIT_IGNORE=1 \
-            hf_log_alert "chkrootkit a produit une sortie (voir ${LOG_FILE})"
+    if [[ "${G_CONFIRMED_COUNT:-0}" -eq 0 ]]; then
+        W_CHKROOTKIT_IGNORE=1 \
+            g_log_alert "chkrootkit a produit une sortie (voir ${LOG_FILE})"
     else
-        hf_log_alert "chkrootkit a produit une sortie (voir ${LOG_FILE})"
+        g_log_alert "chkrootkit a produit une sortie (voir ${LOG_FILE})"
     fi
 elif [[ "${crashed}" -eq 0 ]]; then
-    hfu_log_pass "chkrootkit silencieux (OK)"
+    w_log_pass "chkrootkit silencieux (OK)"
 fi
 exit 0

@@ -1,6 +1,6 @@
 # =============================================================================
-# File       : config/cron/hfu-periodic-scan.timer
-# Updated at : 2026-10-20
+# File       : config/cron/w-periodic-scan.timer
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
@@ -8,11 +8,11 @@
 Description=Relance l'analyse ClamAV toutes les deux heures
 
 [Timer]
-OnBootSec=${HFU_PERIODIC_ON_BOOT_SEC}
-OnUnitActiveSec=${HFU_PERIODIC_EVERY}
-AccuracySec=${HFU_PERIODIC_ACCURACY}
-Persistent=${HFU_TIMER_PERSISTENT}
-Unit=hfu-periodic-scan.service
+OnBootSec=${W_PERIODIC_ON_BOOT_SEC}
+OnUnitActiveSec=${W_PERIODIC_EVERY}
+AccuracySec=${W_PERIODIC_ACCURACY}
+Persistent=${W_TIMER_PERSISTENT}
+Unit=w-periodic-scan.service
 
 [Install]
 WantedBy=timers.target

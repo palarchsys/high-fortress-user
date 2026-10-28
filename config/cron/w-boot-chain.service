@@ -1,6 +1,6 @@
 # =============================================================================
-# File       : config/cron/hfu-boot-chain.service
-# Updated at : 2026-10-15
+# File       : config/cron/w-boot-chain.service
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
@@ -11,6 +11,6 @@ DefaultDependencies=no
 
 [Service]
 Type=oneshot
-ExecStart=-${systemctl_bin} start --wait hfu-boot-scan.service
-ExecStart=-${systemctl_bin} start --wait hfu-idle-scan.service
-ExecStart=-${systemctl_bin} start --wait hfu-reboot-notice.service
+ExecStart=-${systemctl_bin} start --wait w-boot-scan.service
+ExecStart=-${systemctl_bin} start --wait w-idle-scan.service
+ExecStart=-${systemctl_bin} start --wait w-reboot-notice.service

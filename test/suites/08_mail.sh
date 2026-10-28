@@ -1,27 +1,27 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : test/suites/08_mail.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
-hft_section "modèle éditable"
-MONO="$(cd -- "${HFT_ROOT}/.." && pwd)"
+t_section "modèle éditable"
+MONO="$(cd -- "${T_ROOT}/.." && pwd)"
 mail_sh="${MONO}/core/mail.sh"
-tpl="${HFT_ROOT}/template/mail.html"
+tpl="${T_ROOT}/template/mail.html"
 
-if grep -q '^HF_MAIL_TEMPLATE="mail.html"$' "${HFT_ROOT}/config/global.conf" \
-   && grep -q 'hf_install_mail_templates' "${HFT_ROOT}/service/cron/configure.sh" \
-   && grep -q 'hf_deliver_mail' "${HFT_ROOT}/service/cron/watchdogs/send.sh" \
-   && grep -q 'hf_render_mail' "${MONO}/core/watchdog.sh" \
-   && grep -q 'core/watchdog.sh' "${HFT_ROOT}/service/cron/configure.sh" \
-   && ! grep -q 'HF_MAIL_REDACT=1' "${HFT_ROOT}/service/cron/watchdogs/send.sh" \
+if grep -q '^G_MAIL_TEMPLATE="mail.html"$' "${T_ROOT}/config/global.conf" \
+   && grep -q 'g_install_mail_templates' "${T_ROOT}/service/cron/configure.sh" \
+   && grep -q 'g_deliver_mail' "${T_ROOT}/service/cron/watchdogs/send.sh" \
+   && grep -q 'g_render_mail' "${MONO}/core/watchdog.sh" \
+   && grep -q 'core/watchdog.sh' "${T_ROOT}/service/cron/configure.sh" \
+   && ! grep -q 'G_MAIL_REDACT=1' "${T_ROOT}/service/cron/watchdogs/send.sh" \
    && grep -q 'NOTE_CMD' "${tpl}" \
    && grep -q '<!--NOTE_START-->' "${tpl}" \
    && grep -q '<!--NOTE_END-->' "${tpl}"; then
-    hft_pass "mail.wired" "template/mail.html, copie à l'install, rendu sans masquage des identifiants"
+    t_pass "mail.wired" "template/mail.html, copie à l'install, rendu sans masquage des identifiants"
 else
-    hft_fail "mail.wired" "le poste doit rendre template/mail.html via core/mail.sh"
+    t_fail "mail.wired" "le poste doit rendre template/mail.html via core/mail.sh"
 fi
 
 # shellcheck disable=SC1090
@@ -30,46 +30,46 @@ stage="$(mktemp -d)"
 mkdir -p "${stage}/template" "${stage}/dest"
 printf '<pre>${CONTENT}</pre>\n' > "${stage}/template/mail.html"
 printf '<pre>autre</pre>\n' > "${stage}/template/autre.html"
-if HF_INSTALL_DIRECTORY="${stage}" HF_MAIL_TEMPLATE="autre.html" hf_install_mail_templates "${stage}/dest" \
+if G_INSTALL_DIRECTORY="${stage}" G_MAIL_TEMPLATE="autre.html" g_install_mail_templates "${stage}/dest" \
    && [[ -f "${stage}/dest/mail.html" && -f "${stage}/dest/autre.html" ]] \
    && grep -q 'autre' "${stage}/dest/autre.html"; then
-    hft_pass "mail.install-many" "tous les .html de template/ sont copiés"
+    t_pass "mail.install-many" "tous les .html de template/ sont copiés"
 else
-    hft_fail "mail.install-many" "la copie des modèles a échoué"
+    t_fail "mail.install-many" "la copie des modèles a échoué"
 fi
 mkdir -p "${stage}/dest-e"
 
-if HF_INSTALL_DIRECTORY="${stage}" HF_MAIL_TEMPLATE="mail.html" bash -c '
+if G_INSTALL_DIRECTORY="${stage}" G_MAIL_TEMPLATE="mail.html" bash -c '
     set -euo pipefail
     # shellcheck disable=SC1090
     source "$1"
-    hf_install_mail_templates "$2"
+    g_install_mail_templates "$2"
 ' bash "${mail_sh}" "${stage}/dest-e" \
    && [[ -f "${stage}/dest-e/mail.html" ]]; then
-    hft_pass "mail.install-set-e" "la copie survit à set -e quand nullglob est inactif"
+    t_pass "mail.install-set-e" "la copie survit à set -e quand nullglob est inactif"
 else
-    hft_fail "mail.install-set-e" "la copie quitte sous set -e sans écrire le modèle"
+    t_fail "mail.install-set-e" "la copie quitte sous set -e sans écrire le modèle"
 fi
 rm -rf "${stage}"
 
-export TITLE="Essai" HF_PROJECT_NAME="High-Fortress User" HOSTNAME="poste" DATE="2026-01-01" MODULE_NAME="Test"
+export TITLE="Essai" G_PROJECT_NAME="Liltress Workstation" HOSTNAME="poste" DATE="2026-01-01" MODULE_NAME="Test"
 export CONTENT='<script>$HOME'
 export NOTE="" NOTE_CMD=""
-unset HF_MAIL_REDACT || true
-if rendered="$(hf_render_mail "${tpl}")" \
+unset G_MAIL_REDACT || true
+if rendered="$(g_render_mail "${tpl}")" \
    && printf '%s' "${rendered}" | grep -q '<pre' \
    && printf '%s' "${rendered}" | grep -q '&lt;script&gt;\$HOME' \
    && ! printf '%s' "${rendered}" | grep -q '<!--NOTE_START-->'; then
-    hft_pass "mail.render" "échappement HTML et bloc note retiré"
+    t_pass "mail.render" "échappement HTML et bloc note retiré"
 else
-    hft_fail "mail.render" "le rendu du modèle poste est invalide"
+    t_fail "mail.render" "le rendu du modèle poste est invalide"
 fi
 
 export NOTE="voir le journal" NOTE_CMD="sudo true"
-if rendered="$(hf_render_mail "${tpl}")" \
+if rendered="$(g_render_mail "${tpl}")" \
    && printf '%s' "${rendered}" | grep -q 'voir le journal' \
    && printf '%s' "${rendered}" | grep -q 'sudo true'; then
-    hft_pass "mail.note" "NOTE et NOTE_CMD sont insérés"
+    t_pass "mail.note" "NOTE et NOTE_CMD sont insérés"
 else
-    hft_fail "mail.note" "le second bloc du modèle n'est pas rendu"
+    t_fail "mail.note" "le second bloc du modèle n'est pas rendu"
 fi

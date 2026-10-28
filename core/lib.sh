@@ -1,70 +1,70 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : core/lib.sh
-# Updated at : 2026-10-27
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
 set -euo pipefail
 
-if [[ -z "${HF_PRODUCT_ROOT:-}" ]]; then
-    if [[ -n "${HF_INSTALL_DIRECTORY:-}" ]]; then
-        HF_PRODUCT_ROOT="${HF_INSTALL_DIRECTORY}"
+if [[ -z "${G_PRODUCT_ROOT:-}" ]]; then
+    if [[ -n "${G_INSTALL_DIRECTORY:-}" ]]; then
+        G_PRODUCT_ROOT="${G_INSTALL_DIRECTORY}"
     else
-        HF_PRODUCT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+        G_PRODUCT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
     fi
 fi
-export HF_PRODUCT_ROOT
+export G_PRODUCT_ROOT
 
-if [[ -f "${HF_PRODUCT_ROOT}/../core/bootstrap.sh" ]]; then
+if [[ -f "${G_PRODUCT_ROOT}/../core/bootstrap.sh" ]]; then
     # shellcheck disable=SC1091
-    source "${HF_PRODUCT_ROOT}/../core/bootstrap.sh"
-elif [[ -f "${HF_PRODUCT_ROOT}/core/bootstrap.sh" ]]; then
+    source "${G_PRODUCT_ROOT}/../core/bootstrap.sh"
+elif [[ -f "${G_PRODUCT_ROOT}/core/bootstrap.sh" ]]; then
     # shellcheck disable=SC1091
-    source "${HF_PRODUCT_ROOT}/core/bootstrap.sh"
+    source "${G_PRODUCT_ROOT}/core/bootstrap.sh"
 else
-    printf 'bootstrap core introuvable depuis %s\n' "${HF_PRODUCT_ROOT}" >&2
+    printf 'bootstrap core introuvable depuis %s\n' "${G_PRODUCT_ROOT}" >&2
     exit 1
 fi
-hf_source_core log.sh
-hf_source_core exec.sh
-hf_source_core fs.sh
+g_source_core log.sh
+g_source_core exec.sh
+g_source_core fs.sh
 
-hf_check_workstation() {
-    [[ "${HFS_SERVER_TYPE:-}" == "WORKSTATION" || "${HFU_PROJECT_SLUG:-}" == "high-fortress-user" ]] && return 0
-    [[ -n "${HF_PRODUCT_ROOT:-}" && -f "${HF_PRODUCT_ROOT}/config/global.conf" ]] || return 1
-    grep -qE '^(HFS_SERVER_TYPE="WORKSTATION"|HFU_PROJECT_SLUG="high-fortress-user")$' "${HF_PRODUCT_ROOT}/config/global.conf"
+g_check_workstation() {
+    [[ "${S_SERVER_TYPE:-}" == "WORKSTATION" || "${W_PROJECT_SLUG:-}" == "liltress-workstation" ]] && return 0
+    [[ -n "${G_PRODUCT_ROOT:-}" && -f "${G_PRODUCT_ROOT}/config/global.conf" ]] || return 1
+    grep -qE '^(S_SERVER_TYPE="WORKSTATION"|W_PROJECT_SLUG="liltress-workstation")$' "${G_PRODUCT_ROOT}/config/global.conf"
 }
 
-hf_check_localhost_port() {
+g_check_localhost_port() {
     local port="$1"
     local line
     line="$(ss -ltnp "sport = :${port}" 2>/dev/null | awk 'NR>1')"
     if [[ -n "${line}" ]]; then
-        hf_log_error "Port TCP ${port} déjà occupé — bind Docker 127.0.0.1:${port} impossible : ${line}"
+        g_log_error "Port TCP ${port} déjà occupé — bind Docker 127.0.0.1:${port} impossible : ${line}"
     fi
 }
 
-hf_set_main_hostname() {
-    case "${HFS_SERVER_TYPE:-}" in
-        MATRIX)    MAIN_HOSTNAME="${HFS_HOSTNAME_MATRIX}" ;;
-        LIVEKIT)   MAIN_HOSTNAME="${HFS_HOSTNAME_LIVEKIT}" ;;
-        WIREGUARD) MAIN_HOSTNAME="${HFS_HOSTNAME_WIREGUARD}" ;;
-        *) hf_log_error "HFS_SERVER_TYPE invalide : '${HFS_SERVER_TYPE:-}'" ;;
+g_set_main_hostname() {
+    case "${S_SERVER_TYPE:-}" in
+        MATRIX)    MAIN_HOSTNAME="${S_HOSTNAME_MATRIX}" ;;
+        LIVEKIT)   MAIN_HOSTNAME="${S_HOSTNAME_LIVEKIT}" ;;
+        WIREGUARD) MAIN_HOSTNAME="${S_HOSTNAME_WIREGUARD}" ;;
+        *) g_log_error "S_SERVER_TYPE invalide : '${S_SERVER_TYPE:-}'" ;;
     esac
     export MAIN_HOSTNAME
 }
 
-hfs_get_matrix_admin_token() {
+s_get_matrix_admin_token() {
     local url="${MATRIX_URL:-http://127.0.0.1:8008}"
-    local user="${HFS_MATRIX_ADMIN_USER}"
-    local pass="${HFS_MATRIX_ADMIN_PASSWORD}"
+    local user="${S_MATRIX_ADMIN_USER}"
+    local pass="${S_MATRIX_ADMIN_PASSWORD}"
 
     if [ -z "$user" ] || [ -z "$pass" ]; then
-        hf_log_error "HFS_MATRIX_ADMIN_USER ou HFS_MATRIX_ADMIN_PASSWORD vide."
+        g_log_error "S_MATRIX_ADMIN_USER ou S_MATRIX_ADMIN_PASSWORD vide."
     fi
 
-    hf_log_info "Récupération du jeton Matrix de ${user}"
+    g_log_info "Récupération du jeton Matrix de ${user}"
 
     local payload
     payload=$(jq -n --arg user "$user" --arg pass "$pass" \
@@ -75,19 +75,19 @@ hfs_get_matrix_admin_token() {
         -H "Content-Type: application/json" \
         -d "${payload}")
 
-    HFS_MATRIX_ADMIN_ACCESS_TOKEN=$(echo "$response" | jq -r '.access_token // empty')
+    S_MATRIX_ADMIN_ACCESS_TOKEN=$(echo "$response" | jq -r '.access_token // empty')
 
-    if [ -z "$HFS_MATRIX_ADMIN_ACCESS_TOKEN" ]; then
-        hf_log_info "$response" | jq . 2>/dev/null || echo "$response"
-        hf_log_error "Échec de récupération du token !"
+    if [ -z "$S_MATRIX_ADMIN_ACCESS_TOKEN" ]; then
+        g_log_info "$response" | jq . 2>/dev/null || echo "$response"
+        g_log_error "Échec de récupération du token !"
     fi
 
-    hf_log_success "Jeton Matrix récupéré"
+    g_log_success "Jeton Matrix récupéré"
 }
 
-hf_collect_product_logs() {
+g_collect_product_logs() {
     local snap="$1"
-    if hf_check_workstation; then
+    if g_check_workstation; then
         return 0
     fi
     nginx -t > "${snap}/nginx-t.txt" 2>&1 || true
@@ -120,40 +120,40 @@ hf_collect_product_logs() {
         cp -a /etc/nginx/sites-enabled/. "${snap}/etc/nginx-sites-enabled/" 2>/dev/null || true
     fi
 
-    if [[ -n "${HFS_DOCKER_BASE_DIRECTORY:-}" && -d "${HFS_DOCKER_BASE_DIRECTORY}" ]]; then
+    if [[ -n "${S_DOCKER_BASE_DIRECTORY:-}" && -d "${S_DOCKER_BASE_DIRECTORY}" ]]; then
         mkdir -p "${snap}/docker-compose"
-        find "${HFS_DOCKER_BASE_DIRECTORY}" -name 'docker-compose.yml' -exec cp -a {} "${snap}/docker-compose/" \; 2>/dev/null || true
+        find "${S_DOCKER_BASE_DIRECTORY}" -name 'docker-compose.yml' -exec cp -a {} "${snap}/docker-compose/" \; 2>/dev/null || true
         find "${snap}/docker-compose" -name '*.env' -delete 2>/dev/null || true
     fi
 
-    hf_copy_unit_journals "${snap}" \
+    g_copy_unit_journals "${snap}" \
         nginx docker containerd fail2ban crowdsec crowdsec-firewall-bouncer \
         auditd clamav-daemon clamav-freshclam clamonacc postfix ssh redis-server cron apparmor \
         || true
 }
 
-hf_set_statoverride_user_exec() {
+g_set_statoverride_user_exec() {
     local path="$1"
     local out=""
     [[ -e "${path}" && ! -L "${path}" ]] || return 0
     if dpkg-statoverride --list "${path}" >/dev/null 2>&1; then
-        out="$(dpkg-statoverride --remove "${path}" 2>&1)" || hf_log_error "dpkg-statoverride --remove ${path} : ${out}"
+        out="$(dpkg-statoverride --remove "${path}" 2>&1)" || g_log_error "dpkg-statoverride --remove ${path} : ${out}"
     fi
-    out="$(dpkg-statoverride --update --add "${HFS_MAIN_USER}" "${HFS_MAIN_GROUP}" 500 "${path}" 2>&1)" \
-        || hf_log_error "dpkg-statoverride ${path} : ${out}"
+    out="$(dpkg-statoverride --update --add "${S_MAIN_USER}" "${S_MAIN_GROUP}" 500 "${path}" 2>&1)" \
+        || g_log_error "dpkg-statoverride ${path} : ${out}"
 }
 
-hf_lock_npm_to_main_user() {
-    [[ "${HFS_SERVER_TYPE:-}" == "MATRIX" ]] || return 0
+g_lock_npm_to_main_user() {
+    [[ "${S_SERVER_TYPE:-}" == "MATRIX" ]] || return 0
     command -v dpkg-statoverride >/dev/null 2>&1 || return 0
     local have_npm=0 have_corepack=0
     dpkg -s npm >/dev/null 2>&1 && have_npm=1
     dpkg -s node-corepack >/dev/null 2>&1 && have_corepack=1
     [[ "${have_npm}" -eq 1 || "${have_corepack}" -eq 1 ]] || return 0
-    [[ -n "${HFS_MAIN_USER:-}" && -n "${HFS_MAIN_GROUP:-}" ]] || hf_log_error "npm : HFS_MAIN_USER ou HFS_MAIN_GROUP vide"
-    getent passwd "${HFS_MAIN_USER}" >/dev/null || hf_log_error "npm : compte ${HFS_MAIN_USER} introuvable"
-    getent group "${HFS_MAIN_GROUP}" >/dev/null || hf_log_error "npm : groupe ${HFS_MAIN_GROUP} introuvable"
-    hf_log_info "Réservation de npm pour ${HFS_MAIN_USER}"
+    [[ -n "${S_MAIN_USER:-}" && -n "${S_MAIN_GROUP:-}" ]] || g_log_error "npm : S_MAIN_USER ou S_MAIN_GROUP vide"
+    getent passwd "${S_MAIN_USER}" >/dev/null || g_log_error "npm : compte ${S_MAIN_USER} introuvable"
+    getent group "${S_MAIN_GROUP}" >/dev/null || g_log_error "npm : groupe ${S_MAIN_GROUP} introuvable"
+    g_log_info "Réservation de npm pour ${S_MAIN_USER}"
 
     local listed="" real="" root="" locked=0
     while IFS= read -r listed; do
@@ -169,13 +169,13 @@ hf_lock_npm_to_main_user() {
                     */bin/node|*/bin/nodejs|"") ;;
                     *)
                         if [[ -f "${real}" ]]; then
-                            hf_set_statoverride_user_exec "${real}"
+                            g_set_statoverride_user_exec "${real}"
                             locked=1
                         fi
                         ;;
                 esac
             elif [[ -f "${listed}" ]]; then
-                hf_set_statoverride_user_exec "${listed}"
+                g_set_statoverride_user_exec "${listed}"
                 locked=1
             fi
         fi
@@ -191,12 +191,12 @@ hf_lock_npm_to_main_user() {
     done < <(if [[ "${have_npm}" -eq 1 ]]; then dpkg -L npm 2>/dev/null || true; fi)
 
     if [[ -n "${root}" ]]; then
-        hf_set_statoverride_user_exec "${root}"
+        g_set_statoverride_user_exec "${root}"
         locked=1
     fi
 
     if [[ "${have_corepack}" -eq 1 && -d /usr/share/nodejs/corepack ]]; then
-        hf_set_statoverride_user_exec /usr/share/nodejs/corepack
+        g_set_statoverride_user_exec /usr/share/nodejs/corepack
         locked=1
     fi
     if [[ -e /usr/bin/corepack || -L /usr/bin/corepack ]]; then
@@ -209,103 +209,103 @@ hf_lock_npm_to_main_user() {
             */bin/node|*/bin/nodejs|"") ;;
             *)
                 if [[ -n "${real}" && -f "${real}" ]]; then
-                    hf_set_statoverride_user_exec "${real}"
+                    g_set_statoverride_user_exec "${real}"
                     locked=1
                 fi
                 ;;
         esac
     fi
     if [[ "${have_npm}" -eq 1 && "${locked}" -eq 0 ]]; then
-        hf_log_error "npm est installé, aucun fichier à réserver à ${HFS_MAIN_USER}"
+        g_log_error "npm est installé, aucun fichier à réserver à ${S_MAIN_USER}"
     fi
     [[ "${locked}" -eq 1 ]] || return 0
-    hf_log_success "npm réservé à ${HFS_MAIN_USER}"
+    g_log_success "npm réservé à ${S_MAIN_USER}"
 }
 
-hf_get_local_browser() {
-    [[ "${HF_MODE_TEST:-0}" == "1" || "${HFS_MODE_DEV:-0}" == "1" ]]
+g_get_local_browser() {
+    [[ "${G_MODE_TEST:-0}" == "1" || "${S_MODE_DEV:-0}" == "1" ]]
 }
 
-hf_apply_runtime_urls() {
-    if hf_get_local_browser; then
-        HFS_KEYCLOAK_PUBLIC_BASE_URL="http://127.0.0.1:${HFS_PORT_KEYCLOAK}"
-        HFS_MATRIX_PUBLIC_BASE_URL="http://127.0.0.1:${HFS_PORT_SYNAPSE}"
-        HFS_ELEMENT_PUBLIC_BASE_URL="http://127.0.0.1:${HFS_PORT_ELEMENT}"
-        HF_PUBLIC_BASE_URL="http://127.0.0.1:${HFS_PORT_WEB_UI}"
-        HF_API_BASE_URL="http://127.0.0.1:${HFS_PORT_WEB_API}"
-        HF_CORS_ORIGINS="http://127.0.0.1:${HFS_PORT_WEB_UI}"
-        HF_LIVEKIT_URL="ws://127.0.0.1:${HFS_PORT_LIVEKIT_SFU}"
-        HF_JWT_URL="http://127.0.0.1:${HFS_PORT_LIVEKIT_JWT}"
-        HFS_WIREGUARD_HOST="127.0.0.1"
-        HF_WIREGUARD_UI_URL="http://127.0.0.1:${HFS_PORT_WIREGUARD_UI}"
+g_apply_runtime_urls() {
+    if g_get_local_browser; then
+        S_KEYCLOAK_PUBLIC_BASE_URL="http://127.0.0.1:${S_PORT_KEYCLOAK}"
+        S_MATRIX_PUBLIC_BASE_URL="http://127.0.0.1:${S_PORT_SYNAPSE}"
+        S_ELEMENT_PUBLIC_BASE_URL="http://127.0.0.1:${S_PORT_ELEMENT}"
+        G_PUBLIC_BASE_URL="http://127.0.0.1:${S_PORT_WEB_UI}"
+        G_API_BASE_URL="http://127.0.0.1:${S_PORT_WEB_API}"
+        G_CORS_ORIGINS="http://127.0.0.1:${S_PORT_WEB_UI}"
+        G_LIVEKIT_URL="ws://127.0.0.1:${S_PORT_LIVEKIT_SFU}"
+        G_JWT_URL="http://127.0.0.1:${S_PORT_LIVEKIT_JWT}"
+        S_WIREGUARD_HOST="127.0.0.1"
+        G_WIREGUARD_UI_URL="http://127.0.0.1:${S_PORT_WIREGUARD_UI}"
     else
-        HF_PUBLIC_BASE_URL="https://${HFS_DOMAIN}"
-        HF_API_BASE_URL="https://${HFS_DOMAIN_WEB_API}"
-        HF_CORS_ORIGINS="https://${HFS_DOMAIN}"
-        HF_LIVEKIT_URL="wss://${HFS_DOMAIN_LIVEKIT_SFU}"
-        HF_JWT_URL="https://${HFS_DOMAIN_LIVEKIT_JWT}"
-        HFS_WIREGUARD_HOST="${HFS_DOMAIN_WIREGUARD}"
-        HF_WIREGUARD_UI_URL="https://${HFS_DOMAIN_WIREGUARD}"
+        G_PUBLIC_BASE_URL="https://${S_DOMAIN}"
+        G_API_BASE_URL="https://${S_DOMAIN_WEB_API}"
+        G_CORS_ORIGINS="https://${S_DOMAIN}"
+        G_LIVEKIT_URL="wss://${S_DOMAIN_LIVEKIT_SFU}"
+        G_JWT_URL="https://${S_DOMAIN_LIVEKIT_JWT}"
+        S_WIREGUARD_HOST="${S_DOMAIN_WIREGUARD}"
+        G_WIREGUARD_UI_URL="https://${S_DOMAIN_WIREGUARD}"
     fi
-    export HFS_KEYCLOAK_PUBLIC_BASE_URL HFS_MATRIX_PUBLIC_BASE_URL HFS_ELEMENT_PUBLIC_BASE_URL
-    export HF_PUBLIC_BASE_URL HF_API_BASE_URL HF_CORS_ORIGINS
-    export HF_LIVEKIT_URL HF_JWT_URL HFS_WIREGUARD_HOST HF_WIREGUARD_UI_URL
+    export S_KEYCLOAK_PUBLIC_BASE_URL S_MATRIX_PUBLIC_BASE_URL S_ELEMENT_PUBLIC_BASE_URL
+    export G_PUBLIC_BASE_URL G_API_BASE_URL G_CORS_ORIGINS
+    export G_LIVEKIT_URL G_JWT_URL S_WIREGUARD_HOST G_WIREGUARD_UI_URL
 }
 
-hf_set_mode_test_turnstile() {
-    [[ "${HF_MODE_TEST:-0}" == "1" ]] || return 0
-    HFS_TURNSTILE_SITE_KEY="1x00000000000000000000AA"
-    HFS_TURNSTILE_SECRET_KEY="1x0000000000000000000000000000000AA"
-    export HFS_TURNSTILE_SITE_KEY HFS_TURNSTILE_SECRET_KEY
+g_set_mode_test_turnstile() {
+    [[ "${G_MODE_TEST:-0}" == "1" ]] || return 0
+    S_TURNSTILE_SITE_KEY="1x00000000000000000000AA"
+    S_TURNSTILE_SECRET_KEY="1x0000000000000000000000000000000AA"
+    export S_TURNSTILE_SITE_KEY S_TURNSTILE_SECRET_KEY
 }
 
-hf_strip_mode_test_host() {
+g_strip_mode_test_host() {
     [[ -f /etc/hosts ]] || return 0
-    grep -q '# BEGIN high-fortress HF_MODE_TEST' /etc/hosts || return 0
-    hf_log_info "Retrait des noms de domaine de /etc/hosts"
+    grep -q '# BEGIN liltress G_MODE_TEST' /etc/hosts || return 0
+    g_log_info "Retrait des noms de domaine de /etc/hosts"
     local tmp
     tmp="$(mktemp)"
     awk '
-        $0 == "# BEGIN high-fortress HF_MODE_TEST" { skip = 1; next }
-        $0 == "# END high-fortress HF_MODE_TEST" { skip = 0; next }
+        $0 == "# BEGIN liltress G_MODE_TEST" { skip = 1; next }
+        $0 == "# END liltress G_MODE_TEST" { skip = 0; next }
         skip { next }
         { print }
     ' /etc/hosts > "${tmp}"
     cat "${tmp}" > /etc/hosts
     rm -f "${tmp}"
-    hf_log_success "Noms de domaine retirés de /etc/hosts"
+    g_log_success "Noms de domaine retirés de /etc/hosts"
 }
 
-hf_apply_mode_test_local() {
-    [[ "${HF_MODE_TEST:-0}" == "1" ]] || return 0
+g_apply_mode_test_local() {
+    [[ "${G_MODE_TEST:-0}" == "1" ]] || return 0
 
-    local live="/etc/letsencrypt/live/${HFS_DOMAIN}"
-    hf_log_info "Préparation de l'accès local HF_MODE_TEST"
+    local live="/etc/letsencrypt/live/${S_DOMAIN}"
+    g_log_info "Préparation de l'accès local G_MODE_TEST"
     mkdir -p "${live}"
     openssl req -x509 -nodes -newkey rsa:2048 -days 365 \
         -keyout "${live}/privkey.pem" \
         -out "${live}/fullchain.pem" \
-        -subj "/CN=${HFS_DOMAIN}" >/dev/null 2>&1
+        -subj "/CN=${S_DOMAIN}" >/dev/null 2>&1
     chmod 640 "${live}/privkey.pem"
     chmod 644 "${live}/fullchain.pem"
 
-    hf_strip_mode_test_host
-    if [[ -f /usr/local/share/ca-certificates/high-fortress-mode-test.crt ]]; then
-        hf_log_info "Retrait du certificat de test du magasin système"
-        rm -f /usr/local/share/ca-certificates/high-fortress-mode-test.crt
+    g_strip_mode_test_host
+    if [[ -f /usr/local/share/ca-certificates/liltress-mode-test.crt ]]; then
+        g_log_info "Retrait du certificat de test du magasin système"
+        rm -f /usr/local/share/ca-certificates/liltress-mode-test.crt
         update-ca-certificates >/dev/null || true
-        hf_log_success "Certificat de test retiré du magasin système"
+        g_log_success "Certificat de test retiré du magasin système"
     fi
-    hf_log_success "Accès local HF_MODE_TEST prêt, navigateur sur http://127.0.0.1"
+    g_log_success "Accès local G_MODE_TEST prêt, navigateur sur http://127.0.0.1"
 }
 
-hf_get_current_user() {
-    local u="${SUDO_USER:-${HFU_USER:-}}"
+g_get_current_user() {
+    local u="${SUDO_USER:-${W_USER:-}}"
     if [[ -z "$u" || "$u" == "root" ]]; then
         u="$(awk -F: '$3 >= 1000 && $3 < 65534 && $1 != "nobody" { print $1; exit }' /etc/passwd)"
     fi
     if [[ -z "$u" ]]; then
-        hf_log_error "Impossible de déterminer l'utilisateur courant (SUDO_USER vide, aucun uid≥1000)."
+        g_log_error "Impossible de déterminer l'utilisateur courant (SUDO_USER vide, aucun uid≥1000)."
     fi
     CURRENT_USER="$u"
     CURRENT_GROUP="$(id -gn "$CURRENT_USER")"
@@ -314,7 +314,7 @@ hf_get_current_user() {
 }
 
 # Ubuntu itself, release 26.04 or newer. A derivative is refused.
-hf_check_ubuntu_base() {
+g_check_ubuntu_base() {
     local os_id="${ID:-}"
     local os_codename="${UBUNTU_CODENAME:-}"
     local version_id="${VERSION_ID:-}"
@@ -322,26 +322,26 @@ hf_check_ubuntu_base() {
     local base_version=""
 
     if [[ "${os_id}" != "ubuntu" ]]; then
-        hf_log_error "Ubuntu 26.04 ou plus récent requis. Système détecté : ${pretty}."
+        g_log_error "Ubuntu 26.04 ou plus récent requis. Système détecté : ${pretty}."
     fi
 
     if [[ "${version_id}" =~ ^([0-9]+)\.([0-9]+) ]]; then
         base_version="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
     fi
     if [[ -z "${base_version}" ]]; then
-        hf_log_error "Ubuntu 26.04 ou plus récent requis. Version détectée : ${version_id:-aucune}."
+        g_log_error "Ubuntu 26.04 ou plus récent requis. Version détectée : ${version_id:-aucune}."
     fi
 
     UBUNTU_BASE_VERSION="${base_version}"
     UBUNTU_BASE_CODENAME="${os_codename:-inconnu}"
     if ! dpkg --compare-versions "${UBUNTU_BASE_VERSION}" ge "26.04"; then
-        hf_log_error "Ubuntu ${UBUNTU_BASE_VERSION} (${UBUNTU_BASE_CODENAME}) refusée : elle n'est pas supérieure ou égale à 26.04."
+        g_log_error "Ubuntu ${UBUNTU_BASE_VERSION} (${UBUNTU_BASE_CODENAME}) refusée : elle n'est pas supérieure ou égale à 26.04."
     fi
     export UBUNTU_BASE_VERSION UBUNTU_BASE_CODENAME
 }
 
 # Return 0 when the resolved base is an LTS: even year, minor 4.
-hf_check_ubuntu_lts() {
+g_check_ubuntu_lts() {
     local version="${UBUNTU_BASE_VERSION:-}"
     local major=0
     local minor=0
@@ -358,7 +358,7 @@ hf_check_ubuntu_lts() {
 }
 
 # Print the Postfix map type in use: hash on 26.04, cdb on 26.10.
-hf_get_sasl_map_type() {
+g_get_sasl_map_type() {
     local map_type=""
     map_type="$(postconf -h default_database_type 2>/dev/null || true)"
     case "${map_type}" in
@@ -366,22 +366,22 @@ hf_get_sasl_map_type() {
             printf '%s\n' "${map_type}"
             ;;
         *)
-            hf_log_error "Type de carte Postfix refusé : ${map_type:-aucun}."
+            g_log_error "Type de carte Postfix refusé : ${map_type:-aucun}."
             ;;
     esac
 }
 
-hf_get_operating_system() {
+g_get_operating_system() {
     # shellcheck disable=SC1091
     source /etc/os-release
     OS_ID="${ID:-}"
     OS_VERSION_ID="${VERSION_ID:-}"
     OS_PRETTY="${PRETTY_NAME:-}"
     export OS_ID OS_VERSION_ID OS_PRETTY
-    hf_check_ubuntu_base
+    g_check_ubuntu_base
 }
 
-hfu_check_desktop_account() {
+w_check_desktop_account() {
     local uid="$1" home="$2" shell="$3"
     [[ "${uid}" -ge 1000 && "${uid}" -lt 60000 ]] || return 1
     [[ "${home}" == /home/* ]] || return 1
@@ -391,12 +391,12 @@ hfu_check_desktop_account() {
     return 0
 }
 
-hf_write_account_table() {
+g_write_account_table() {
     local dest="$1"
     local name uid gid gecos home shell groups shadow_fp maxdays
     : > "${dest}.tmp"
     while IFS=: read -r name _ uid gid gecos home shell; do
-        if ! hfu_check_desktop_account "${uid}" "${home}" "${shell}"; then
+        if ! w_check_desktop_account "${uid}" "${home}" "${shell}"; then
             continue
         fi
         groups="$(id -nG "${name}" | tr ' ' '\n' | LC_ALL=C sort | paste -sd, -)"
@@ -411,21 +411,21 @@ hf_write_account_table() {
     chmod 600 "${dest}"
 }
 
-HFU_ACCOUNT_SNAPSHOT="/var/lib/high-fortress-user/accounts/human.tsv"
+W_ACCOUNT_SNAPSHOT="/var/lib/liltress-workstation/accounts/human.tsv"
 
-hf_record_account_snapshot() {
-    mkdir -p /var/lib/high-fortress-user/accounts
-    chmod 700 /var/lib/high-fortress-user/accounts
-    hf_write_account_table "${HFU_ACCOUNT_SNAPSHOT}"
+g_record_account_snapshot() {
+    mkdir -p /var/lib/liltress-workstation/accounts
+    chmod 700 /var/lib/liltress-workstation/accounts
+    g_write_account_table "${W_ACCOUNT_SNAPSHOT}"
 
     local n
-    n="$(wc -l < "${HFU_ACCOUNT_SNAPSHOT}" | tr -d ' ')"
+    n="$(wc -l < "${W_ACCOUNT_SNAPSHOT}" | tr -d ' ')"
     if [[ "${n}" -lt 1 ]]; then
-        hf_log_error "Aucun compte de bureau sous /home : l'installateur Ubuntu doit avoir créé les utilisateurs."
+        g_log_error "Aucun compte de bureau sous /home : l'installateur Ubuntu doit avoir créé les utilisateurs."
     fi
 }
 
-hfu_strip_virt_groups() {
+w_strip_virt_groups() {
     awk -F '\t' 'BEGIN { OFS = "\t" } {
         n = split($7, g, ",")
         out = ""
@@ -439,8 +439,8 @@ hfu_strip_virt_groups() {
     }'
 }
 
-hf_check_account_drift() {
-    local current baseline="${HFU_ACCOUNT_SNAPSHOT}" norm_base norm_now
+g_check_account_drift() {
+    local current baseline="${W_ACCOUNT_SNAPSHOT}" norm_base norm_now
     [[ -f "${baseline}" ]] || {
         echo "snapshot des comptes absent (${baseline})"
         return 1
@@ -448,9 +448,9 @@ hf_check_account_drift() {
     current="$(mktemp)"
     norm_base="$(mktemp)"
     norm_now="$(mktemp)"
-    hf_write_account_table "${current}"
-    hfu_strip_virt_groups < "${baseline}" > "${norm_base}"
-    hfu_strip_virt_groups < "${current}" > "${norm_now}"
+    g_write_account_table "${current}"
+    w_strip_virt_groups < "${baseline}" > "${norm_base}"
+    w_strip_virt_groups < "${current}" > "${norm_now}"
     if cmp -s "${norm_base}" "${norm_now}"; then
         rm -f "${current}" "${norm_base}" "${norm_now}"
         return 0
@@ -461,28 +461,28 @@ hf_check_account_drift() {
 }
 
 # Read one keyword from an sshd -T dump on stdin. Match ignores keyword case.
-hf_read_sshd_value() {
+g_read_sshd_value() {
     local keyword="${1,,}"
     awk -v key="${keyword}" 'tolower($1) == key { print tolower($2); exit }'
 }
 
 # Print one effective sshd setting. 10.2 uses lowercase, 10.5 uses canonical case.
-hf_get_sshd_value() {
+g_get_sshd_value() {
     local keyword="${1,,}"
-    sshd -T 2>/dev/null | hf_read_sshd_value "${keyword}"
+    sshd -T 2>/dev/null | g_read_sshd_value "${keyword}"
 }
 
-hf_get_ssh_port() {
+g_get_ssh_port() {
     local port="22"
     if command -v sshd >/dev/null 2>&1; then
-        port="$(hf_get_sshd_value port)"
+        port="$(g_get_sshd_value port)"
         [[ -z "$port" ]] && port="22"
     fi
     SSH_PORT="$port"
     export SSH_PORT
 }
 
-hf_check_virtual_machine() {
+g_check_virtual_machine() {
     if command -v virsh >/dev/null 2>&1; then
         return 0
     fi
@@ -495,7 +495,7 @@ hf_check_virtual_machine() {
     return 1
 }
 
-hf_check_app() {
+g_check_app() {
     local name="$1"
     command -v "$name" >/dev/null 2>&1 && return 0
     dpkg-query -W -f '${Status}\n' "$name" 2>/dev/null | grep -q 'install ok' && return 0
@@ -503,17 +503,17 @@ hf_check_app() {
     return 1
 }
 
-hf_check_password_unchanged() {
+g_check_password_unchanged() {
     case "$*" in
         *chpasswd*|*passwd\ *|*" usermod -p "*|*chage*)
-            hf_log_error "Garde-fou : tentative de mutation de mot de passe interdite : $*"
+            g_log_error "Garde-fou : tentative de mutation de mot de passe interdite : $*"
             ;;
     esac
 }
 
-hfu_collect_product_logs() {
+w_collect_product_logs() {
     local snap="$1"
-    hf_check_workstation || return 0
+    g_check_workstation || return 0
     {
         echo "=== unbound ==="
         systemctl status unbound --no-pager -l 2>&1 | head -n 80 || true
@@ -525,14 +525,14 @@ hfu_collect_product_logs() {
         pro status 2>&1 | sed -E 's/[A-Za-z0-9]{20,}/[redacted]/g' > "${snap}/ubuntu-pro.txt" || true
     fi
 
-    hf_copy_unit_journals "${snap}" \
+    g_copy_unit_journals "${snap}" \
         unbound fail2ban crowdsec crowdsec-firewall-bouncer \
         auditd clamav-daemon clamav-freshclam clamonacc postfix ssh cron \
         unattended-upgrades apparmor \
         || true
 }
 
-hf_check_ubuntu_pro() {
+g_check_ubuntu_pro() {
     command -v pro >/dev/null 2>&1 || return 1
     local st
     st="$(pro status --format json 2>/dev/null || true)"

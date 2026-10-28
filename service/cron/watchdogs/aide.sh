@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/aide.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
 set -euo pipefail
-HFU_BASE="${HFU_BASE:-/opt/high-fortress-user}"
+W_BASE="${W_BASE:-/opt/liltress-workstation}"
 # shellcheck disable=SC1091
-source "${HFU_BASE}/cron/bin/common.sh"
+source "${W_BASE}/cron/bin/common.sh"
 LOG_FILE="${LOG_DIR}/aide-${STAMP}.log"
 ALERT_FILE="${ALERT_DIR}/aide-${STAMP}.txt"
 if ! command -v aide >/dev/null; then
-    hfu_log_pass "aide absent — skip"
+    w_log_pass "aide absent — skip"
     exit 0
 fi
 set +e
@@ -21,14 +21,14 @@ rc=$?
 set -e
 
 if [[ "${rc}" -eq 0 ]]; then
-    hfu_log_pass "AIDE: aucun changement"
+    w_log_pass "AIDE: aucun changement"
 elif [[ "${rc}" -ge 128 ]]; then
-    hf_log_alert "$(hf_get_crash_sentence "AIDE" "${rc}")"
+    g_log_alert "$(g_get_crash_sentence "AIDE" "${rc}")"
 elif [[ "${rc}" -ge 1 && "${rc}" -le 7 ]]; then
-    HFU_AIDE_REFRESH=1 \
-        hf_log_alert "AIDE: changements détectés (code ${rc}, détail ${LOG_FILE})"
+    W_AIDE_REFRESH=1 \
+        g_log_alert "AIDE: changements détectés (code ${rc}, détail ${LOG_FILE})"
 else
-    hf_log_alert "AIDE: erreur rc=${rc} (détail ${LOG_FILE})"
+    g_log_alert "AIDE: erreur rc=${rc} (détail ${LOG_FILE})"
 fi
 find "${LOG_DIR}" -name 'aide-*.log' -mtime +30 -delete 2>/dev/null || true
 exit 0

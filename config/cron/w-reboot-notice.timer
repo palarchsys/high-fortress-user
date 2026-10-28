@@ -1,6 +1,6 @@
 # =============================================================================
-# File       : config/cron/hfu-reboot-notice.timer
-# Updated at : 2026-10-15
+# File       : config/cron/w-reboot-notice.timer
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
@@ -8,10 +8,10 @@
 Description=Vérifie si un redémarrage est utile
 
 [Timer]
-OnUnitActiveSec=${HFU_REBOOT_EVERY}
-AccuracySec=${HFU_REBOOT_ACCURACY}
-Persistent=${HFU_TIMER_PERSISTENT}
-Unit=hfu-reboot-notice.service
+OnUnitActiveSec=${W_REBOOT_EVERY}
+AccuracySec=${W_REBOOT_ACCURACY}
+Persistent=${W_TIMER_PERSISTENT}
+Unit=w-reboot-notice.service
 
 [Install]
 WantedBy=timers.target

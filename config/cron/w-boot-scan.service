@@ -1,17 +1,17 @@
 # =============================================================================
-# File       : config/cron/hfu-periodic-scan.service
-# Updated at : 2026-10-20
+# File       : config/cron/w-boot-scan.service
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
 [Unit]
-Description=Analyse ClamAV toutes les deux heures
+Description=Passe AIDE, rkhunter, chkrootkit, ClamAV et debsums après le démarrage
 After=local-fs.target multi-user.target
+DefaultDependencies=no
 
 [Service]
 Type=oneshot
-Nice=${HF_WATCHDOG_LIMIT_NICE}
+Nice=${G_WATCHDOG_LIMIT_NICE}
 IOSchedulingClass=idle
 CPUQuota=${cpu_quota}%
-Environment=HFU_CLAMAV_DEFER=1
-ExecStart=${HF_CONFIG_BASE_DIRECTORY}/cron/bin/clamav.sh
+ExecStart=${G_CONFIG_BASE_DIRECTORY}/cron/bin/boot-scan.sh

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : core/launch.sh
-# Updated at : 2026-10-20
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
-hf_launch() {
+g_launch() {
     local root="$1"
     local cmd="${2:-help}"
     shift 2 || true
@@ -45,7 +45,7 @@ Vérification :
   sudo bash verify/workstation.sh "$PWD"
   sudo bash verify/boot.sh
   sudo bash verify/chkrootkit-fp.sh
-  sudo bash /opt/high-fortress-user/bin/scan-skip.sh list|add|del
+  sudo bash /opt/liltress-workstation/bin/scan-skip.sh list|add|del
 EOF
             fi
             if [[ -f "${root}/verify/matrix.sh" ]]; then

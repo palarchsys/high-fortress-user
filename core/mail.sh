@@ -1,31 +1,31 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : core/mail.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
-hf_check_mail_template_name() {
+g_check_mail_template_name() {
     [[ "${1:-}" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*\.html$ ]]
 }
 
-hf_log_mail_fatal() {
-    if declare -F hf_log_error >/dev/null 2>&1; then
-        hf_log_error "$*"
+g_log_mail_fatal() {
+    if declare -F g_log_error >/dev/null 2>&1; then
+        g_log_error "$*"
     fi
     printf '%s\n' "$*" >&2
     exit 1
 }
 
-hf_install_mail_templates() {
+g_install_mail_templates() {
     local dest="$1"
-    local src="${HF_INSTALL_DIRECTORY:?}/template"
-    local chosen="${HF_MAIL_TEMPLATE:-mail.html}"
+    local src="${G_INSTALL_DIRECTORY:?}/template"
+    local chosen="${G_MAIL_TEMPLATE:-mail.html}"
     local f base n=0
     local nullglob_was=0
-    [[ -d "${dest}" ]] || hf_log_mail_fatal "dossier d'installation des modèles absent (${dest})"
-    [[ -d "${src}" ]] || hf_log_mail_fatal "dossier template absent (${src})"
-    hf_check_mail_template_name "${chosen}" || hf_log_mail_fatal "HF_MAIL_TEMPLATE invalide (${chosen}). exemple : mail.html"
+    [[ -d "${dest}" ]] || g_log_mail_fatal "dossier d'installation des modèles absent (${dest})"
+    [[ -d "${src}" ]] || g_log_mail_fatal "dossier template absent (${src})"
+    g_check_mail_template_name "${chosen}" || g_log_mail_fatal "G_MAIL_TEMPLATE invalide (${chosen}). exemple : mail.html"
 
     if shopt -q nullglob; then
         nullglob_was=1
@@ -33,7 +33,7 @@ hf_install_mail_templates() {
     shopt -s nullglob
     for f in "${src}/"*.html; do
         base="$(basename -- "${f}")"
-        hf_check_mail_template_name "${base}" || hf_log_mail_fatal "nom de modèle refusé (${base}). exemple : mail.html"
+        g_check_mail_template_name "${base}" || g_log_mail_fatal "nom de modèle refusé (${base}). exemple : mail.html"
         cp -f -- "${f}" "${dest}/${base}"
         chmod 644 "${dest}/${base}"
         n=$((n + 1))
@@ -41,16 +41,16 @@ hf_install_mail_templates() {
     if [[ "${nullglob_was}" -eq 0 ]]; then
         shopt -u nullglob
     fi
-    [[ "${n}" -ge 1 ]] || hf_log_mail_fatal "aucun fichier .html dans ${src}"
-    [[ -f "${dest}/${chosen}" ]] || hf_log_mail_fatal "modèle ${chosen} absent de ${src}"
+    [[ "${n}" -ge 1 ]] || g_log_mail_fatal "aucun fichier .html dans ${src}"
+    [[ -f "${dest}/${chosen}" ]] || g_log_mail_fatal "modèle ${chosen} absent de ${src}"
 }
 
-hf_get_mail_name() {
+g_get_mail_name() {
     local here="${1:-}"
     local conf line
     local -a confs=()
-    [[ -n "${HF_INSTALL_DIRECTORY:-}" ]] && confs+=("${HF_INSTALL_DIRECTORY}/config/global.conf")
-    [[ -n "${HF_CONFIG_BASE_DIRECTORY:-}" ]] && confs+=("${HF_CONFIG_BASE_DIRECTORY}/src/config/global.conf")
+    [[ -n "${G_INSTALL_DIRECTORY:-}" ]] && confs+=("${G_INSTALL_DIRECTORY}/config/global.conf")
+    [[ -n "${G_CONFIG_BASE_DIRECTORY:-}" ]] && confs+=("${G_CONFIG_BASE_DIRECTORY}/src/config/global.conf")
     if [[ -n "${here}" ]]; then
         confs+=(
             "${here}/../../src/config/global.conf"
@@ -60,27 +60,27 @@ hf_get_mail_name() {
     fi
     for conf in "${confs[@]}"; do
         [[ -f "${conf}" ]] || continue
-        line="$(awk -F= '/^HF_MAIL_TEMPLATE=/{gsub(/"/,"",$2); gsub(/[[:space:]]/,"",$2); print $2; exit}' "${conf}")"
+        line="$(awk -F= '/^G_MAIL_TEMPLATE=/{gsub(/"/,"",$2); gsub(/[[:space:]]/,"",$2); print $2; exit}' "${conf}")"
         if [[ -n "${line}" ]]; then
             printf '%s\n' "${line}"
             return 0
         fi
     done
-    if [[ -n "${HF_MAIL_TEMPLATE:-}" ]]; then
-        printf '%s\n' "${HF_MAIL_TEMPLATE}"
+    if [[ -n "${G_MAIL_TEMPLATE:-}" ]]; then
+        printf '%s\n' "${G_MAIL_TEMPLATE}"
         return 0
     fi
     printf '%s\n' "mail.html"
 }
 
-hf_locate_mail_template() {
+g_locate_mail_template() {
     local here="${1:-}"
     local name dir
     local -a dirs=()
-    name="$(hf_get_mail_name "${here}")"
-    hf_check_mail_template_name "${name}" || return 1
-    [[ -n "${HF_INSTALL_DIRECTORY:-}" ]] && dirs+=("${HF_INSTALL_DIRECTORY}/template")
-    [[ -n "${HF_CONFIG_BASE_DIRECTORY:-}" ]] && dirs+=("${HF_CONFIG_BASE_DIRECTORY}/src/template")
+    name="$(g_get_mail_name "${here}")"
+    g_check_mail_template_name "${name}" || return 1
+    [[ -n "${G_INSTALL_DIRECTORY:-}" ]] && dirs+=("${G_INSTALL_DIRECTORY}/template")
+    [[ -n "${G_CONFIG_BASE_DIRECTORY:-}" ]] && dirs+=("${G_CONFIG_BASE_DIRECTORY}/src/template")
     if [[ -n "${here}" ]]; then
         dirs+=(
             "${here}/../../src/template"
@@ -98,11 +98,11 @@ hf_locate_mail_template() {
     return 1
 }
 
-hf_render_mail() {
+g_render_mail() {
     local template="$1"
     [[ -f "${template}" ]] || return 1
-    HF_MAIL_TEMPLATE_FILE="${template}" \
-    HF_MAIL_REDACT="${HF_MAIL_REDACT:-0}" \
+    G_MAIL_TEMPLATE_FILE="${template}" \
+    G_MAIL_REDACT="${G_MAIL_REDACT:-0}" \
     python3 - << 'PY'
 import html
 import os
@@ -125,7 +125,7 @@ def redact(text):
     )
     return text
 
-redact_on = os.environ.get("HF_MAIL_REDACT", "0") == "1"
+redact_on = os.environ.get("G_MAIL_REDACT", "0") == "1"
 content = os.environ.get("CONTENT", "")
 note = os.environ.get("NOTE", "")
 if redact_on:
@@ -133,13 +133,13 @@ if redact_on:
     note = redact(note)
 note = note.strip()
 note_cmd = os.environ.get("NOTE_CMD", "").strip()
-path = Path(os.environ["HF_MAIL_TEMPLATE_FILE"])
+path = Path(os.environ["G_MAIL_TEMPLATE_FILE"])
 try:
     tpl = path.read_text(encoding="utf-8")
 except OSError as exc:
     print(f"modèle illisible : {exc}", file=sys.stderr)
     sys.exit(1)
-for key in ("TITLE", "HF_PROJECT_NAME", "HOSTNAME", "DATE", "MODULE_NAME"):
+for key in ("TITLE", "G_PROJECT_NAME", "HOSTNAME", "DATE", "MODULE_NAME"):
     tpl = tpl.replace("${" + key + "}", html.escape(os.environ.get(key, ""), quote=False))
 tpl = tpl.replace("${CONTENT}", html.escape(content, quote=False))
 if note and note_cmd:

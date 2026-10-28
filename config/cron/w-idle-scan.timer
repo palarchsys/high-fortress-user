@@ -1,6 +1,6 @@
 # =============================================================================
-# File       : config/cron/hfu-idle-scan.timer
-# Updated at : 2026-10-15
+# File       : config/cron/w-idle-scan.timer
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
@@ -8,10 +8,10 @@
 Description=Relance l'analyse différée des bibliothèques
 
 [Timer]
-OnUnitActiveSec=${HFU_IDLE_EVERY}
-AccuracySec=${HFU_IDLE_ACCURACY}
-Persistent=${HFU_TIMER_PERSISTENT}
-Unit=hfu-idle-scan.service
+OnUnitActiveSec=${W_IDLE_EVERY}
+AccuracySec=${W_IDLE_ACCURACY}
+Persistent=${W_TIMER_PERSISTENT}
+Unit=w-idle-scan.service
 
 [Install]
 WantedBy=timers.target

@@ -1,24 +1,24 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/unattended-upgrades/configure.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
-HF_INSTALL_DIRECTORY="${1}"
-export HF_INSTALL_DIRECTORY
+G_INSTALL_DIRECTORY="${1}"
+export G_INSTALL_DIRECTORY
 
-source "${HF_INSTALL_DIRECTORY}/core/lib.sh"
-source "${HF_INSTALL_DIRECTORY}/config/global.conf"
-hf_require_root
+source "${G_INSTALL_DIRECTORY}/core/lib.sh"
+source "${G_INSTALL_DIRECTORY}/config/global.conf"
+g_require_root
 
-hf_log_title "Configuration unattended-upgrades (security only)"
-hf_log_info "Configuration d'unattended-upgrades (security only)"
-hf_ensure_directory /etc/apt/apt.conf.d 755
+g_log_title "Configuration unattended-upgrades (security only)"
+g_log_info "Configuration d'unattended-upgrades (security only)"
+g_ensure_directory /etc/apt/apt.conf.d 755
 
-grep -v '^#' "$(hf_locate_config_file unattended-upgrades/20auto-upgrades)" > /etc/apt/apt.conf.d/20auto-upgrades
-grep -v '^#' "$(hf_locate_config_file unattended-upgrades/51high-fortress-user)" > /etc/apt/apt.conf.d/51high-fortress-user
-chmod 644 /etc/apt/apt.conf.d/20auto-upgrades /etc/apt/apt.conf.d/51high-fortress-user
+grep -v '^#' "$(g_locate_config_file unattended-upgrades/20auto-upgrades)" > /etc/apt/apt.conf.d/20auto-upgrades
+grep -v '^#' "$(g_locate_config_file unattended-upgrades/51liltress-workstation)" > /etc/apt/apt.conf.d/51liltress-workstation
+chmod 644 /etc/apt/apt.conf.d/20auto-upgrades /etc/apt/apt.conf.d/51liltress-workstation
 
-hf_run_silent systemctl enable --now unattended-upgrades
-hf_log_success "unattended-upgrades configuré (security only, reboot auto OFF)"
+g_run_silent systemctl enable --now unattended-upgrades
+g_log_success "unattended-upgrades configuré (security only, reboot auto OFF)"

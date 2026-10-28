@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🛡️ High-Fortress User 🛡️
+# 🛡️ Liltress Workstation 🛡️
 
 ![Ubuntu 26.04 or newer](https://img.shields.io/badge/Ubuntu-26.04%2B-E95420?logo=ubuntu&logoColor=white)
 ![Workstation](https://img.shields.io/badge/profile-workstation-1f6feb)
@@ -8,7 +8,7 @@
 ![UFW](https://img.shields.io/badge/firewall-UFW-0055A4)
 ![Security checks](https://img.shields.io/badge/checks-AIDE%20%C2%B7%20ClamAV%20%C2%B7%20Lynis-2ea44f)
 
-High-Fortress User prepara un puesto Ubuntu 26.04 o posterior.<br/>
+Liltress Workstation prepara un puesto Ubuntu 26.04 o posterior.<br/>
 Instala el resolutor DNS local, el cortafuegos y los controles de seguridad.<br/>
 La cuenta Ubuntu ya creada en la máquina no se sustituye.<br/>
 El instalador no crea una segunda cuenta.<br/>
@@ -47,14 +47,14 @@ El puesto se prepara con el instalador curl, o con un clon seguido de `sudo ./hf
 ```bash
 sudo apt-get update
 sudo apt-get install -y ca-certificates curl git swaks tar
-curl -fsSL https://raw.githubusercontent.com/palarchsys/high-fortress-user/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/palarchsys/liltress-workstation/main/install.sh | sudo bash
 ```
 
 ## ▪️ Clon
 
 ```bash
-git clone https://github.com/palarchsys/high-fortress-user
-cd high-fortress-user
+git clone https://github.com/palarchsys/liltress-workstation
+cd liltress-workstation
 sudo ./hf configure
 ```
 
@@ -70,7 +70,7 @@ sudo ./hf configure
 | Serveur          | `host:puerto`, por ejemplo `smtp-mail.outlook.com:587`. Sin corchetes. Solo si las alertas están activadas.                                                                          |
 | Login            | Una dirección de correo.                                                                                                                                                             |
 | Password         | La contraseña de aplicación del proveedor, de 8 a 128 caracteres. Los espacios se quitan. Las comillas, `$`, `\` y la comilla inversa se rechazan. Nunca la contraseña de la cuenta. |
-| From             | Una dirección de correo. `HF_WATCHDOG_MAIL` recibe la misma dirección.                                                                                                               |
+| From             | Una dirección de correo. `G_WATCHDOG_MAIL` recibe la misma dirección.                                                                                                               |
 | Activer l'envoi des alertes vers Google Drive (Y/N). | `Y` o `y` activa la copia. `N`, `n` o `non` la corta. Activada, se le pregunta el nombre remoto y la carpeta, y después se ejecuta `rclone config`. El testigo permanece en la máquina, modo 600. Cortada, rclone no se instala. |
 | Distant          | Nombre remoto. Letras, dígitos o guion, de 1 a 32 caracteres. Solo si la copia está activada.                                                                                        |
 | Dossier          | Carpeta remota. Sin `..` y sin ruta local absoluta. Solo si la copia está activada.                                                                                                  |
@@ -96,8 +96,8 @@ La instalación coloca los paquetes y servicios de abajo.
 | apparmor                                        | Perfiles de la distribución. `service/apparmor/userns.sh` retira un perfil hfu que no se entrega.                                                                              |
 | aide                                            | Base de integridad `/var/lib/aide/aide.db`.                                                                                                                                    |
 | unattended-upgrades                             | Orígenes de seguridad. `Automatic-Reboot` vale `false`.                                                                                                                        |
-| postfix                                         | Envía el correo de alerta. Instalado solo cuando `HF_MAIL_ALERTS=1`.                                                                                                           |
-| rclone                                          | Copia un archivo de alerta a Google Drive. Instalado solo cuando `HF_RCLONE_ALERTS=1`.                                                                                         |
+| postfix                                         | Envía el correo de alerta. Instalado solo cuando `G_MAIL_ALERTS=1`.                                                                                                           |
+| rclone                                          | Copia un archivo de alerta a Google Drive. Instalado solo cuando `G_RCLONE_ALERTS=1`.                                                                                         |
 | lynis                                           | Auditoría de endurecimiento.                                                                                                                                                   |
 | ubuntu-pro-client                               | Adjunta el token de Ubuntu Pro. Fuera de una LTS no se activan esm-infra, esm-apps ni Livepatch. En una LTS, un fallo al activarlos no detiene la instalación. |
 | acct, sysstat, libpam-pwquality                 | Contabilidad de procesos, estadísticas de actividad, calidad de las contraseñas.                                                                                               |
@@ -106,10 +106,10 @@ La instalación coloca los paquetes y servicios de abajo.
 
 ## 📋 Correos de alerta
 
-Cada archivo de alerta queda en `/opt/high-fortress-user/cron/alerts`.<br/>
-El correo sale solo si `HF_MAIL_ALERTS=1`.<br/>
-Una copia sale hacia Google Drive solo si `HF_RCLONE_ALERTS=1`, hacia el remoto y la carpeta elegidos.<br/>
-El correo sale solo si `HF_MAIL_ALERTS=1`, si `HF_WATCHDOG_MAIL` está definido, y si `/opt/high-fortress-user/cron/bin/send.sh` es ejecutable.<br/>
+Cada archivo de alerta queda en `/opt/liltress-workstation/cron/alerts`.<br/>
+El correo sale solo si `G_MAIL_ALERTS=1`.<br/>
+Una copia sale hacia Google Drive solo si `G_RCLONE_ALERTS=1`, hacia el remoto y la carpeta elegidos.<br/>
+El correo sale solo si `G_MAIL_ALERTS=1`, si `G_WATCHDOG_MAIL` está definido, y si `/opt/liltress-workstation/cron/bin/send.sh` es ejecutable.<br/>
 Un control limpio no envía correo.<br/>
 Si una línea del diario es desconocida, no lance la orden.<br/>
 Conserve el correo.
@@ -122,10 +122,10 @@ Nombra la señal, o el código de salida.
 
 El mensaje contiene la línea de resumen y un extracto del diario, luego la nota y el bloque de orden.<br/>
 La ruta del diario en el correo es el archivo real.<br/>
-La forma es `/opt/high-fortress-user/cron/security_logs/aide-YYYYMMDD-HHMMSS.log`.
+La forma es `/opt/liltress-workstation/cron/security_logs/aide-YYYYMMDD-HHMMSS.log`.
 
 ```bash
-sudo bash /opt/high-fortress-user/bin/aide-refresh-db.sh
+sudo bash /opt/liltress-workstation/bin/aide-refresh-db.sh
 ```
 
 La orden reconstruye la base AIDE a partir del disco actual.<br/>
@@ -138,11 +138,11 @@ El ejemplo de abajo muestra la forma.<br/>
 El correo contiene la ruta real.
 
 ```bash
-sudo bash /opt/high-fortress-user/bin/chkrootkit-ignore-log.sh '/opt/high-fortress-user/cron/security_logs/chkrootkit-YYYYMMDD-HHMMSS.log'
+sudo bash /opt/liltress-workstation/bin/chkrootkit-ignore-log.sh '/opt/liltress-workstation/cron/security_logs/chkrootkit-YYYYMMDD-HHMMSS.log'
 ```
 
-La orden registra las líneas de ese diario en `/opt/high-fortress-user/cron/chkrootkit.local.ignore`.<br/>
-La línea de éxito es `Aucune nouvelle détection à enregistrer.` cuando no hay nada nuevo, o `N détection(s) enregistrée(s) dans /opt/high-fortress-user/cron/chkrootkit.local.ignore`.
+La orden registra las líneas de ese diario en `/opt/liltress-workstation/cron/chkrootkit.local.ignore`.<br/>
+La línea de éxito es `Aucune nouvelle détection à enregistrer.` cuando no hay nada nuevo, o `N détection(s) enregistrée(s) dans /opt/liltress-workstation/cron/chkrootkit.local.ignore`.
 
 Una detección confirmada mueve el archivo y adjunta la orden de restauración en su lugar.<br/>
 La orden de registro permanece solo cuando ningún archivo confirmado fue movido.
@@ -156,7 +156,7 @@ El correo nombra cada paquete restablecido.<br/>
 La línea de éxito es `La somme correspond.`
 
 Un paquete cuya suma sigue siendo distinta, o cuya reinstalación falla, permanece en el correo.<br/>
-Una línea para `/var/lib/rkhunter/db/mirrors.dat` se retira antes de esa reinstalación solo si su SHA-256 actual es igual a `/opt/high-fortress-user/cron/rkhunter-mirrors.sha256`.<br/>
+Una línea para `/var/lib/rkhunter/db/mirrors.dat` se retira antes de esa reinstalación solo si su SHA-256 actual es igual a `/opt/liltress-workstation/cron/rkhunter-mirrors.sha256`.<br/>
 Una línea modificada bajo `/usr/lib/*/perl-base/unicore/` del paquete `perl-base` se retira antes de esa reinstalación.<br/>
 El archivo entregado por Ubuntu no corresponde a la suma de ese paquete.
 
@@ -165,24 +165,24 @@ El archivo entregado por Ubuntu no corresponde a la suma de ese paquete.
 El mensaje contiene la firma, el nombre del archivo, la ruta de origen y la ruta de cuarentena, luego la nota y una orden de restauración por archivo movido.<br/>
 El mismo diario indica la hora, el tipo de detección, las acciones aplicadas y una recomendación corta.<br/>
 Un archivo cuyo nombre corresponde a `.clamav-quarantine-lock.*` no envía correo.<br/>
-El script sale con 0 antes del diario y antes de `hf_log_alert`.
+El script sale con 0 antes del diario y antes de `g_log_alert`.
 
 ```bash
-sudo bash /opt/high-fortress-user/bin/quarantine-restore.sh <id>
+sudo bash /opt/liltress-workstation/bin/quarantine-restore.sh <id>
 ```
 
 El ejemplo muestra la forma.<br/>
 El correo contiene el identificador real.<br/>
 La orden devuelve ese archivo a su lugar de origen.<br/>
 La línea de éxito es `fichier remis en place`.<br/>
-El registro es `/opt/high-fortress-user/cron/quarantine.registry`.
+El registro es `/opt/liltress-workstation/cron/quarantine.registry`.
 
 ## ▪️ Análisis ClamAV al arranque
 
 El mensaje contiene el resumen y el extracto del diario.<br/>
 Cuando un archivo fue movido, el correo añade una orden de restauración por archivo.<br/>
 La orden es la misma que la del correo al acceso.<br/>
-La forma del diario es `/opt/high-fortress-user/cron/security_logs/clamav-YYYYMMDD-HHMMSS.log`.<br/>
+La forma del diario es `/opt/liltress-workstation/cron/security_logs/clamav-YYYYMMDD-HHMMSS.log`.<br/>
 Un archivo ilegible, sin línea `FOUND`, no envía correo.<br/>
 Las líneas `Known viruses` e `Infected files` no se copian en el correo.<br/>
 Un proceso `clamscan` detenido por una señal envía un correo.<br/>
@@ -196,24 +196,24 @@ El correo dice entonces que los archivos restantes no fueron leídos.
 El mensaje contiene el resumen y el extracto del diario.<br/>
 Cuando un archivo fue movido, el correo añade una orden de restauración por archivo.<br/>
 La orden es la misma que la del correo al acceso.<br/>
-Una firma y una ruta ya registradas en `/opt/high-fortress-user/cron/scan-skip.seen` no vuelven a enviar correo.<br/>
+Una firma y una ruta ya registradas en `/opt/liltress-workstation/cron/scan-skip.seen` no vuelven a enviar correo.<br/>
 Un proceso `clamscan` detenido por una señal envía un correo.<br/>
 El correo nombra la señal y cada archivo no leído.<br/>
 Los demás archivos de la pasada se analizan.<br/>
 Dos fallos seguidos detienen la pasada ClamAV.<br/>
 El correo dice entonces que los archivos restantes no fueron leídos.<br/>
 El sello permanece en su lugar.<br/>
-La forma del diario es `/opt/high-fortress-user/cron/security_logs/idle-scan-YYYYMMDD-HHMMSS.log`.
+La forma del diario es `/opt/liltress-workstation/cron/security_logs/idle-scan-YYYYMMDD-HHMMSS.log`.
 
 ## ▪️ rkhunter
 
 El correo de avisos contiene el resumen y el extracto del diario, luego la nota y el bloque de orden.<br/>
 El correo `mirrors.dat modifié hors rkhunter --update` no añade ese bloque.<br/>
 Un correo de error tampoco.<br/>
-La forma del diario es `/opt/high-fortress-user/cron/security_logs/rkhunter-YYYYMMDD-HHMMSS.log`.
+La forma del diario es `/opt/liltress-workstation/cron/security_logs/rkhunter-YYYYMMDD-HHMMSS.log`.
 
 ```bash
-sudo bash /opt/high-fortress-user/bin/rkhunter-refresh-db.sh
+sudo bash /opt/liltress-workstation/bin/rkhunter-refresh-db.sh
 ```
 
 La orden recalcula la base de propiedades rkhunter a partir del disco actual.<br/>
@@ -231,11 +231,11 @@ Este correo no añade un bloque de orden.<br/>
 El mismo conjunto de paquetes no vuelve a enviar correo.<br/>
 Un juego en curso omite el correo y deja la huella sin cambio.<br/>
 El script no reinicia la máquina.<br/>
-La forma del diario es `/opt/high-fortress-user/cron/security_logs/reboot-notice-YYYYMMDD-HHMMSS.log`.
+La forma del diario es `/opt/liltress-workstation/cron/security_logs/reboot-notice-YYYYMMDD-HHMMSS.log`.
 
 ## 📋 Comandos después de la instalación
 
-Lance estas órdenes desde el directorio de las fuentes (`/opt/high-fortress-user/src` después del instalador curl, o el directorio del clon).
+Lance estas órdenes desde el directorio de las fuentes (`/opt/liltress-workstation/src` después del instalador curl, o el directorio del clon).
 
 ## ▪️ hf check
 
@@ -278,12 +278,12 @@ sudo bash verify/workstation.sh "$PWD"
 
 Lanza la comprobación del puesto.<br/>
 La línea de cierre tiene la forma `Check : N OK / N WARN / N FAIL`.<br/>
-La misma pasada comprueba el reenvío SSH, la regla de cortafuegos SSH, USBGuard, el plazo sudo y `hfu-reboot-notice.timer`.
+La misma pasada comprueba el reenvío SSH, la regla de cortafuegos SSH, USBGuard, el plazo sudo y `w-reboot-notice.timer`.
 
 ## ▪️ Comprobación después del arranque
 
 ```bash
-sudo bash /opt/high-fortress-user/bin/boot-check.sh
+sudo bash /opt/liltress-workstation/bin/boot-check.sh
 ```
 
 Comprueba los servicios de seguridad del arranque y las tres pasadas de esta sesión.<br/>
@@ -298,13 +298,13 @@ sudo ./hf lynis
 ```
 
 Lanza `lynis audit system --quick --no-colors` y escribe el informe bajo `<source>/logs/lynis-<stamp>/`.<br/>
-`HF_LYNIS_MIN_SCORE` vale 80.<br/>
+`G_LYNIS_MIN_SCORE` vale 80.<br/>
 `verify/workstation.sh` acepta un `hardening_index` superior o igual a ese umbral.
 
 ## ▪️ Base AIDE
 
 ```bash
-sudo bash /opt/high-fortress-user/bin/aide-refresh-db.sh
+sudo bash /opt/liltress-workstation/bin/aide-refresh-db.sh
 ```
 
 Reconstruye `/var/lib/aide/aide.db`.<br/>
@@ -313,23 +313,23 @@ La línea de éxito es `Base de référence AIDE enregistrée.`
 ## ▪️ Huella de los espejos rkhunter
 
 ```bash
-sudo bash /opt/high-fortress-user/cron/bin/record-mirrors.sh save
+sudo bash /opt/liltress-workstation/cron/bin/record-mirrors.sh save
 ```
 
-Escribe el SHA-256 de `/var/lib/rkhunter/db/mirrors.dat` en `/opt/high-fortress-user/cron/rkhunter-mirrors.sha256` en modo `600`.<br/>
+Escribe el SHA-256 de `/var/lib/rkhunter/db/mirrors.dat` en `/opt/liltress-workstation/cron/rkhunter-mirrors.sha256` en modo `600`.<br/>
 `rkhunter.sh` registra esta huella solo después de un `rkhunter --update` que devuelve 0 o 2.
 
 ## ▪️ Rutas excluidas del análisis
 
 ```bash
-sudo bash /opt/high-fortress-user/bin/scan-skip.sh list
-sudo bash /opt/high-fortress-user/bin/scan-skip.sh add $HOME/.cache/exemple
-sudo bash /opt/high-fortress-user/bin/scan-skip.sh del $HOME/.cache/exemple
+sudo bash /opt/liltress-workstation/bin/scan-skip.sh list
+sudo bash /opt/liltress-workstation/bin/scan-skip.sh add $HOME/.cache/exemple
+sudo bash /opt/liltress-workstation/bin/scan-skip.sh del $HOME/.cache/exemple
 ```
 
-El archivo de lista es `/opt/high-fortress-user/src/config/clamav/scan-skip.paths`.<br/>
+El archivo de lista es `/opt/liltress-workstation/src/config/clamav/scan-skip.paths`.<br/>
 Una lista ya presente permanece cuando el instalador vuelve a ejecutarse.<br/>
-Una lista que todavía está en `/opt/high-fortress-user/cron/scan-skip.paths` se copia una vez, cuando el archivo nuevo todavía es la plantilla.
+Una lista que todavía está en `/opt/liltress-workstation/cron/scan-skip.paths` se copia una vez, cuando el archivo nuevo todavía es la plantilla.
 
 | Acción       | Línea mostrada                      |
 | ------------ | ----------------------------------- |

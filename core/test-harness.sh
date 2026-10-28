@@ -1,130 +1,130 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : core/test-harness.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
-hft_get_timestamp() { date '+%Y-%m-%d %H:%M:%S'; }
+t_get_timestamp() { date '+%Y-%m-%d %H:%M:%S'; }
 
-hft_log() {
-    local line="[$(hft_get_timestamp)] $*"
+t_log() {
+    local line="[$(t_get_timestamp)] $*"
     printf '%s\n' "$line"
-    if [[ -n "${HF_RUN_LOG:-}" ]]; then
-        printf '%s\n' "$line" >> "${HF_RUN_LOG}"
+    if [[ -n "${G_RUN_LOG:-}" ]]; then
+        printf '%s\n' "$line" >> "${G_RUN_LOG}"
     fi
-    if [[ -n "${HFT_SUITE_LOG:-}" ]]; then
-        printf '%s\n' "$line" >> "${HFT_SUITE_LOG}"
+    if [[ -n "${T_SUITE_LOG:-}" ]]; then
+        printf '%s\n' "$line" >> "${T_SUITE_LOG}"
     fi
 }
 
-hft_record() {
+t_record() {
     local status="$1"
     local id="$2"
     local msg="$3"
-    printf '%s\t%s\t%s\n' "$status" "$id" "$msg" >> "${HFT_RESULT_TSV}"
+    printf '%s\t%s\t%s\n' "$status" "$id" "$msg" >> "${T_RESULT_TSV}"
 }
 
-hft_pass() {
-    HFT_PASS=$((HFT_PASS + 1))
-    hft_log "PASS  $1 — $2"
-    hft_record PASS "$1" "$2"
+t_pass() {
+    T_PASS=$((T_PASS + 1))
+    t_log "PASS  $1 — $2"
+    t_record PASS "$1" "$2"
 }
 
-hft_fail() {
-    HFT_FAIL=$((HFT_FAIL + 1))
-    hft_log "FAIL  $1 — $2"
-    hft_record FAIL "$1" "$2"
+t_fail() {
+    T_FAIL=$((T_FAIL + 1))
+    t_log "FAIL  $1 — $2"
+    t_record FAIL "$1" "$2"
 }
 
-hft_warn() {
-    HFT_WARN=$((HFT_WARN + 1))
-    hft_log "WARN  $1 — $2"
-    hft_record WARN "$1" "$2"
+t_warn() {
+    T_WARN=$((T_WARN + 1))
+    t_log "WARN  $1 — $2"
+    t_record WARN "$1" "$2"
 }
 
-hft_skip() {
-    HFT_SKIP=$((HFT_SKIP + 1))
-    hft_log "SKIP  $1 — $2"
-    hft_record SKIP "$1" "$2"
+t_skip() {
+    T_SKIP=$((T_SKIP + 1))
+    t_log "SKIP  $1 — $2"
+    t_record SKIP "$1" "$2"
 }
 
-hft_section() {
-    hft_log ""
-    hft_log "── $1 ──"
+t_section() {
+    t_log ""
+    t_log "── $1 ──"
 }
 
-hft_check_command() { command -v "$1" >/dev/null 2>&1; }
+t_check_command() { command -v "$1" >/dev/null 2>&1; }
 
-hft_load_project_config() {
+t_load_project_config() {
     # shellcheck disable=SC1091
     set +u
-    source "${HFT_ROOT}/config/global.conf"
+    source "${T_ROOT}/config/global.conf"
     set -u
 }
 
-hft_check_envsubst_leftover() {
+t_check_envsubst_leftover() {
     local file="$1"
     grep -oE '\$\{[A-Z_][A-Z0-9_]*\}' "$file" 2>/dev/null | sort -u || true
 }
 
-hft_begin() {
+t_begin() {
     local stamp
     stamp="$(date '+%Y%m%d-%H%M%S')"
-    HFT_OUTPUT="${HFT_TEST_DIRECTORY}/output/${stamp}"
-    HF_ARTIFACTS="${HFT_OUTPUT}/artifacts"
-    HFT_SUITE_DIRECTORY="${HFT_OUTPUT}/suites"
-    HF_RUN_LOG="${HFT_OUTPUT}/run.log"
-    HFT_RESULT_TSV="${HFT_OUTPUT}/results.tsv"
-    mkdir -p "${HF_ARTIFACTS}" "${HFT_SUITE_DIRECTORY}"
-    : > "${HF_RUN_LOG}"
-    : > "${HFT_RESULT_TSV}"
-    export HFT_TEST_DIRECTORY HFT_ROOT HFT_OUTPUT HF_ARTIFACTS HFT_SUITE_DIRECTORY HF_RUN_LOG HFT_RESULT_TSV PROFILE
+    T_OUTPUT="${T_TEST_DIRECTORY}/output/${stamp}"
+    G_ARTIFACTS="${T_OUTPUT}/artifacts"
+    T_SUITE_DIRECTORY="${T_OUTPUT}/suites"
+    G_RUN_LOG="${T_OUTPUT}/run.log"
+    T_RESULT_TSV="${T_OUTPUT}/results.tsv"
+    mkdir -p "${G_ARTIFACTS}" "${T_SUITE_DIRECTORY}"
+    : > "${G_RUN_LOG}"
+    : > "${T_RESULT_TSV}"
+    export T_TEST_DIRECTORY T_ROOT T_OUTPUT G_ARTIFACTS T_SUITE_DIRECTORY G_RUN_LOG T_RESULT_TSV PROFILE
     TOTAL_PASS=0
     TOTAL_FAIL=0
     TOTAL_WARN=0
     TOTAL_SKIP=0
-    hft_log "High-Fortress test run"
-    hft_log "root     : ${HFT_ROOT}"
-    hft_log "output   : ${HFT_OUTPUT}"
-    hft_log "profile  : ${PROFILE}"
-    hft_log "host     : $(hostname -s 2>/dev/null || hostname)"
-    hft_log ""
+    t_log "Liltress test run"
+    t_log "root     : ${T_ROOT}"
+    t_log "output   : ${T_OUTPUT}"
+    t_log "profile  : ${PROFILE}"
+    t_log "host     : $(hostname -s 2>/dev/null || hostname)"
+    t_log ""
 }
 
-hft_run_suite() {
-    local suite hf_suite_name
-    for suite in "${HFT_TEST_DIRECTORY}/suites/"[0-9][0-9]_*.sh; do
+t_run_suite() {
+    local suite g_suite_name
+    for suite in "${T_TEST_DIRECTORY}/suites/"[0-9][0-9]_*.sh; do
         [[ -f "${suite}" ]] || continue
-        hf_suite_name="$(basename "${suite}" .sh)"
-        export HFT_SUITE_LOG="${HFT_SUITE_DIRECTORY}/${hf_suite_name}.log"
-        : > "${HFT_SUITE_LOG}"
-        HFT_PASS=0
-        HFT_FAIL=0
-        HFT_WARN=0
-        HFT_SKIP=0
-        hft_log ""
-        hft_log "════════════════════════════════════════════════════════════════"
-        hft_log " SUITE ${hf_suite_name}"
-        hft_log "════════════════════════════════════════════════════════════════"
+        g_suite_name="$(basename "${suite}" .sh)"
+        export T_SUITE_LOG="${T_SUITE_DIRECTORY}/${g_suite_name}.log"
+        : > "${T_SUITE_LOG}"
+        T_PASS=0
+        T_FAIL=0
+        T_WARN=0
+        T_SKIP=0
+        t_log ""
+        t_log "════════════════════════════════════════════════════════════════"
+        t_log " SUITE ${g_suite_name}"
+        t_log "════════════════════════════════════════════════════════════════"
         # shellcheck disable=SC1090
         source "${suite}"
-        TOTAL_PASS=$((TOTAL_PASS + HFT_PASS))
-        TOTAL_FAIL=$((TOTAL_FAIL + HFT_FAIL))
-        TOTAL_WARN=$((TOTAL_WARN + HFT_WARN))
-        TOTAL_SKIP=$((TOTAL_SKIP + HFT_SKIP))
-        hft_log "suite ${hf_suite_name}: ${HFT_PASS} pass, ${HFT_FAIL} fail, ${HFT_WARN} warn, ${HFT_SKIP} skip"
+        TOTAL_PASS=$((TOTAL_PASS + T_PASS))
+        TOTAL_FAIL=$((TOTAL_FAIL + T_FAIL))
+        TOTAL_WARN=$((TOTAL_WARN + T_WARN))
+        TOTAL_SKIP=$((TOTAL_SKIP + T_SKIP))
+        t_log "suite ${g_suite_name}: ${T_PASS} pass, ${T_FAIL} fail, ${T_WARN} warn, ${T_SKIP} skip"
     done
 }
 
-hft_finish() {
+t_finish() {
     {
         echo "# Rapport de test"
         echo ""
         echo "- **Date** : $(date -Iseconds)"
         echo "- **Profil** : \`${PROFILE}\`"
-        echo "- **Dossier** : \`${HFT_OUTPUT}\`"
-        echo "- **Dépôt** : \`${HFT_ROOT}\`"
+        echo "- **Dossier** : \`${T_OUTPUT}\`"
+        echo "- **Dépôt** : \`${T_ROOT}\`"
         echo ""
         echo "## Totaux"
         echo ""
@@ -140,20 +140,20 @@ hft_finish() {
         echo ""
         echo "## FAIL"
         echo ""
-        if grep -q '^FAIL' "${HFT_RESULT_TSV}"; then
+        if grep -q '^FAIL' "${T_RESULT_TSV}"; then
             echo "| ID | Détail |"
             echo "|----|--------|"
-            awk -F'\t' '$1=="FAIL"{printf "| `%s` | %s |\n", $2, $3}' "${HFT_RESULT_TSV}"
+            awk -F'\t' '$1=="FAIL"{printf "| `%s` | %s |\n", $2, $3}' "${T_RESULT_TSV}"
         else
             echo "_Aucun._"
         fi
         echo ""
         echo "## WARN"
         echo ""
-        if grep -q '^WARN' "${HFT_RESULT_TSV}"; then
+        if grep -q '^WARN' "${T_RESULT_TSV}"; then
             echo "| ID | Détail |"
             echo "|----|--------|"
-            awk -F'\t' '$1=="WARN"{printf "| `%s` | %s |\n", $2, $3}' "${HFT_RESULT_TSV}"
+            awk -F'\t' '$1=="WARN"{printf "| `%s` | %s |\n", $2, $3}' "${T_RESULT_TSV}"
         else
             echo "_Aucun._"
         fi
@@ -167,9 +167,9 @@ hft_finish() {
         echo "- Journal combiné : \`run.log\`"
         echo "- Résultats bruts : \`results.tsv\`"
         echo "- Configs sandbox : \`artifacts/\`"
-    } > "${HFT_OUTPUT}/summary.md"
+    } > "${T_OUTPUT}/summary.md"
 
-    python3 - "${HFT_OUTPUT}/summary.json" "${TOTAL_PASS}" "${TOTAL_FAIL}" "${TOTAL_WARN}" "${TOTAL_SKIP}" "${PROFILE}" "${HFT_RESULT_TSV}" << 'PY'
+    python3 - "${T_OUTPUT}/summary.json" "${TOTAL_PASS}" "${TOTAL_FAIL}" "${TOTAL_WARN}" "${TOTAL_SKIP}" "${PROFILE}" "${T_RESULT_TSV}" << 'PY'
 import json, sys
 out, p, f, w, s, profile, tsv = sys.argv[1:8]
 items = []
@@ -194,11 +194,11 @@ with open(out, "w", encoding="utf-8") as fh:
     fh.write("\n")
 PY
 
-    hft_log ""
-    hft_log "════════════════════════════════════════════════════════════════"
-    hft_log " TOTAL  pass=${TOTAL_PASS} fail=${TOTAL_FAIL} warn=${TOTAL_WARN} skip=${TOTAL_SKIP}"
-    hft_log " Rapport : ${HFT_OUTPUT}/summary.md"
-    hft_log "════════════════════════════════════════════════════════════════"
+    t_log ""
+    t_log "════════════════════════════════════════════════════════════════"
+    t_log " TOTAL  pass=${TOTAL_PASS} fail=${TOTAL_FAIL} warn=${TOTAL_WARN} skip=${TOTAL_SKIP}"
+    t_log " Rapport : ${T_OUTPUT}/summary.md"
+    t_log "════════════════════════════════════════════════════════════════"
     if [[ "${TOTAL_FAIL}" -eq 0 ]]; then
         exit 0
     fi

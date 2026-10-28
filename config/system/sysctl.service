@@ -1,11 +1,11 @@
 # =============================================================================
 # File       : config/system/sysctl.service
-# Updated at : 2026-10-16
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
 [Unit]
-Description=High-Fortress User sysctl
+Description=Liltress Workstation sysctl
 Documentation=file://__HF_BASE__
 After=systemd-sysctl.service network-online.target
 Wants=systemd-sysctl.service
@@ -13,7 +13,7 @@ Wants=systemd-sysctl.service
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=__HF_BASE__/cron/bin/hfu-sysctl-apply.sh
+ExecStart=__HF_BASE__/cron/bin/w-sysctl-apply.sh
 
 [Install]
 WantedBy=multi-user.target

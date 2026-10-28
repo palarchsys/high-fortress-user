@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/idle-scan.sh
-# Updated at : 2026-10-22
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
 set -euo pipefail
-HFU_BASE="${HFU_BASE:-/opt/high-fortress-user}"
+W_BASE="${W_BASE:-/opt/liltress-workstation}"
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
-source "${HFU_BASE}/cron/bin/common.sh"
+source "${W_BASE}/cron/bin/common.sh"
 # shellcheck disable=SC1091
 source "${HERE}/scan-skip-lib.sh"
 LOG_FILE="${LOG_DIR}/idle-scan-${STAMP}.log"
 ALERT_FILE="${ALERT_DIR}/idle-scan-${STAMP}.txt"
 : > "${LOG_FILE}"
-hf_arm_crash_mail "analyse différée"
+g_arm_crash_mail "analyse différée"
 
 busy=""
 for name in lutris heroic gamescope; do
@@ -25,23 +25,23 @@ for name in lutris heroic gamescope; do
     fi
 done
 if [[ -n "${busy}" ]]; then
-    hfu_log_pass "passe différée reportée : ${busy} tourne"
+    w_log_pass "passe différée reportée : ${busy} tourne"
     exit 0
 fi
 
 if ! command -v clamscan >/dev/null; then
-    hfu_log_pass "clamscan absent — skip"
+    w_log_pass "clamscan absent — skip"
     exit 0
 fi
 
-hfu_collect_scan_skip_path
-install -d -m 755 /run/high-fortress-user
-file_list="$(mktemp -p /run/high-fortress-user)"
+w_collect_scan_skip_path
+install -d -m 755 /run/liltress-workstation
+file_list="$(mktemp -p /run/liltress-workstation)"
 fresh_list=""
-trap 'st=$?; rm -f "${file_list}"; if [[ -n "${fresh_list}" ]]; then rm -f "${fresh_list}"; fi; hf_send_crash_mail "${st}"' EXIT
-stamp="${HFU_BASE}/cron/scan-skip.stamp"
-if [[ ${#HFU_SCAN_SKIP_VALID[@]} -gt 0 ]]; then
-    for path in "${HFU_SCAN_SKIP_VALID[@]}"; do
+trap 'st=$?; rm -f "${file_list}"; if [[ -n "${fresh_list}" ]]; then rm -f "${fresh_list}"; fi; g_send_crash_mail "${st}"' EXIT
+stamp="${W_BASE}/cron/scan-skip.stamp"
+if [[ ${#W_SCAN_SKIP_VALID[@]} -gt 0 ]]; then
+    for path in "${W_SCAN_SKIP_VALID[@]}"; do
         base="$(basename "${path}")"
         [[ "${base}" == ".cache" || "${base}" == "snap" ]] && continue
         [[ -e "${path}" ]] || continue
@@ -69,7 +69,7 @@ fi
 set +e
 trap '' PIPE
 if [[ -s "${file_list}" ]]; then
-    hf_list_clamav_scan "${file_list}" >> "${LOG_FILE}" 2>&1
+    g_list_clamav_scan "${file_list}" >> "${LOG_FILE}" 2>&1
     rc=$?
 else
     rc=0
@@ -79,22 +79,22 @@ set -e
 kind="ok"
 crashed=0
 if [[ -s "${file_list}" ]]; then
-    kind="$(hf_get_clamav_kind "${LOG_FILE}")"
+    kind="$(g_get_clamav_kind "${LOG_FILE}")"
     if [[ "${kind}" == "ok" && "${rc}" -ne 0 ]]; then
         kind="error"
     fi
-    if hf_report_clamav; then
+    if g_report_clamav; then
         crashed=1
     fi
 fi
 
-seen="${HFU_BASE}/cron/scan-skip.seen"
+seen="${W_BASE}/cron/scan-skip.seen"
 if [[ "${kind}" == "error" ]]; then
-    hf_log_alert "clamscan erreur rc=${rc}"
+    g_log_alert "clamscan erreur rc=${rc}"
     exit 0
 fi
 if [[ "${kind}" == "infected" ]]; then
-    fresh_list="$(mktemp -p /run/high-fortress-user)"
+    fresh_list="$(mktemp -p /run/liltress-workstation)"
     python3 - "${LOG_FILE}" "${seen}" > "${fresh_list}" << 'PY'
 import sys
 from pathlib import Path
@@ -127,22 +127,22 @@ PY
     new_count=0
     if [[ -s "${fresh_list}" ]]; then
         response="${HERE}/clamav-response.sh"
-        [[ -x "${HFU_BASE}/cron/bin/clamav-response.sh" ]] && response="${HFU_BASE}/cron/bin/clamav-response.sh"
+        [[ -x "${W_BASE}/cron/bin/clamav-response.sh" ]] && response="${W_BASE}/cron/bin/clamav-response.sh"
         while IFS=$'\t' read -r sig origin; do
             [[ -n "${sig}" && -n "${origin}" ]] || continue
             new_count=$((new_count + 1))
-            HFU_CLAMAV_EVENT_FILE="${origin}" \
-            HFU_CLAMAV_EVENT_VIRUS="${sig}" \
-            HFU_CLAMAV_EVENT_KIND=idle \
-            HFU_CLAMAV_EVENT_MAIL=0 \
-            HFU_CLAMAV_RESPONSE_STAMP="${STAMP}-$$-${new_count}" \
+            W_CLAMAV_EVENT_FILE="${origin}" \
+            W_CLAMAV_EVENT_VIRUS="${sig}" \
+            W_CLAMAV_EVENT_KIND=idle \
+            W_CLAMAV_EVENT_MAIL=0 \
+            W_CLAMAV_RESPONSE_STAMP="${STAMP}-$$-${new_count}" \
                 bash "${response}" || true
         done < "${fresh_list}"
     fi
     if [[ "${new_count}" -gt 0 ]]; then
-        hf_log_alert "clamscan : infection(s) (voir ${LOG_FILE})"
+        g_log_alert "clamscan : infection(s) (voir ${LOG_FILE})"
     else
-        hfu_log_pass "infections déjà signalées"
+        w_log_pass "infections déjà signalées"
     fi
     exit 0
 fi
@@ -152,5 +152,5 @@ fi
 
 touch "${stamp}"
 chmod 644 "${stamp}"
-hfu_log_pass "clamscan OK"
+w_log_pass "clamscan OK"
 exit 0

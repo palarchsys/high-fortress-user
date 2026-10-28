@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/apply-scan-skip.sh
-# Updated at : 2026-10-21
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 # -----------------------------------------------------------------------------
 # Note       : Fixed excludes from onaccess.conf join the same block.
-# Note       : The temporary file is created under /run/high-fortress-user.
+# Note       : The temporary file is created under /run/liltress-workstation.
 # Note       : Each OnAccessExcludePath value matches that directory only.
 # -----------------------------------------------------------------------------
 
@@ -15,7 +15,7 @@ HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
 source "${HERE}/scan-skip-lib.sh"
 
-hfu_restart_scan_skip_service() {
+w_restart_scan_skip_service() {
     local unit
     if systemctl cat clamav-daemon.service >/dev/null 2>&1; then
         systemctl restart clamav-daemon
@@ -28,17 +28,17 @@ hfu_restart_scan_skip_service() {
     done
 }
 
-if [[ -n "${HFU_SCAN_SKIP_HOME:-}" ]]; then
-    hfu_ensure_scan_skip_file "${HFU_SCAN_SKIP_HOME}"
+if [[ -n "${W_SCAN_SKIP_HOME:-}" ]]; then
+    w_ensure_scan_skip_file "${W_SCAN_SKIP_HOME}"
 fi
 
-hfu_load_onaccess_exclude() {
+w_load_onaccess_exclude() {
     local candidate found=""
-    HFU_ONACCESS_FIXED_EXCLUDE="${HFU_ONACCESS_FIXED_EXCLUDE:-/var/lib/snapd /snap /var/lib/clamav/quarantine /var/lib/clamav/tmp /opt/high-fortress-user /var/log}"
+    W_ONACCESS_FIXED_EXCLUDE="${W_ONACCESS_FIXED_EXCLUDE:-/var/lib/snapd /snap /var/lib/clamav/quarantine /var/lib/clamav/tmp /opt/liltress-workstation /var/log}"
     for candidate in \
-        "${HF_INSTALL_DIRECTORY:-}/config/clamav/onaccess.conf" \
-        "${HFU_BASE}/src/config/clamav/onaccess.conf" \
-        "/opt/high-fortress-user/src/config/clamav/onaccess.conf"
+        "${G_INSTALL_DIRECTORY:-}/config/clamav/onaccess.conf" \
+        "${W_BASE}/src/config/clamav/onaccess.conf" \
+        "/opt/liltress-workstation/src/config/clamav/onaccess.conf"
     do
         [[ -f "${candidate}" ]] || continue
         found="${candidate}"
@@ -48,39 +48,39 @@ hfu_load_onaccess_exclude() {
         # shellcheck disable=SC1090
         source "${found}"
     fi
-    HFU_ONACCESS_FIXED=()
+    W_ONACCESS_FIXED=()
     local path
     # shellcheck disable=SC2086
-    for path in ${HFU_ONACCESS_FIXED_EXCLUDE}; do
+    for path in ${W_ONACCESS_FIXED_EXCLUDE}; do
         [[ -n "${path}" ]] || continue
-        HFU_ONACCESS_FIXED+=("${path}")
+        W_ONACCESS_FIXED+=("${path}")
     done
-    if [[ -n "${HFU_BASE:-}" ]]; then
-        HFU_ONACCESS_FIXED+=("${HFU_BASE}")
+    if [[ -n "${W_BASE:-}" ]]; then
+        W_ONACCESS_FIXED+=("${W_BASE}")
     fi
     local kept=()
-    for path in "${HFU_ONACCESS_FIXED[@]+"${HFU_ONACCESS_FIXED[@]}"}"; do
-        [[ "${path}" == "${HFU_BASE}/src" ]] && continue
+    for path in "${W_ONACCESS_FIXED[@]+"${W_ONACCESS_FIXED[@]}"}"; do
+        [[ "${path}" == "${W_BASE}/src" ]] && continue
         kept+=("${path}")
     done
-    HFU_ONACCESS_FIXED=("${kept[@]+"${kept[@]}"}")
+    W_ONACCESS_FIXED=("${kept[@]+"${kept[@]}"}")
 }
 
-hfu_load_onaccess_exclude
-hfu_collect_scan_skip_path
-if [[ ${#HFU_SCAN_SKIP_BAD[@]} -gt 0 ]]; then
-    install -d -m 750 "${HFU_BASE}/cron/security_logs"
-    for line in "${HFU_SCAN_SKIP_BAD[@]}"; do
-        printf '%s chemin refusé : %s\n' "$(date -Iseconds)" "${line}" | tee -a "${HFU_BASE}/cron/security_logs/scan-skip.log"
+w_load_onaccess_exclude
+w_collect_scan_skip_path
+if [[ ${#W_SCAN_SKIP_BAD[@]} -gt 0 ]]; then
+    install -d -m 750 "${W_BASE}/cron/security_logs"
+    for line in "${W_SCAN_SKIP_BAD[@]}"; do
+        printf '%s chemin refusé : %s\n' "$(date -Iseconds)" "${line}" | tee -a "${W_BASE}/cron/security_logs/scan-skip.log"
     done
 fi
 
 conf="/etc/clamav/clamd.conf"
 if [[ -f "${conf}" ]]; then
-    install -d -m 755 /run/high-fortress-user
-    tmp="$(mktemp -p /run/high-fortress-user)"
+    install -d -m 755 /run/liltress-workstation
+    tmp="$(mktemp -p /run/liltress-workstation)"
     trap 'rm -f "${tmp}"' EXIT
-    changed="$(python3 - "${conf}" "${tmp}" "${#HFU_ONACCESS_FIXED[@]}" "${HFU_ONACCESS_FIXED[@]}" "${HFU_SCAN_SKIP_VALID[@]}" << 'PY'
+    changed="$(python3 - "${conf}" "${tmp}" "${#W_ONACCESS_FIXED[@]}" "${W_ONACCESS_FIXED[@]}" "${W_SCAN_SKIP_VALID[@]}" << 'PY'
 import re
 import sys
 from pathlib import Path
@@ -96,17 +96,19 @@ for path in list(fixed) + list(paths):
         seen.append(path)
 paths = seen
 text = conf.read_text(errors="replace")
-begin = "# BEGIN High-Fortress User scan-skip"
-end = "# END High-Fortress User scan-skip"
+begin = "# BEGIN Liltress Workstation scan-skip"
+end = "# END Liltress Workstation scan-skip"
+old_begin = "# BEGIN High-Fortress User scan-skip"
+old_end = "# END High-Fortress User scan-skip"
 out = []
 skipping = False
 for line in text.splitlines():
     stripped = line.strip()
-    if stripped == begin:
+    if stripped in (begin, old_begin):
         skipping = True
         continue
     if skipping:
-        if stripped == end:
+        if stripped in (end, old_end):
             skipping = False
         continue
     if line.startswith("OnAccessExcludePath "):
@@ -128,15 +130,15 @@ PY
 )"
     if [[ "${changed}" == "changed" ]]; then
         cat "${tmp}" > "${conf}"
-        hfu_restart_scan_skip_service
+        w_restart_scan_skip_service
     fi
     rm -f "${tmp}"
     trap - EXIT
 fi
 
 rk="/etc/rkhunter.conf.local"
-if [[ -f "${rk}" && ${#HFU_SCAN_SKIP_VALID[@]} -gt 0 ]]; then
-    for path in "${HFU_SCAN_SKIP_VALID[@]}"; do
+if [[ -f "${rk}" && ${#W_SCAN_SKIP_VALID[@]} -gt 0 ]]; then
+    for path in "${W_SCAN_SKIP_VALID[@]}"; do
         case "${path}" in
             */.*)
                 grep -qxF "ALLOWHIDDENDIR=${path}" "${rk}" \

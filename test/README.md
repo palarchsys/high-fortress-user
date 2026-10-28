@@ -1,8 +1,8 @@
-# Tests High-Fortress User
+# Tests Liltress Workstation
 
 Ubuntu 26.04. Banc d’essai statique : pas d’installation du poste, pas de root. Il vérifie la syntaxe, les étapes, les fonctions conservées, les interdits du poste, les secrets hors git, le SQL et le routeur.
 
-Le lanceur est le même que celui du serveur. Les assertions (`hft_pass`, `hft_fail`, `hft_warn`, `hft_skip`) sont dans `core/test-harness.sh`. Les contrôles du poste restent dans `test/suites/`.
+Le lanceur est le même que celui du serveur. Les assertions (`t_pass`, `t_fail`, `t_warn`, `t_skip`) sont dans `core/test-harness.sh`. Les contrôles du poste restent dans `test/suites/`.
 
 ## Lancer
 

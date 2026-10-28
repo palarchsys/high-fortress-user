@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🛡️ High-Fortress User 🛡️
+# 🛡️ Liltress Workstation 🛡️
 
 ![Ubuntu 26.04 or newer](https://img.shields.io/badge/Ubuntu-26.04%2B-E95420?logo=ubuntu&logoColor=white)
 ![Workstation](https://img.shields.io/badge/profile-workstation-1f6feb)
@@ -8,7 +8,7 @@
 ![UFW](https://img.shields.io/badge/firewall-UFW-0055A4)
 ![Security checks](https://img.shields.io/badge/checks-AIDE%20%C2%B7%20ClamAV%20%C2%B7%20Lynis-2ea44f)
 
-High-Fortress User prépare un poste Ubuntu 26.04 ou plus récent.<br/>
+Liltress Workstation prépare un poste Ubuntu 26.04 ou plus récent.<br/>
 Il installe le résolveur DNS local, le pare-feu et les contrôles de sécurité.<br/>
 Le compte Ubuntu déjà créé sur la machine n'est pas remplacé.<br/>
 L'installeur ne crée pas un second compte.
@@ -47,14 +47,14 @@ Le poste se prépare par l'installeur curl, ou par un clone suivi de `sudo ./hf 
 ```bash
 sudo apt-get update
 sudo apt-get install -y ca-certificates curl git swaks tar
-curl -fsSL https://raw.githubusercontent.com/palarchsys/high-fortress-user/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/palarchsys/liltress-workstation/main/install.sh | sudo bash
 ```
 
 ## ▪️ Clone
 
 ```bash
-git clone https://github.com/palarchsys/high-fortress-user
-cd high-fortress-user
+git clone https://github.com/palarchsys/liltress-workstation
+cd liltress-workstation
 sudo ./hf configure
 ```
 
@@ -70,7 +70,7 @@ sudo ./hf configure
 | Serveur | `hôte:port`, par exemple `smtp-mail.outlook.com:587`. Sans crochets. Demandé seulement si les alertes sont activées. |
 | Login | Une adresse e-mail. |
 | Password | Le mot de passe d'application du fournisseur, de 8 à 128 caractères. Les espaces sont retirés. Les guillemets, `$`, `\` et l'apostrophe inverse sont refusés. Jamais le mot de passe du compte. |
-| From | Une adresse e-mail. `HF_WATCHDOG_MAIL` reçoit la même adresse. |
+| From | Une adresse e-mail. `G_WATCHDOG_MAIL` reçoit la même adresse. |
 | Activer l'envoi des alertes vers Google Drive (Y/N). | `Y` ou `y` active la copie. `N`, `n` ou `non` la coupe. Activé demande le nom distant et le dossier, puis lance `rclone config`. Le jeton reste sur la machine, mode 600. Coupé, rclone n'est pas installé. |
 | Distant | Nom distant. Lettres, chiffres ou tiret, 1 à 32 caractères. Seulement si la copie est activée. |
 | Dossier | Dossier distant. Pas de `..` et pas de chemin local absolu. Seulement si la copie est activée. |
@@ -96,8 +96,8 @@ L'installation pose les paquets et les services ci-dessous.
 | apparmor | Profils de la distribution. `service/apparmor/userns.sh` retire un profil hfu qui n'est pas livré. |
 | aide | Base d'intégrité `/var/lib/aide/aide.db`. |
 | unattended-upgrades | Origines de sécurité. `Automatic-Reboot` vaut `false`. |
-| postfix | Envoie le courrier d'alerte. Posé seulement lorsque `HF_MAIL_ALERTS=1`. |
-| rclone | Copie un fichier d'alerte vers Google Drive. Posé seulement lorsque `HF_RCLONE_ALERTS=1`. |
+| postfix | Envoie le courrier d'alerte. Posé seulement lorsque `G_MAIL_ALERTS=1`. |
+| rclone | Copie un fichier d'alerte vers Google Drive. Posé seulement lorsque `G_RCLONE_ALERTS=1`. |
 | lynis | Audit de durcissement. |
 | ubuntu-pro-client | Attache le jeton Ubuntu Pro. Hors LTS, esm-infra, esm-apps et Livepatch ne sont pas activés. Sur une LTS, leur échec n'arrête pas l'installation. |
 | acct, sysstat, libpam-pwquality | Comptabilité des processus, statistiques d'activité, qualité des mots de passe. |
@@ -106,10 +106,10 @@ L'installation pose les paquets et les services ci-dessous.
 
 ## 📋 E-mails d'alerte
 
-Chaque fichier d'alerte est sous `/opt/high-fortress-user/cron/alerts`.<br/>
-Le courrier part seulement si `HF_MAIL_ALERTS=1`.<br/>
-Une copie part vers Google Drive seulement si `HF_RCLONE_ALERTS=1`, vers le distant et le dossier choisis.<br/>
-Le courrier part seulement si `HF_MAIL_ALERTS=1`, si `HF_WATCHDOG_MAIL` est défini, et si `/opt/high-fortress-user/cron/bin/send.sh` est exécutable.<br/>
+Chaque fichier d'alerte est sous `/opt/liltress-workstation/cron/alerts`.<br/>
+Le courrier part seulement si `G_MAIL_ALERTS=1`.<br/>
+Une copie part vers Google Drive seulement si `G_RCLONE_ALERTS=1`, vers le distant et le dossier choisis.<br/>
+Le courrier part seulement si `G_MAIL_ALERTS=1`, si `G_WATCHDOG_MAIL` est défini, et si `/opt/liltress-workstation/cron/bin/send.sh` est exécutable.<br/>
 Un contrôle propre n'envoie pas de courrier.<br/>
 Si une ligne du journal est inconnue, ne lancez pas la commande.<br/>
 Gardez le courrier.
@@ -122,10 +122,10 @@ Il nomme le signal, ou le code de sortie.
 
 Le message contient la ligne de résumé et un extrait du journal, puis la note et le bloc de commande.<br/>
 Le chemin du journal dans le courrier est le fichier réel.<br/>
-La forme est `/opt/high-fortress-user/cron/security_logs/aide-YYYYMMDD-HHMMSS.log`.
+La forme est `/opt/liltress-workstation/cron/security_logs/aide-YYYYMMDD-HHMMSS.log`.
 
 ```bash
-sudo bash /opt/high-fortress-user/bin/aide-refresh-db.sh
+sudo bash /opt/liltress-workstation/bin/aide-refresh-db.sh
 ```
 
 La commande reconstruit la base AIDE à partir du disque actuel.<br/>
@@ -138,11 +138,11 @@ L'exemple ci-dessous montre la forme.<br/>
 Le courrier contient le chemin réel.
 
 ```bash
-sudo bash /opt/high-fortress-user/bin/chkrootkit-ignore-log.sh '/opt/high-fortress-user/cron/security_logs/chkrootkit-YYYYMMDD-HHMMSS.log'
+sudo bash /opt/liltress-workstation/bin/chkrootkit-ignore-log.sh '/opt/liltress-workstation/cron/security_logs/chkrootkit-YYYYMMDD-HHMMSS.log'
 ```
 
-La commande enregistre les lignes de ce journal dans `/opt/high-fortress-user/cron/chkrootkit.local.ignore`.<br/>
-La ligne de succès est `Aucune nouvelle détection à enregistrer.` lorsqu'il n'y a rien de nouveau, ou `N détection(s) enregistrée(s) dans /opt/high-fortress-user/cron/chkrootkit.local.ignore`.
+La commande enregistre les lignes de ce journal dans `/opt/liltress-workstation/cron/chkrootkit.local.ignore`.<br/>
+La ligne de succès est `Aucune nouvelle détection à enregistrer.` lorsqu'il n'y a rien de nouveau, ou `N détection(s) enregistrée(s) dans /opt/liltress-workstation/cron/chkrootkit.local.ignore`.
 
 Une détection avérée déplace le fichier et joint la commande de restauration à la place.<br/>
 La commande d'enregistrement reste seulement lorsqu'aucun fichier avéré n'a été déplacé.
@@ -156,7 +156,7 @@ Le courrier nomme chaque paquet rétabli.<br/>
 La ligne de succès est `La somme correspond.`
 
 Un paquet dont la somme reste différente, ou dont la réinstallation échoue, reste dans le courrier.<br/>
-Une ligne pour `/var/lib/rkhunter/db/mirrors.dat` est retirée avant cette réinstallation seulement si son SHA-256 actuel est égal à `/opt/high-fortress-user/cron/rkhunter-mirrors.sha256`.<br/>
+Une ligne pour `/var/lib/rkhunter/db/mirrors.dat` est retirée avant cette réinstallation seulement si son SHA-256 actuel est égal à `/opt/liltress-workstation/cron/rkhunter-mirrors.sha256`.<br/>
 Une ligne modifiée sous `/usr/lib/*/perl-base/unicore/` du paquet `perl-base` est retirée avant cette réinstallation.<br/>
 Le fichier livré par Ubuntu ne correspond pas à la somme de ce paquet.
 
@@ -165,24 +165,24 @@ Le fichier livré par Ubuntu ne correspond pas à la somme de ce paquet.
 Le message contient la signature, le nom du fichier, le chemin d'origine et le chemin de quarantaine, puis la note et une commande de restauration par fichier déplacé.<br/>
 Le même journal indique l'heure, le type de détection, les actions appliquées et une recommandation courte.<br/>
 Un fichier dont le nom correspond à `.clamav-quarantine-lock.*` n'envoie pas de courrier.<br/>
-Le script sort en 0 avant le journal et avant `hf_log_alert`.
+Le script sort en 0 avant le journal et avant `g_log_alert`.
 
 ```bash
-sudo bash /opt/high-fortress-user/bin/quarantine-restore.sh <id>
+sudo bash /opt/liltress-workstation/bin/quarantine-restore.sh <id>
 ```
 
 L'exemple montre la forme.<br/>
 Le courrier contient l'identifiant réel.<br/>
 La commande remet ce fichier à son emplacement d'origine.<br/>
 La ligne de succès est `fichier remis en place`.<br/>
-Le registre est `/opt/high-fortress-user/cron/quarantine.registry`.
+Le registre est `/opt/liltress-workstation/cron/quarantine.registry`.
 
 ## ▪️ Analyse ClamAV au démarrage
 
 Le message contient le résumé et l'extrait du journal.<br/>
 Lorsqu'un fichier a été déplacé, le courrier ajoute une commande de restauration par fichier.<br/>
 La commande est la même que celle du courrier à l'accès.<br/>
-La forme du journal est `/opt/high-fortress-user/cron/security_logs/clamav-YYYYMMDD-HHMMSS.log`.<br/>
+La forme du journal est `/opt/liltress-workstation/cron/security_logs/clamav-YYYYMMDD-HHMMSS.log`.<br/>
 Un fichier illisible, sans ligne `FOUND`, n'envoie pas de courrier.<br/>
 Les lignes `Known viruses` et `Infected files` ne sont pas recopiées dans le courrier.<br/>
 Un processus `clamscan` arrêté par un signal envoie un courrier.<br/>
@@ -196,24 +196,24 @@ Le courrier dit alors que les fichiers restants n'ont pas été lus.
 Le message contient le résumé et l'extrait du journal.<br/>
 Lorsqu'un fichier a été déplacé, le courrier ajoute une commande de restauration par fichier.<br/>
 La commande est la même que celle du courrier à l'accès.<br/>
-Une signature et un chemin déjà enregistrés dans `/opt/high-fortress-user/cron/scan-skip.seen` ne renvoient pas de courrier.<br/>
+Une signature et un chemin déjà enregistrés dans `/opt/liltress-workstation/cron/scan-skip.seen` ne renvoient pas de courrier.<br/>
 Un processus `clamscan` arrêté par un signal envoie un courrier.<br/>
 Le courrier nomme le signal et chaque fichier non lu.<br/>
 Les autres fichiers de la passe sont analysés.<br/>
 Deux plantages de suite arrêtent la passe ClamAV.<br/>
 Le courrier dit alors que les fichiers restants n'ont pas été lus.<br/>
 Le tampon reste en place.<br/>
-La forme du journal est `/opt/high-fortress-user/cron/security_logs/idle-scan-YYYYMMDD-HHMMSS.log`.
+La forme du journal est `/opt/liltress-workstation/cron/security_logs/idle-scan-YYYYMMDD-HHMMSS.log`.
 
 ## ▪️ rkhunter
 
 Le courrier d'avertissements contient le résumé et l'extrait du journal, puis la note et le bloc de commande.<br/>
 Le courrier `mirrors.dat modifié hors rkhunter --update` n'ajoute pas ce bloc.<br/>
 Un courrier d'erreur non plus.<br/>
-La forme du journal est `/opt/high-fortress-user/cron/security_logs/rkhunter-YYYYMMDD-HHMMSS.log`.
+La forme du journal est `/opt/liltress-workstation/cron/security_logs/rkhunter-YYYYMMDD-HHMMSS.log`.
 
 ```bash
-sudo bash /opt/high-fortress-user/bin/rkhunter-refresh-db.sh
+sudo bash /opt/liltress-workstation/bin/rkhunter-refresh-db.sh
 ```
 
 La commande recalcule la base de propriétés rkhunter à partir du disque actuel.<br/>
@@ -231,11 +231,11 @@ Ce courrier n'ajoute pas de bloc de commande.<br/>
 Le même ensemble de paquets ne renvoie pas de courrier.<br/>
 Un jeu en cours saute le courrier et laisse l'empreinte inchangée.<br/>
 Le script ne redémarre pas la machine.<br/>
-La forme du journal est `/opt/high-fortress-user/cron/security_logs/reboot-notice-YYYYMMDD-HHMMSS.log`.
+La forme du journal est `/opt/liltress-workstation/cron/security_logs/reboot-notice-YYYYMMDD-HHMMSS.log`.
 
 ## 📋 Commandes après l'installation
 
-Lancez ces commandes depuis le répertoire des sources (`/opt/high-fortress-user/src` après l'installeur curl, ou le répertoire du clone).
+Lancez ces commandes depuis le répertoire des sources (`/opt/liltress-workstation/src` après l'installeur curl, ou le répertoire du clone).
 
 ## ▪️ hf check
 
@@ -278,12 +278,12 @@ sudo bash verify/workstation.sh "$PWD"
 
 Lance la vérification du poste.<br/>
 La ligne de clôture a la forme `Check : N OK / N WARN / N FAIL`.<br/>
-La même passe contrôle le relais SSH, la règle de pare-feu SSH, USBGuard, le délai sudo et `hfu-reboot-notice.timer`.
+La même passe contrôle le relais SSH, la règle de pare-feu SSH, USBGuard, le délai sudo et `w-reboot-notice.timer`.
 
 ## ▪️ Contrôle après démarrage
 
 ```bash
-sudo bash /opt/high-fortress-user/bin/boot-check.sh
+sudo bash /opt/liltress-workstation/bin/boot-check.sh
 ```
 
 Vérifie les services de sécurité du démarrage et les trois passes de cette session.<br/>
@@ -298,13 +298,13 @@ sudo ./hf lynis
 ```
 
 Lance `lynis audit system --quick --no-colors` et écrit le rapport sous `<source>/logs/lynis-<stamp>/`.<br/>
-`HF_LYNIS_MIN_SCORE` vaut 80.<br/>
+`G_LYNIS_MIN_SCORE` vaut 80.<br/>
 `verify/workstation.sh` accepte un `hardening_index` supérieur ou égal à ce seuil.
 
 ## ▪️ Base AIDE
 
 ```bash
-sudo bash /opt/high-fortress-user/bin/aide-refresh-db.sh
+sudo bash /opt/liltress-workstation/bin/aide-refresh-db.sh
 ```
 
 Reconstruit `/var/lib/aide/aide.db`.<br/>
@@ -313,23 +313,23 @@ La ligne de succès est `Base de référence AIDE enregistrée.`
 ## ▪️ Empreinte des miroirs rkhunter
 
 ```bash
-sudo bash /opt/high-fortress-user/cron/bin/record-mirrors.sh save
+sudo bash /opt/liltress-workstation/cron/bin/record-mirrors.sh save
 ```
 
-Écrit le SHA-256 de `/var/lib/rkhunter/db/mirrors.dat` dans `/opt/high-fortress-user/cron/rkhunter-mirrors.sha256` en mode `600`.<br/>
+Écrit le SHA-256 de `/var/lib/rkhunter/db/mirrors.dat` dans `/opt/liltress-workstation/cron/rkhunter-mirrors.sha256` en mode `600`.<br/>
 `rkhunter.sh` enregistre cette empreinte seulement après un `rkhunter --update` qui retourne 0 ou 2.
 
 ## ▪️ Chemins exclus du scan
 
 ```bash
-sudo bash /opt/high-fortress-user/bin/scan-skip.sh list
-sudo bash /opt/high-fortress-user/bin/scan-skip.sh add $HOME/.cache/exemple
-sudo bash /opt/high-fortress-user/bin/scan-skip.sh del $HOME/.cache/exemple
+sudo bash /opt/liltress-workstation/bin/scan-skip.sh list
+sudo bash /opt/liltress-workstation/bin/scan-skip.sh add $HOME/.cache/exemple
+sudo bash /opt/liltress-workstation/bin/scan-skip.sh del $HOME/.cache/exemple
 ```
 
-Le fichier de liste est `/opt/high-fortress-user/src/config/clamav/scan-skip.paths`.<br/>
+Le fichier de liste est `/opt/liltress-workstation/src/config/clamav/scan-skip.paths`.<br/>
 Une liste déjà présente reste en place lorsque l'installeur tourne de nouveau.<br/>
-Une liste encore dans `/opt/high-fortress-user/cron/scan-skip.paths` est copiée une fois, lorsque le nouveau fichier est encore le modèle.
+Une liste encore dans `/opt/liltress-workstation/cron/scan-skip.paths` est copiée une fois, lorsque le nouveau fichier est encore le modèle.
 
 | Action       | Ligne affichée                      |
 | ------------ | ----------------------------------- |

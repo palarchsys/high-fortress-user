@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : core/quarantine-restore.sh
-# Updated at : 2026-10-22
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 # -----------------------------------------------------------------------------
@@ -37,7 +37,7 @@ script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 if [[ "$(basename -- "${script_dir}")" == "bin" ]]; then
     base="$(dirname -- "${script_dir}")"
 else
-    base="${HF_CONFIG_BASE_DIRECTORY:-${HFU_BASE:-${HF_BASE:-/opt/high-fortress}}}"
+    base="${G_CONFIG_BASE_DIRECTORY:-${W_BASE:-${G_BASE:-/opt/liltress}}}"
 fi
 
 registry="${base}/cron/quarantine.registry"

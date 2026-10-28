@@ -1,29 +1,29 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : core/watchdog.sh
-# Updated at : 2026-10-26
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
-hf_get_product_base() {
-    if [[ -n "${HFU_BASE:-}" ]]; then
-        printf '%s' "${HFU_BASE}"
-    elif [[ -n "${HF_CONFIG_BASE_DIRECTORY:-}" ]]; then
-        printf '%s' "${HF_CONFIG_BASE_DIRECTORY}"
-    elif [[ -n "${HF_BASE:-}" ]]; then
-        printf '%s' "${HF_BASE}"
+g_get_product_base() {
+    if [[ -n "${W_BASE:-}" ]]; then
+        printf '%s' "${W_BASE}"
+    elif [[ -n "${G_CONFIG_BASE_DIRECTORY:-}" ]]; then
+        printf '%s' "${G_CONFIG_BASE_DIRECTORY}"
+    elif [[ -n "${G_BASE:-}" ]]; then
+        printf '%s' "${G_BASE}"
     else
-        printf '%s' "/opt/high-fortress"
+        printf '%s' "/opt/liltress"
     fi
 }
 
-hf_send_path() {
+g_send_path() {
     if [[ -n "${CRON_BIN_PATH:-}" && -x "${CRON_BIN_PATH}/send.sh" ]]; then
         printf '%s\n' "${CRON_BIN_PATH}/send.sh"
         return 0
     fi
     local base
-    base="$(hf_get_product_base)"
+    base="$(g_get_product_base)"
     if [[ -x "${base}/cron/bin/send.sh" ]]; then
         printf '%s\n' "${base}/cron/bin/send.sh"
         return 0
@@ -31,7 +31,7 @@ hf_send_path() {
     return 1
 }
 
-hf_signal_phrase() {
+g_signal_phrase() {
     case "$1" in
         6) printf '%s' 'abandon du programme' ;;
         7) printf '%s' 'accès mémoire invalide' ;;
@@ -43,13 +43,13 @@ hf_signal_phrase() {
     esac
 }
 
-hf_get_crash_sentence() {
+g_get_crash_sentence() {
     local label="$1"
     local status="$2"
     local signal phrase journal
     if [[ "${status}" -ge 128 ]]; then
         signal=$((status - 128))
-        phrase="$(hf_signal_phrase "${signal}")"
+        phrase="$(g_signal_phrase "${signal}")"
         printf "Le contrôle %s a planté (signal %s, %s). Il n'est pas allé au bout." "${label}" "${signal}" "${phrase}"
     else
         printf "Le contrôle %s s'est arrêté (code %s). Il n'est pas allé au bout." "${label}" "${status}"
@@ -61,24 +61,24 @@ hf_get_crash_sentence() {
     printf '\n'
 }
 
-hf_send_crash_mail() {
+g_send_crash_mail() {
     local status=$?
     if [[ -n "${1-}" ]]; then
         status="$1"
     fi
     trap - EXIT
     [[ "${status}" -eq 0 ]] && return 0
-    hf_log_alert "$(hf_get_crash_sentence "${HF_CRASH_LABEL:-${HFU_CRASH_LABEL:-contrôle}}" "${status}")" || true
+    g_log_alert "$(g_get_crash_sentence "${G_CRASH_LABEL:-${W_CRASH_LABEL:-contrôle}}" "${status}")" || true
 }
 
-hf_arm_crash_mail() {
-    HF_CRASH_LABEL="$1"
-    HFU_CRASH_LABEL="$1"
-    trap hf_send_crash_mail EXIT
+g_arm_crash_mail() {
+    G_CRASH_LABEL="$1"
+    W_CRASH_LABEL="$1"
+    trap g_send_crash_mail EXIT
 }
 
-hf_get_cpu_quota_percent() {
-    local limit="${HF_WATCHDOG_CPU_LIMIT:-50}"
+g_get_cpu_quota_percent() {
+    local limit="${G_WATCHDOG_CPU_LIMIT:-50}"
     local n=1
     if [[ ! "${limit}" =~ ^[0-9]+$ ]]; then
         limit=50
@@ -92,22 +92,22 @@ hf_get_cpu_quota_percent() {
     printf '%s\n' "$((limit * n))"
 }
 
-hf_run_limited() {
+g_run_limited() {
     local status=0 pid=0 lim=0 errexit=0
     local -a cmd=()
     case $- in
         *e*) errexit=1 ;;
     esac
     set +e
-    if [[ "${HF_LIMIT_WRAP:-1}" == "0" ]]; then
+    if [[ "${G_LIMIT_WRAP:-1}" == "0" ]]; then
         "$@"
         status=$?
     else
         if command -v nice >/dev/null 2>&1; then
-            cmd+=(nice -n "${HF_WATCHDOG_LIMIT_NICE:-19}")
+            cmd+=(nice -n "${G_WATCHDOG_LIMIT_NICE:-19}")
         fi
         if command -v ionice >/dev/null 2>&1; then
-            cmd+=(ionice -c "${HF_WATCHDOG_LIMIT_IO_NICE:-3}")
+            cmd+=(ionice -c "${G_WATCHDOG_LIMIT_IO_NICE:-3}")
         fi
         if [[ "${#cmd[@]}" -eq 0 ]]; then
             "$@" &
@@ -116,7 +116,7 @@ hf_run_limited() {
         fi
         pid=$!
         if command -v cpulimit >/dev/null 2>&1; then
-            cpulimit -p "${pid}" -l "$(hf_get_cpu_quota_percent)" -z >/dev/null 2>&1 &
+            cpulimit -p "${pid}" -l "$(g_get_cpu_quota_percent)" -z >/dev/null 2>&1 &
             lim=$!
         fi
         wait "${pid}"
@@ -132,7 +132,7 @@ hf_run_limited() {
     return "${status}"
 }
 
-hf_get_alert_excerpt() {
+g_get_alert_excerpt() {
     python3 - "${1:-}" << 'PY'
 import re
 import sys
@@ -249,7 +249,7 @@ if body:
 PY
 }
 
-hf_get_clamav_kind() {
+g_get_clamav_kind() {
     python3 - "${1:-}" << 'PY'
 import re
 import sys
@@ -284,25 +284,25 @@ else:
 PY
 }
 
-hf_invoke_clamav() {
-    if [[ "${HF_CLAM_MODE:-scan}" == "daemon" ]]; then
-        hf_run_limited clamdscan --fdpass --infected --no-summary -- "$@"
+g_invoke_clamav() {
+    if [[ "${G_CLAM_MODE:-scan}" == "daemon" ]]; then
+        g_run_limited clamdscan --fdpass --infected --no-summary -- "$@"
     else
         clamscan --infected --no-summary -- "$@"
     fi
 }
 
-hf_scan_clamav_batch() {
+g_scan_clamav_batch() {
     local status=0 signal=0 streak=0 path errexit=0 tool="clamscan"
     [[ "$#" -gt 0 ]] || return 0
-    if [[ "${HF_CLAM_MODE:-scan}" == "daemon" ]]; then
+    if [[ "${G_CLAM_MODE:-scan}" == "daemon" ]]; then
         tool="clamdscan"
     fi
     case $- in
         *e*) errexit=1 ;;
     esac
     set +e
-    hf_invoke_clamav "$@"
+    g_invoke_clamav "$@"
     status=$?
     if [[ "${errexit}" -eq 1 ]]; then
         set -e
@@ -313,7 +313,7 @@ hf_scan_clamav_batch() {
     streak=0
     for path in "$@"; do
         set +e
-        hf_invoke_clamav "${path}"
+        g_invoke_clamav "${path}"
         status=$?
         if [[ "${errexit}" -eq 1 ]]; then
             set -e
@@ -324,8 +324,8 @@ hf_scan_clamav_batch() {
             streak=$((streak + 1))
             if [[ "${streak}" -ge 2 ]]; then
                 printf '%s planté signal %s, contrôle arrêté\n' "${tool}" "${signal}"
-                HF_CLAM_STOP=1
-                HFU_CLAMAV_STOP=1
+                G_CLAM_STOP=1
+                W_CLAMAV_STOP=1
                 return 0
             fi
         else
@@ -335,36 +335,36 @@ hf_scan_clamav_batch() {
     return 0
 }
 
-hf_list_clamav_scan() {
+g_list_clamav_scan() {
     local file_list="$1"
     local path batch_max
     local -a batch=()
-    batch_max="${HF_CLAM_BATCH:-80}"
-    HF_CLAM_STOP=0
-    HFU_CLAMAV_STOP=0
+    batch_max="${G_CLAM_BATCH:-80}"
+    G_CLAM_STOP=0
+    W_CLAMAV_STOP=0
     while IFS= read -r -d '' path || [[ -n "${path}" ]]; do
         [[ -n "${path}" ]] || continue
         batch+=("${path}")
         if [[ "${#batch[@]}" -eq "${batch_max}" ]]; then
-            hf_scan_clamav_batch "${batch[@]}" || true
+            g_scan_clamav_batch "${batch[@]}" || true
             batch=()
-            [[ "${HF_CLAM_STOP}" == 1 ]] && break
+            [[ "${G_CLAM_STOP}" == 1 ]] && break
         fi
     done < "${file_list}"
-    if [[ "${#batch[@]}" -gt 0 && "${HF_CLAM_STOP}" != 1 ]]; then
-        hf_scan_clamav_batch "${batch[@]}" || true
+    if [[ "${#batch[@]}" -gt 0 && "${G_CLAM_STOP}" != 1 ]]; then
+        g_scan_clamav_batch "${batch[@]}" || true
     fi
     return 0
 }
 
-hf_prepare_rkhunter_note() {
+g_prepare_rkhunter_note() {
     local base
-    base="$(hf_get_product_base)"
+    base="$(g_get_product_base)"
     NOTE="Si ce journal correspond à des changements attendus (une mise à jour, un logiciel que vous avez installé, un fichier que vous avez modifié) et qu'il ne révèle pas d'anomalie, exécutez la commande ci-dessous. Elle recalcule la base de propriétés rkhunter à partir du disque actuel."
     NOTE_CMD="sudo bash ${base}/bin/rkhunter-refresh-db.sh"
 }
 
-hf_repair_debsums_log() {
+g_repair_debsums_log() {
     local log="$1"
     local summary=""
     [[ -n "${log}" && -s "${log}" ]] || return 0
@@ -589,7 +589,7 @@ PY
     printf '%s' "${summary}"
 }
 
-hf_record_quarantine_origin() {
+g_record_quarantine_origin() {
     local source="$1"
     local origin="$2"
     local stored="$3"
@@ -599,7 +599,7 @@ hf_record_quarantine_origin() {
     [[ "${origin}" == /* && "${origin}" != "${stored}" ]] || return 0
     id="$(basename -- "${stored}")"
     [[ "${id}" =~ ^[0-9]{8}-[0-9]{6}-[0-9]+- ]] || return 0
-    base="$(hf_get_product_base)"
+    base="$(g_get_product_base)"
     dir="${base}/cron"
     registry="${dir}/quarantine.registry"
     if [[ ! -d "${dir}" ]]; then
@@ -622,11 +622,11 @@ hf_record_quarantine_origin() {
     return 0
 }
 
-hf_queue_existing_restore() {
+g_queue_existing_restore() {
     local stored="$1"
     local base registry id quoted
     [[ -n "${stored}" && "${stored}" == /* ]] || return 0
-    base="$(hf_get_product_base)"
+    base="$(g_get_product_base)"
     registry="${base}/cron/quarantine.registry"
     [[ -f "${registry}" && -r "${registry}" ]] || return 0
     id="$(awk -F '\t' -v want="${stored}" '$5 == want { print $1; exit }' "${registry}" 2>/dev/null || true)"
@@ -638,9 +638,9 @@ hf_queue_existing_restore() {
     return 0
 }
 
-hf_take_quarantine_note() {
+g_take_quarantine_note() {
     local pending body
-    pending="$(hf_get_product_base)/cron/quarantine.pending"
+    pending="$(g_get_product_base)/cron/quarantine.pending"
     [[ -s "${pending}" ]] || return 1
     body="$(cat "${pending}" 2>/dev/null || true)"
     [[ -n "${body}" ]] || return 1
@@ -650,7 +650,7 @@ hf_take_quarantine_note() {
     return 0
 }
 
-hf_read_quarantine_holder() {
+g_read_quarantine_holder() {
     local target="$1"
     local pid=""
     if command -v lsof >/dev/null 2>&1; then
@@ -662,13 +662,13 @@ hf_read_quarantine_holder() {
     printf '%s\n' "${pid}"
 }
 
-hf_quarantine_holder_block() {
+g_quarantine_holder_block() {
     local target="$1"
     shift
     local pid="" comm="" uid="" name=""
-    HF_QUARANTINE_PID=""
-    HF_QUARANTINE_COMM=""
-    pid="$(hf_read_quarantine_holder "${target}")"
+    G_QUARANTINE_PID=""
+    G_QUARANTINE_COMM=""
+    pid="$(g_read_quarantine_holder "${target}")"
     [[ -n "${pid}" && "${pid}" =~ ^[0-9]+$ ]] || return 1
     if [[ "${pid}" == "1" ]]; then
         printf '%s\n' "pid 1"
@@ -690,17 +690,17 @@ hf_quarantine_holder_block() {
             return 0
         fi
     done
-    HF_QUARANTINE_PID="${pid}"
-    HF_QUARANTINE_COMM="${comm}"
+    G_QUARANTINE_PID="${pid}"
+    G_QUARANTINE_COMM="${comm}"
     return 1
 }
 
-hf_move_quarantine_file() {
+g_move_quarantine_file() {
     local origin="$1"
     local quarantine base stamp dest
-    quarantine="${HFU_CLAMAV_QUARANTINE_DIR:-/var/lib/clamav/quarantine}"
-    HF_MOVE_ACTION="déplacement refusé"
-    HF_MOVE_STORED="${origin}"
+    quarantine="${W_CLAMAV_QUARANTINE_DIR:-/var/lib/clamav/quarantine}"
+    G_MOVE_ACTION="déplacement refusé"
+    G_MOVE_STORED="${origin}"
     base="$(basename -- "${origin}")"
     [[ -n "${base}" && "${base}" != "/" && "${base}" != "." ]] || base="inconnu"
     if [[ ! -d "${quarantine}" ]]; then
@@ -714,8 +714,8 @@ hf_move_quarantine_file() {
         return 0
     fi
     if [[ ! -e "${origin}" ]]; then
-        HF_MOVE_ACTION="fichier déjà absent"
-        HF_MOVE_STORED="absent"
+        G_MOVE_ACTION="fichier déjà absent"
+        G_MOVE_STORED="absent"
         return 0
     fi
     if [[ ! -f "${origin}" || -L "${origin}" ]]; then
@@ -724,27 +724,27 @@ hf_move_quarantine_file() {
     stamp="$(date +%Y%m%d-%H%M%S-%N)"
     dest="${quarantine}/${stamp}-${base}"
     if mv -- "${origin}" "${dest}"; then
-        HF_MOVE_ACTION="déplacé en quarantaine"
-        HF_MOVE_STORED="${dest}"
+        G_MOVE_ACTION="déplacé en quarantaine"
+        G_MOVE_STORED="${dest}"
     else
-        HF_MOVE_STORED="${origin}"
+        G_MOVE_STORED="${origin}"
     fi
     return 0
 }
 
-hf_signal_quarantine_holder() {
+g_signal_quarantine_holder() {
     local origin="$1"
     local stored="$2"
     shift 2
     local target pid comm reason
     for target in "${origin}" "${stored}"; do
         [[ -n "${target}" && "${target}" != "absent" && -e "${target}" ]] || continue
-        if reason="$(hf_quarantine_holder_block "${target}" "$@")"; then
+        if reason="$(g_quarantine_holder_block "${target}" "$@")"; then
             printf '%s\n' "processus non arrêté : ${reason}"
             return 0
         fi
-        pid="${HF_QUARANTINE_PID:-}"
-        comm="${HF_QUARANTINE_COMM:-}"
+        pid="${G_QUARANTINE_PID:-}"
+        comm="${G_QUARANTINE_COMM:-}"
         [[ -n "${pid}" ]] || continue
         if kill -TERM "${pid}" 2>/dev/null; then
             printf '%s\n' "processus ${pid} (${comm}) arrêté"
@@ -756,41 +756,41 @@ hf_signal_quarantine_holder() {
     printf '%s\n' "processus non arrêté : aucun détenteur"
 }
 
-hf_quarantine_confirmed_log() {
+g_quarantine_confirmed_log() {
     local source="$1"
     local log="$2"
     shift 2
     local path reason phrase quarantine
-    HF_CONFIRMED_COUNT=0
-    HF_MOVED_COUNT=0
+    G_CONFIRMED_COUNT=0
+    G_MOVED_COUNT=0
     [[ -n "${log}" && -f "${log}" ]] || return 0
-    quarantine="${HFU_CLAMAV_QUARANTINE_DIR:-/var/lib/clamav/quarantine}"
+    quarantine="${W_CLAMAV_QUARANTINE_DIR:-/var/lib/clamav/quarantine}"
     while IFS= read -r path; do
         [[ -n "${path}" ]] || continue
         case "${path}" in
             "${quarantine}"|"${quarantine}"/*) continue ;;
         esac
         [[ -f "${path}" && ! -L "${path}" ]] || continue
-        HF_CONFIRMED_COUNT=$((HF_CONFIRMED_COUNT + 1))
+        G_CONFIRMED_COUNT=$((G_CONFIRMED_COUNT + 1))
         case "${path}" in
             /etc/passwd|/etc/shadow|/etc/sudoers|/etc/ssh/sshd_config|/etc/ufw/ufw.conf|/usr/bin/sudo|/usr/bin/passwd|/usr/sbin/sshd)
                 printf '%s\n' "non mis en quarantaine : ${path}"
                 continue
                 ;;
         esac
-        if reason="$(hf_quarantine_holder_block "${path}" "$@")"; then
+        if reason="$(g_quarantine_holder_block "${path}" "$@")"; then
             printf '%s\n' "non mis en quarantaine : ${reason}"
             continue
         fi
-        hf_move_quarantine_file "${path}"
-        if [[ "${HF_MOVE_ACTION}" != "déplacé en quarantaine" ]]; then
-            printf '%s\n' "${HF_MOVE_ACTION} : ${path}"
+        g_move_quarantine_file "${path}"
+        if [[ "${G_MOVE_ACTION}" != "déplacé en quarantaine" ]]; then
+            printf '%s\n' "${G_MOVE_ACTION} : ${path}"
             continue
         fi
-        hf_record_quarantine_origin "${source}" "${path}" "${HF_MOVE_STORED}" "${source}" || true
-        phrase="$(hf_signal_quarantine_holder "${path}" "${HF_MOVE_STORED}" "$@")"
-        printf '%s\n' "déplacé en quarantaine : ${path} ; ${phrase} ; quarantaine ${HF_MOVE_STORED}"
-        HF_MOVED_COUNT=$((HF_MOVED_COUNT + 1))
+        g_record_quarantine_origin "${source}" "${path}" "${G_MOVE_STORED}" "${source}" || true
+        phrase="$(g_signal_quarantine_holder "${path}" "${G_MOVE_STORED}" "$@")"
+        printf '%s\n' "déplacé en quarantaine : ${path} ; ${phrase} ; quarantaine ${G_MOVE_STORED}"
+        G_MOVED_COUNT=$((G_MOVED_COUNT + 1))
     done < <(python3 - "${source}" "${log}" << 'PY'
 import re
 import sys
@@ -823,17 +823,17 @@ PY
     return 0
 }
 
-hf_format_egress_body() {
+g_format_egress_body() {
     local kernel="$1"
     local audit="${2:-}"
-    HF_EGRESS_AUDIT_FILE="${audit}" python3 - "${kernel}" << 'PY'
+    G_EGRESS_AUDIT_FILE="${audit}" python3 - "${kernel}" << 'PY'
 import os
 import re
 import sys
 from pathlib import Path
 
 kernel_path = Path(sys.argv[1])
-audit_path = os.environ.get("HF_EGRESS_AUDIT_FILE", "")
+audit_path = os.environ.get("G_EGRESS_AUDIT_FILE", "")
 kernel_lines = []
 seen = set()
 if kernel_path.is_file():
@@ -946,7 +946,7 @@ if blocks:
 PY
 }
 
-hf_write_alert_file() {
+g_write_alert_file() {
     local alert="$1" summary="$2" excerpt="$3" note="$4" note_cmd="$5"
     local dir
     [[ -n "${alert}" ]] || return 0
@@ -966,14 +966,14 @@ hf_write_alert_file() {
     } > "${alert}" || true
 }
 
-hf_copy_alert_drive() {
+g_copy_alert_drive() {
     local alert="${1:-}"
     local base remote path config
-    [[ "${HF_RCLONE_ALERTS:-0}" == "1" ]] || return 0
+    [[ "${G_RCLONE_ALERTS:-0}" == "1" ]] || return 0
     [[ -n "${alert}" && -f "${alert}" ]] || return 0
-    base="$(hf_get_product_base)"
-    remote="${HF_RCLONE_REMOTE:-}"
-    path="${HF_RCLONE_PATH:-}"
+    base="$(g_get_product_base)"
+    remote="${G_RCLONE_REMOTE:-}"
+    path="${G_RCLONE_PATH:-}"
     config="${base}/cron/rclone.conf"
     if [[ -z "${remote}" || -z "${path}" || ! -f "${config}" ]]; then
         printf '%s\n' "Copie Drive ignorée." >&2
@@ -989,12 +989,12 @@ hf_copy_alert_drive() {
     return 0
 }
 
-hf_log_alert() {
+g_log_alert() {
     local summary="$*"
     local excerpt="" module log alert line send base note="" note_cmd=""
     log="${LOG_FILE:-${LOG:-}}"
     alert="${ALERT_FILE:-}"
-    excerpt="$(hf_get_alert_excerpt "${log}")"
+    excerpt="$(g_get_alert_excerpt "${log}")"
     line="$(printf '%s %s' "$(date -Iseconds)" "${summary}")"
     if [[ -n "${log}" ]]; then
         printf '%s\n' "${line}" | tee -a "${log}"
@@ -1006,21 +1006,21 @@ hf_log_alert() {
         module="$(basename "${log}" | sed -E 's/-[0-9]{8}-.*//')"
     fi
     module="${module:-contrôle}"
-    base="$(hf_get_product_base)"
-    if hf_take_quarantine_note; then
+    base="$(g_get_product_base)"
+    if g_take_quarantine_note; then
         note=""
         note_cmd=""
-    elif [[ "${HFU_AIDE_REFRESH:-}" == "1" ]]; then
+    elif [[ "${W_AIDE_REFRESH:-}" == "1" ]]; then
         note="Si ce journal correspond à des changements attendus (une mise à jour, un logiciel que vous avez installé, un fichier que vous avez modifié) et qu'il ne révèle pas d'anomalie, exécutez la commande ci-dessous. Elle recalcule la base de référence AIDE à partir du disque actuel."
         note_cmd="sudo bash ${base}/bin/aide-refresh-db.sh"
-    elif [[ "${HFU_RKHUNTER_REFRESH:-}" == "1" ]]; then
-        hf_prepare_rkhunter_note
+    elif [[ "${W_RKHUNTER_REFRESH:-}" == "1" ]]; then
+        g_prepare_rkhunter_note
         note="${NOTE}"
         note_cmd="${NOTE_CMD}"
-    elif [[ "${HFU_CHKROOTKIT_IGNORE:-}" == "1" && -n "${log}" ]]; then
+    elif [[ "${W_CHKROOTKIT_IGNORE:-}" == "1" && -n "${log}" ]]; then
         note="Si les lignes de ce journal sont des faux positifs que vous reconnaissez, et qu'aucune ne révèle une anomalie, exécutez la commande ci-dessous. Elle enregistre ces détections. Le prochain contrôle de chkrootkit ne les signalera plus."
         note_cmd="sudo bash ${base}/bin/chkrootkit-ignore-log.sh '${log}'"
-    elif [[ "${HFU_DEBSUMS_IGNORE:-}" == "1" && -n "${log}" ]]; then
+    elif [[ "${W_DEBSUMS_IGNORE:-}" == "1" && -n "${log}" ]]; then
         note="Si les lignes de ce journal sont des faux positifs que vous reconnaissez, et qu'aucune ne révèle une anomalie, exécutez la commande ci-dessous. Elle enregistre ces fichiers. Le prochain contrôle de debsums ne les signalera plus."
         note_cmd="sudo bash ${base}/bin/debsums-ignore-log.sh '${log}'"
     fi
@@ -1031,16 +1031,16 @@ hf_log_alert() {
     if [[ -z "${TITLE:-}" ]]; then
         TITLE="Alerte ${module}"
     fi
-    if [[ -z "${HF_PROJECT_NAME:-}" ]]; then
-        if [[ -n "${HFU_BASE:-}" ]]; then
-            HF_PROJECT_NAME="High-Fortress User"
+    if [[ -z "${G_PROJECT_NAME:-}" ]]; then
+        if [[ -n "${W_BASE:-}" ]]; then
+            G_PROJECT_NAME="Liltress Workstation"
         else
-            HF_PROJECT_NAME="High-Fortress"
+            G_PROJECT_NAME="Liltress"
         fi
     fi
-    hf_write_alert_file "${alert}" "${summary}" "${excerpt}" "${NOTE:-}" "${NOTE_CMD:-}"
-    if [[ "${HF_MAIL_ALERTS:-0}" == "1" && -n "${HF_WATCHDOG_MAIL:-}" ]]; then
-        send="$(hf_send_path)" || true
+    g_write_alert_file "${alert}" "${summary}" "${excerpt}" "${NOTE:-}" "${NOTE_CMD:-}"
+    if [[ "${G_MAIL_ALERTS:-0}" == "1" && -n "${G_WATCHDOG_MAIL:-}" ]]; then
+        send="$(g_send_path)" || true
         if [[ -n "${send}" ]]; then
             TITLE="${TITLE}" \
             MODULE_NAME="${module}" \
@@ -1049,34 +1049,34 @@ hf_log_alert() {
 ${excerpt}" \
             NOTE="${NOTE:-}" \
             NOTE_CMD="${NOTE_CMD:-}" \
-            HF_WATCHDOG_MAIL="${HF_WATCHDOG_MAIL}" \
-            HF_PROJECT_NAME="${HF_PROJECT_NAME}" \
-            HF_MAIL_TEMPLATE="${HF_MAIL_TEMPLATE:-mail.html}" \
+            G_WATCHDOG_MAIL="${G_WATCHDOG_MAIL}" \
+            G_PROJECT_NAME="${G_PROJECT_NAME}" \
+            G_MAIL_TEMPLATE="${G_MAIL_TEMPLATE:-mail.html}" \
                 bash "${send}" || true
         fi
     fi
-    hf_copy_alert_drive "${alert}" || true
+    g_copy_alert_drive "${alert}" || true
 }
 
-hf_report_clamav() {
+g_report_clamav() {
     local crashed=0 signal phrase log
     log="${LOG_FILE:-${LOG:-}}"
     [[ -n "${log}" && -f "${log}" ]] || return 1
     crashed="$(grep -c 'planté signal .* sur ' "${log}" || true)"
     [[ "${crashed}" -gt 0 ]] || return 1
     signal="$(sed -n 's/.*planté signal \([0-9][0-9]*\).*/\1/p' "${log}" | head -n 1)"
-    phrase="$(hf_signal_phrase "${signal}")"
+    phrase="$(g_signal_phrase "${signal}")"
     if grep -q 'contrôle arrêté' "${log}"; then
-        hf_log_alert "ClamAV a planté deux fois de suite (signal ${signal}, ${phrase}). Le contrôle s'est arrêté. Les fichiers restants n'ont pas été analysés."
+        g_log_alert "ClamAV a planté deux fois de suite (signal ${signal}, ${phrase}). Le contrôle s'est arrêté. Les fichiers restants n'ont pas été analysés."
     elif [[ "${crashed}" -eq 1 ]]; then
-        hf_log_alert "ClamAV a planté (signal ${signal}, ${phrase}) sur un fichier. Ce fichier n'a pas été analysé. Les autres fichiers ont été poursuivis."
+        g_log_alert "ClamAV a planté (signal ${signal}, ${phrase}) sur un fichier. Ce fichier n'a pas été analysé. Les autres fichiers ont été poursuivis."
     else
-        hf_log_alert "ClamAV a planté (signal ${signal}, ${phrase}) sur ${crashed} fichiers. Ces fichiers n'ont pas été analysés. Les autres fichiers ont été poursuivis."
+        g_log_alert "ClamAV a planté (signal ${signal}, ${phrase}) sur ${crashed} fichiers. Ces fichiers n'ont pas été analysés. Les autres fichiers ont été poursuivis."
     fi
     return 0
 }
 
-hf_render_mail_about() {
+g_render_mail_about() {
     case "${MODULE_NAME:-}" in
         Aide) printf '%s\n' "Intégrité des fichiers surveillés par AIDE (aide --check)." ;;
         Chkrootkit) printf '%s\n' "Recherche de rootkits (chkrootkit -x -q)." ;;
@@ -1092,7 +1092,7 @@ hf_render_mail_about() {
     esac
 }
 
-hf_deliver_mail() {
+g_deliver_mail() {
     local script_dir detail _mail_sh _candidate tpl
     script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[1]}")" && pwd)"
     detail="$(printf '%s' "${CONTENT:-}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
@@ -1100,8 +1100,8 @@ hf_deliver_mail() {
         echo "Mail non envoyé (${MODULE_NAME:-?}) : corps vide." >&2
         exit 0
     fi
-    if [[ "${HF_MAIL_ABOUT:-0}" == "1" ]]; then
-        CONTENT="$(hf_render_mail_about)
+    if [[ "${G_MAIL_ABOUT:-0}" == "1" ]]; then
+        CONTENT="$(g_render_mail_about)
 
 ${detail}"
     else
@@ -1111,23 +1111,23 @@ ${detail}"
     DATE="${DATE:-$(date '+%Y-%m-%d %H:%M:%S')}"
     TITLE="${TITLE:-Alerte}"
     MODULE_NAME="${MODULE_NAME:-alerte}"
-    if [[ -z "${HF_PROJECT_NAME:-}" ]]; then
-        if [[ -n "${HFU_BASE:-}" ]]; then
-            HF_PROJECT_NAME="High-Fortress User"
+    if [[ -z "${G_PROJECT_NAME:-}" ]]; then
+        if [[ -n "${W_BASE:-}" ]]; then
+            G_PROJECT_NAME="Liltress Workstation"
         else
-            HF_PROJECT_NAME="High-Fortress"
+            G_PROJECT_NAME="Liltress"
         fi
     fi
-    export TITLE HF_PROJECT_NAME HOSTNAME DATE MODULE_NAME CONTENT
+    export TITLE G_PROJECT_NAME HOSTNAME DATE MODULE_NAME CONTENT
     export NOTE="${NOTE:-}"
     export NOTE_CMD="${NOTE_CMD:-}"
     _mail_sh=""
     for _candidate in \
         "${script_dir}/mail.sh" \
-        "${HF_CONFIG_BASE_DIRECTORY:-}/cron/bin/mail.sh" \
-        "${HF_CONFIG_BASE_DIRECTORY:-}/src/core/mail.sh" \
-        "${HF_INSTALL_DIRECTORY:-}/core/mail.sh" \
-        "${HF_INSTALL_DIRECTORY:-}/../core/mail.sh" \
+        "${G_CONFIG_BASE_DIRECTORY:-}/cron/bin/mail.sh" \
+        "${G_CONFIG_BASE_DIRECTORY:-}/src/core/mail.sh" \
+        "${G_INSTALL_DIRECTORY:-}/core/mail.sh" \
+        "${G_INSTALL_DIRECTORY:-}/../core/mail.sh" \
         "${script_dir}/../../../core/mail.sh" \
         "${script_dir}/../../../../core/mail.sh" \
         "${script_dir}/../core/mail.sh" \
@@ -1145,29 +1145,29 @@ ${detail}"
     fi
     # shellcheck disable=SC1090
     source "${_mail_sh}"
-    tpl="$(hf_locate_mail_template "${script_dir}")" || {
+    tpl="$(g_locate_mail_template "${script_dir}")" || {
         echo "Mail non envoyé (${MODULE_NAME}) : modèle HTML introuvable." >&2
         exit 0
     }
-    if [[ "${HF_MAIL_REDACT:-0}" == "1" ]]; then
-        if ! MAIL_CONTENT="$(HF_MAIL_REDACT=1 hf_render_mail "${tpl}")"; then
+    if [[ "${G_MAIL_REDACT:-0}" == "1" ]]; then
+        if ! MAIL_CONTENT="$(G_MAIL_REDACT=1 g_render_mail "${tpl}")"; then
             echo "Mail non envoyé (${MODULE_NAME}) : modèle HTML invalide." >&2
             exit 0
         fi
-    elif ! MAIL_CONTENT="$(hf_render_mail "${tpl}")"; then
+    elif ! MAIL_CONTENT="$(g_render_mail "${tpl}")"; then
         echo "Mail non envoyé (${MODULE_NAME}) : modèle HTML invalide." >&2
         exit 0
     fi
     if [[ -n "${HTML_REPORT:-}" ]]; then
         printf '%s\n' "${MAIL_CONTENT}" > "${HTML_REPORT}" || true
-        hf_copy_alert_drive "${HTML_REPORT}" || true
+        g_copy_alert_drive "${HTML_REPORT}" || true
     fi
-    if [[ "${HF_MAIL_REQUIRE_FLAG:-0}" == "1" ]]; then
-        if [[ "${HF_MAIL_ALERTS:-0}" != "1" || -z "${HF_WATCHDOG_MAIL:-}" ]]; then
+    if [[ "${G_MAIL_REQUIRE_FLAG:-0}" == "1" ]]; then
+        if [[ "${G_MAIL_ALERTS:-0}" != "1" || -z "${G_WATCHDOG_MAIL:-}" ]]; then
             echo "Mail non envoyé (${MODULE_NAME:-?}) : alertes e-mail coupées." >&2
             exit 0
         fi
-    elif [[ -z "${HF_WATCHDOG_MAIL:-}" ]]; then
+    elif [[ -z "${G_WATCHDOG_MAIL:-}" ]]; then
         echo "Mail non envoyé (${MODULE_NAME:-?}) : destinataire ou corps vide." >&2
         exit 0
     fi
@@ -1175,7 +1175,7 @@ ${detail}"
         echo "Mail non envoyé (${MODULE_NAME:-?}) : commande mail absente." >&2
         exit 0
     fi
-    printf '%s\n' "${MAIL_CONTENT}" | mail -s "${HF_PROJECT_NAME} - ${HOSTNAME} - ${MODULE_NAME}" \
+    printf '%s\n' "${MAIL_CONTENT}" | mail -s "${G_PROJECT_NAME} - ${HOSTNAME} - ${MODULE_NAME}" \
         -a "Content-Type: text/html; charset=UTF-8" \
-        "${HF_WATCHDOG_MAIL}"
+        "${G_WATCHDOG_MAIL}"
 }

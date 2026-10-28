@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/debsums.sh
-# Updated at : 2026-10-16
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
 set -euo pipefail
-HFU_BASE="${HFU_BASE:-/opt/high-fortress-user}"
+W_BASE="${W_BASE:-/opt/liltress-workstation}"
 # shellcheck disable=SC1091
-source "${HFU_BASE}/cron/bin/common.sh"
+source "${W_BASE}/cron/bin/common.sh"
 LOG_FILE="${LOG_DIR}/debsums-${STAMP}.log"
 ALERT_FILE="${ALERT_DIR}/debsums-${STAMP}.txt"
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 IGNORE="${HERE}/debsums.ignore"
-LOCAL_IGNORE="${HFU_BASE}/cron/debsums.local.ignore"
+LOCAL_IGNORE="${W_BASE}/cron/debsums.local.ignore"
 if ! command -v debsums >/dev/null; then
-    hfu_log_pass "debsums absent — skip"
+    w_log_pass "debsums absent — skip"
     exit 0
 fi
 set +e
@@ -24,10 +24,10 @@ rc=$?
 set -e
 crashed=0
 if [[ "${rc}" -ge 128 ]]; then
-    hf_log_alert "$(hf_get_crash_sentence "debsums" "${rc}")"
+    g_log_alert "$(g_get_crash_sentence "debsums" "${rc}")"
     crashed=1
 fi
-python3 - "${LOG_FILE}" "${IGNORE}" "${LOCAL_IGNORE}" "${HFU_BASE}" << 'PY'
+python3 - "${LOG_FILE}" "${IGNORE}" "${LOCAL_IGNORE}" "${W_BASE}" << 'PY'
 import hashlib
 import re
 import sys
@@ -81,11 +81,11 @@ kept = [
 log_path.write_text(("\n".join(kept) + "\n") if kept else "")
 PY
 if [[ "${crashed}" -eq 0 && -s "${LOG_FILE}" ]]; then
-    summary="$(hf_repair_debsums_log "${LOG_FILE}")"
+    summary="$(g_repair_debsums_log "${LOG_FILE}")"
     if [[ -n "${summary}" ]]; then
-        hf_log_alert "${summary}"
+        g_log_alert "${summary}"
     fi
 elif [[ "${crashed}" -eq 0 ]]; then
-    hfu_log_pass "debsums OK"
+    w_log_pass "debsums OK"
 fi
 exit 0

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : service/cron/watchdogs/hourly-scan.sh
-# Updated at : 2026-10-21
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 # -----------------------------------------------------------------------------
@@ -10,14 +10,14 @@
 # -----------------------------------------------------------------------------
 
 set -euo pipefail
-HFU_BASE="${HFU_BASE:-/opt/high-fortress-user}"
+W_BASE="${W_BASE:-/opt/liltress-workstation}"
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
-source "${HFU_BASE}/cron/bin/common.sh"
+source "${W_BASE}/cron/bin/common.sh"
 LOG_FILE="${LOG_DIR}/hourly-scan-${STAMP}.log"
 ALERT_FILE="${ALERT_DIR}/hourly-scan-${STAMP}.txt"
 
-hfu_run_check() {
+w_run_check() {
     local script="$1"
     local label="$2"
     local status=0
@@ -29,11 +29,11 @@ hfu_run_check() {
     status=$?
     set -e
     if [[ "${status}" -ne 0 ]]; then
-        hf_log_alert "$(hf_get_crash_sentence "${label}" "${status}")"
+        g_log_alert "$(g_get_crash_sentence "${label}" "${status}")"
     fi
 }
 
-hfu_run_check aide.sh "AIDE"
-hfu_run_check rkhunter.sh "rkhunter"
-hfu_run_check chkrootkit.sh "chkrootkit"
-hfu_run_check debsums.sh "debsums"
+w_run_check aide.sh "AIDE"
+w_run_check rkhunter.sh "rkhunter"
+w_run_check chkrootkit.sh "chkrootkit"
+w_run_check debsums.sh "debsums"

@@ -1,6 +1,6 @@
 # =============================================================================
 # File       : config/auditd/tail.rules
-# Updated at : 2026-10-25
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
@@ -11,5 +11,5 @@
 -a always,exit -F arch=b64 -S execve -F dir=/tmp -k exec-tmp
 -a always,exit -F arch=b64 -S execve -F dir=/var/tmp -k exec-tmp
 -a always,exit -F arch=b64 -S execve -F dir=/dev/shm -k exec-tmp
-# Successful connect() calls. egress-watch.sh pairs them with hfu-egress kernel lines.
--a always,exit -F arch=b64 -S connect -F success=1 -k hfu-egress
+# Successful connect() calls. egress-watch.sh pairs them with w-egress kernel lines.
+-a always,exit -F arch=b64 -S connect -F success=1 -k w-egress

@@ -1,32 +1,32 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : core/fs.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
-hf_locate_config_file() {
+g_locate_config_file() {
     local rel="$1"
     local root candidate shared_parent probe
     local seen="|"
     local roots=()
 
-    if [[ -n "${HF_INSTALL_DIRECTORY:-}" ]]; then
-        roots+=("${HF_INSTALL_DIRECTORY}")
+    if [[ -n "${G_INSTALL_DIRECTORY:-}" ]]; then
+        roots+=("${G_INSTALL_DIRECTORY}")
     fi
-    if [[ -n "${HF_PRODUCT_ROOT:-}" ]]; then
-        roots+=("${HF_PRODUCT_ROOT}")
+    if [[ -n "${G_PRODUCT_ROOT:-}" ]]; then
+        roots+=("${G_PRODUCT_ROOT}")
     fi
-    if [[ -n "${HF_CONFIG_BASE_DIRECTORY:-}" ]]; then
-        roots+=("${HF_CONFIG_BASE_DIRECTORY}/src" "${HF_CONFIG_BASE_DIRECTORY}")
+    if [[ -n "${G_CONFIG_BASE_DIRECTORY:-}" ]]; then
+        roots+=("${G_CONFIG_BASE_DIRECTORY}/src" "${G_CONFIG_BASE_DIRECTORY}")
     fi
-    if [[ -n "${HFU_BASE:-}" ]]; then
-        roots+=("${HFU_BASE}/src" "${HFU_BASE}")
+    if [[ -n "${W_BASE:-}" ]]; then
+        roots+=("${W_BASE}/src" "${W_BASE}")
     fi
-    if [[ -n "${HF_BASE:-}" ]]; then
-        roots+=("${HF_BASE}/src" "${HF_BASE}")
+    if [[ -n "${G_BASE:-}" ]]; then
+        roots+=("${G_BASE}/src" "${G_BASE}")
     fi
-    for probe in "${HF_INSTALL_DIRECTORY:-}" "${HF_PRODUCT_ROOT:-}"; do
+    for probe in "${G_INSTALL_DIRECTORY:-}" "${G_PRODUCT_ROOT:-}"; do
         [[ -n "${probe}" && -d "${probe}" ]] || continue
         if shared_parent="$(cd -- "${probe}/.." && pwd)"; then
             if [[ -d "${shared_parent}/core" && -d "${shared_parent}/config" ]]; then
@@ -49,7 +49,7 @@ hf_locate_config_file() {
     return 1
 }
 
-hf_add_line() {
+g_add_line() {
     local file="$1"
     local line="$2"
     local comment="${3:-}"
@@ -59,16 +59,16 @@ hf_add_line() {
     fi
 }
 
-hf_copy_backup() {
+g_copy_backup() {
     local file="$1"
     local backup="${file}.bak"
     [[ -f "$file" ]] || return 0
     [[ -f "$backup" ]] && return 0
-    hf_log_info "Création de la copie de sauvegarde de ${file}"
-    cp -a "$file" "$backup" && hf_log_success "Copie de sauvegarde créée : ${backup}"
+    g_log_info "Création de la copie de sauvegarde de ${file}"
+    cp -a "$file" "$backup" && g_log_success "Copie de sauvegarde créée : ${backup}"
 }
 
-hf_ensure_directory() {
+g_ensure_directory() {
     local mode="700"
     local user="root"
     local group="root"
@@ -114,7 +114,7 @@ hf_ensure_directory() {
     done
 }
 
-hf_check_user() {
+g_check_user() {
     local user="$1"
     id "$user" >/dev/null 2>&1
 }

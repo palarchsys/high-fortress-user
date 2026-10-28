@@ -1,54 +1,54 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : test/suites/03_functions.sh
-# Updated at : 2026-10-27
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
-hft_section "fonctions conservées"
-MONO="$(cd -- "${HFT_ROOT}/.." && pwd)"
+t_section "fonctions conservées"
+MONO="$(cd -- "${T_ROOT}/.." && pwd)"
 
-hft_require_function() {
+t_require_function() {
     local name="$1"
     local where="$2"
     if grep -RInE "^${name}[[:space:]]*\\(\\)" ${where} >/dev/null 2>&1; then
-        hft_pass "fn:${name}" "présente"
+        t_pass "fn:${name}" "présente"
     else
-        hft_fail "fn:${name}" "absente de ${where}"
+        t_fail "fn:${name}" "absente de ${where}"
     fi
 }
 
-for name in hf_set_color_blue hf_require_root hf_set_step_visible hf_log_error hf_run_silent hf_run_optional hf_run_silent_apt hf_run_step \
-    hf_add_line hf_copy_backup hf_ensure_directory hf_check_user hf_init_install_log \
-    hf_collect_install_log hf_publish_repo_logs hf_check_debug_log hf_install_exit \
-    hf_copy_installed_logs; do
-    hft_require_function "${name}" "${MONO}/core"
+for name in g_set_color_blue g_require_root g_set_step_visible g_log_error g_run_silent g_run_optional g_run_silent_apt g_run_step \
+    g_add_line g_copy_backup g_ensure_directory g_check_user g_init_install_log \
+    g_collect_install_log g_publish_repo_logs g_check_debug_log g_install_exit \
+    g_copy_installed_logs; do
+    t_require_function "${name}" "${MONO}/core"
 done
-for name in hf_get_current_user hf_get_operating_system hf_check_ubuntu_base hfu_check_desktop_account hf_write_account_table \
-    hf_record_account_snapshot hfu_strip_virt_groups hf_check_account_drift hf_read_sshd_value hf_get_sshd_value hf_get_ssh_port \
-    hf_check_virtual_machine hf_check_app hf_check_password_unchanged hf_check_ubuntu_pro \
-    hfu_collect_product_logs; do
-    hft_require_function "${name}" "${HFT_ROOT}/core/lib.sh"
+for name in g_get_current_user g_get_operating_system g_check_ubuntu_base w_check_desktop_account g_write_account_table \
+    g_record_account_snapshot w_strip_virt_groups g_check_account_drift g_read_sshd_value g_get_sshd_value g_get_ssh_port \
+    g_check_virtual_machine g_check_app g_check_password_unchanged g_check_ubuntu_pro \
+    w_collect_product_logs; do
+    t_require_function "${name}" "${T_ROOT}/core/lib.sh"
 done
-for name in hf_check_email hf_check_port hf_check_smtp hf_check_absolute_path hf_check_drive_remote hf_check_drive_path hf_check_drive_probe hf_check_app_password; do
-    hft_require_function "${name}" "${MONO}/core/config-validators.sh"
+for name in g_check_email g_check_port g_check_smtp g_check_absolute_path g_check_drive_remote g_check_drive_path g_check_drive_probe g_check_app_password; do
+    t_require_function "${name}" "${MONO}/core/config-validators.sh"
 done
-hft_require_function hfu_check_pro_token "${HFT_ROOT}/scripts/config-check.sh"
-hft_require_function hf_check_localhost_port "${MONO}/server/core/lib.sh"
+t_require_function w_check_pro_token "${T_ROOT}/scripts/config-check.sh"
+t_require_function g_check_localhost_port "${MONO}/server/core/lib.sh"
 
-hft_section "base ubuntu"
-if bash -s -- "${HFT_ROOT}" << 'OSBASE'
+t_section "base ubuntu"
+if bash -s -- "${T_ROOT}" << 'OSBASE'
 set -euo pipefail
 root="$1"
-HF_INSTALL_DIRECTORY="${root}"
+G_INSTALL_DIRECTORY="${root}"
 # shellcheck disable=SC1091
-source "${HF_INSTALL_DIRECTORY}/core/lib.sh"
-grep -q 'source /etc/os-release' "${HF_INSTALL_DIRECTORY}/core/lib.sh"
-grep -q 'dpkg --compare-versions' "${HF_INSTALL_DIRECTORY}/core/lib.sh"
-grep -q 'ge "26.04"' "${HF_INSTALL_DIRECTORY}/core/lib.sh"
-grep -q 'hf_check_ubuntu_lts' "${HF_INSTALL_DIRECTORY}/core/lib.sh"
-grep -qF '!= "ubuntu"' "${HF_INSTALL_DIRECTORY}/core/lib.sh"
-if grep -q 'anduinos' "${HF_INSTALL_DIRECTORY}/core/lib.sh"; then
+source "${G_INSTALL_DIRECTORY}/core/lib.sh"
+grep -q 'source /etc/os-release' "${G_INSTALL_DIRECTORY}/core/lib.sh"
+grep -q 'dpkg --compare-versions' "${G_INSTALL_DIRECTORY}/core/lib.sh"
+grep -q 'ge "26.04"' "${G_INSTALL_DIRECTORY}/core/lib.sh"
+grep -q 'g_check_ubuntu_lts' "${G_INSTALL_DIRECTORY}/core/lib.sh"
+grep -qF '!= "ubuntu"' "${G_INSTALL_DIRECTORY}/core/lib.sh"
+if grep -q 'anduinos' "${G_INSTALL_DIRECTORY}/core/lib.sh"; then
     exit 1
 fi
 
@@ -61,7 +61,7 @@ pass_os() {
     local expect_version="$6"
     local expect_code="$7"
     unset UBUNTU_BASE_VERSION UBUNTU_BASE_CODENAME
-    hf_check_ubuntu_base
+    g_check_ubuntu_base
     [[ "${UBUNTU_BASE_VERSION}" == "${expect_version}" ]]
     [[ "${UBUNTU_BASE_CODENAME}" == "${expect_code}" ]]
 }
@@ -78,7 +78,7 @@ fail_os() {
     out=$(
         ID="${id}" ID_LIKE="${like}" UBUNTU_CODENAME="${code}" \
             PRETTY_NAME="${pretty}" VERSION_ID="${version}" \
-            hf_check_ubuntu_base 2>&1
+            g_check_ubuntu_base 2>&1
     )
     rc=$?
     set -e
@@ -102,69 +102,69 @@ fail_os aucune ubuntu debian "" "Ubuntu" ""
 fail_os Fedora fedora fedora "" "Fedora" "42"
 OSBASE
 then
-    hft_pass "fn.os.base" "Ubuntu seul, 26.04 ou plus récent"
+    t_pass "fn.os.base" "Ubuntu seul, 26.04 ou plus récent"
 else
-    hft_fail "fn.os.base" "la base Ubuntu n'accepte pas 26.04 ou plus récent"
+    t_fail "fn.os.base" "la base Ubuntu n'accepte pas 26.04 ou plus récent"
 fi
-if grep -q '!= "26.04"' "${HFT_ROOT}/core/lib.sh"; then
-    hft_fail "fn.os.strict" "la version est comparée par égalité stricte sur VERSION_ID"
+if grep -q '!= "26.04"' "${T_ROOT}/core/lib.sh"; then
+    t_fail "fn.os.strict" "la version est comparée par égalité stricte sur VERSION_ID"
 else
-    hft_pass "fn.os.strict" "la version est comparée au plancher 26.04"
+    t_pass "fn.os.strict" "la version est comparée au plancher 26.04"
 fi
 
-hft_section "sshd -T casse"
-if bash -s -- "${HFT_ROOT}" << 'SSHCASE'
+t_section "sshd -T casse"
+if bash -s -- "${T_ROOT}" << 'SSHCASE'
 set -euo pipefail
 root="$1"
-HF_INSTALL_DIRECTORY="${root}"
+G_INSTALL_DIRECTORY="${root}"
 # shellcheck disable=SC1091
-source "${HF_INSTALL_DIRECTORY}/core/lib.sh"
+source "${G_INSTALL_DIRECTORY}/core/lib.sh"
 canon=$'Port 22\nPermitRootLogin no\nPasswordAuthentication yes\nAllowTcpForwarding no\n'
 lower=$'port 2222\npermitrootlogin no\npasswordauthentication yes\n'
-[[ "$(printf '%s\n' "${canon}" | hf_read_sshd_value permitrootlogin)" == "no" ]]
-[[ "$(printf '%s\n' "${canon}" | hf_read_sshd_value PermitRootLogin)" == "no" ]]
-[[ "$(printf '%s\n' "${canon}" | hf_read_sshd_value port)" == "22" ]]
-[[ "$(printf '%s\n' "${lower}" | hf_read_sshd_value port)" == "2222" ]]
-[[ "$(printf '%s\n' "${lower}" | hf_read_sshd_value permitrootlogin)" == "no" ]]
-grep -q 'hf_get_sshd_value permitrootlogin' "${root}/service/ssh/configure.sh"
-grep -q 'hf_get_sshd_value permitrootlogin' "${root}/../server/service/ssh/configure.sh"
-grep -q 'hf_get_sshd_value allowtcpforwarding' "${root}/verify/workstation.sh"
+[[ "$(printf '%s\n' "${canon}" | g_read_sshd_value permitrootlogin)" == "no" ]]
+[[ "$(printf '%s\n' "${canon}" | g_read_sshd_value PermitRootLogin)" == "no" ]]
+[[ "$(printf '%s\n' "${canon}" | g_read_sshd_value port)" == "22" ]]
+[[ "$(printf '%s\n' "${lower}" | g_read_sshd_value port)" == "2222" ]]
+[[ "$(printf '%s\n' "${lower}" | g_read_sshd_value permitrootlogin)" == "no" ]]
+grep -q 'g_get_sshd_value permitrootlogin' "${root}/service/ssh/configure.sh"
+grep -q 'g_get_sshd_value permitrootlogin' "${root}/../server/service/ssh/configure.sh"
+grep -q 'g_get_sshd_value allowtcpforwarding' "${root}/verify/workstation.sh"
 grep -q 'tolower($1)=="permitrootlogin"' "${root}/service/cron/boot-check.sh"
 if grep -RInE "awk '/\\^permitrootlogin " "${root}/service" "${root}/verify" "${root}/../server/service" >/dev/null 2>&1; then
     exit 1
 fi
 SSHCASE
 then
-    hft_pass "fn.sshd.case" "sshd -T lu en minuscules et en casse canonique"
+    t_pass "fn.sshd.case" "sshd -T lu en minuscules et en casse canonique"
 else
-    hft_fail "fn.sshd.case" "la lecture de sshd -T reste figée en minuscules"
+    t_fail "fn.sshd.case" "la lecture de sshd -T reste figée en minuscules"
 fi
 
-hft_section "journaux dans logs/"
-if grep -q 'trap hf_install_exit EXIT' "${HFT_ROOT}/scripts/run.sh" \
-   && grep -q 'HF_LOG_DIR="${root}/logs/${name}"' "${MONO}/core/log.sh" \
+t_section "journaux dans logs/"
+if grep -q 'trap g_install_exit EXIT' "${T_ROOT}/scripts/run.sh" \
+   && grep -q 'G_LOG_DIR="${root}/logs/${name}"' "${MONO}/core/log.sh" \
    && grep -F -q '[[ "${code}" -ne 0 ]]' "${MONO}/core/log.sh"; then
-    hft_pass "logs.wire" "le poste écrit dans logs/ et copie les logiciels seulement en échec"
+    t_pass "logs.wire" "le poste écrit dans logs/ et copie les logiciels seulement en échec"
 else
-    hft_fail "logs.wire" "journaux du poste encore hors de logs/, ou copie même en succès"
+    t_fail "logs.wire" "journaux du poste encore hors de logs/, ou copie même en succès"
 fi
-hft_require_function hf_render_mail "${MONO}/core/mail.sh"
-hft_require_function hf_install_mail_templates "${MONO}/core/mail.sh"
+t_require_function g_render_mail "${MONO}/core/mail.sh"
+t_require_function g_install_mail_templates "${MONO}/core/mail.sh"
 
-hft_section "mode test du poste"
-if grep -q '^HF_MODE_TEST=1$' "${HFT_ROOT}/config/global.conf" \
-   && ! grep -q '^HFS_SERVER_TYPE=' "${HFT_ROOT}/config/global.conf" \
-   && grep -q '^HF_MODE_TEST=${HF_MODE_TEST}$' "${HFT_ROOT}/scripts/config-check.sh" \
-   && ! grep -q 'HFS_SERVER_TYPE' "${HFT_ROOT}/scripts/config-check.sh" \
-   && grep -q 'hfu_prompt HF_MODE_TEST' "${HFT_ROOT}/scripts/configure.sh" \
-   && grep -q 'bool01' "${HFT_ROOT}/scripts/configure.sh" \
-   && ! grep -q 'HFS_SERVER_TYPE' "${HFT_ROOT}/scripts/run.sh" \
-   && ! grep -RIn --include='*.sh' 'HFS_SERVER_TYPE' \
-        "${HFT_ROOT}/system" "${HFT_ROOT}/service" "${HFT_ROOT}/verify" | grep -q . \
-   && grep -q 'HF_MODE_TEST:-0' "${MONO}/core/log.sh"; then
-    hft_pass "user.mode-test" "HF_MODE_TEST=1, HFS_SERVER_TYPE absent du poste"
+t_section "mode test du poste"
+if grep -q '^G_MODE_TEST=1$' "${T_ROOT}/config/global.conf" \
+   && ! grep -q '^S_SERVER_TYPE=' "${T_ROOT}/config/global.conf" \
+   && grep -q '^G_MODE_TEST=${G_MODE_TEST}$' "${T_ROOT}/scripts/config-check.sh" \
+   && ! grep -q 'S_SERVER_TYPE' "${T_ROOT}/scripts/config-check.sh" \
+   && grep -q 'w_prompt G_MODE_TEST' "${T_ROOT}/scripts/configure.sh" \
+   && grep -q 'bool01' "${T_ROOT}/scripts/configure.sh" \
+   && ! grep -q 'S_SERVER_TYPE' "${T_ROOT}/scripts/run.sh" \
+   && ! grep -RIn --include='*.sh' 'S_SERVER_TYPE' \
+        "${T_ROOT}/system" "${T_ROOT}/service" "${T_ROOT}/verify" | grep -q . \
+   && grep -q 'G_MODE_TEST:-0' "${MONO}/core/log.sh"; then
+    t_pass "user.mode-test" "G_MODE_TEST=1, S_SERVER_TYPE absent du poste"
 else
-    hft_fail "user.mode-test" "HF_MODE_TEST ou HFS_SERVER_TYPE mal placé"
+    t_fail "user.mode-test" "G_MODE_TEST ou S_SERVER_TYPE mal placé"
 fi
 
 stage="$(mktemp -d)"
@@ -172,14 +172,14 @@ if bash -c '
     set -euo pipefail
     # shellcheck disable=SC1090
     source "$1"
-    hfu_set_config_default
-    hfu_write_global_config "$2/global.conf"
-    grep -q "^HF_MODE_TEST=1$" "$2/global.conf"
-    ! grep -q "^HFS_SERVER_TYPE=" "$2/global.conf"
-' bash "${HFT_ROOT}/scripts/config-check.sh" "${stage}"; then
-    hft_pass "user.mode-test.write" "le fichier réécrit porte HF_MODE_TEST=1, sans HFS_SERVER_TYPE"
+    w_set_config_default
+    w_write_global_config "$2/global.conf"
+    grep -q "^G_MODE_TEST=1$" "$2/global.conf"
+    ! grep -q "^S_SERVER_TYPE=" "$2/global.conf"
+' bash "${T_ROOT}/scripts/config-check.sh" "${stage}"; then
+    t_pass "user.mode-test.write" "le fichier réécrit porte G_MODE_TEST=1, sans S_SERVER_TYPE"
 else
-    hft_fail "user.mode-test.write" "la réécriture omet HF_MODE_TEST ou garde HFS_SERVER_TYPE"
+    t_fail "user.mode-test.write" "la réécriture omet G_MODE_TEST ou garde S_SERVER_TYPE"
 fi
 rm -rf "${stage}"
 
@@ -192,48 +192,48 @@ cat > "${tree}/two.sh" << 'EOF'
 #!/usr/bin/env bash
 printf 'B:%s:%s\n' "$1" "${2-}"
 EOF
-out="$(HF_PRODUCT_ROOT="${HFT_ROOT}" bash -c '
+out="$(G_PRODUCT_ROOT="${T_ROOT}" bash -c '
     set -euo pipefail
-    unset HFS_SERVER_TYPE || true
+    unset S_SERVER_TYPE || true
     # shellcheck disable=SC1090
     source "$1"
-    hf_run_step "$2" "one.sh"
-    hf_run_step "$2" MATRIX "two.sh"
-' bash "${HFT_ROOT}/core/lib.sh" "${tree}" 2>/dev/null)" || out=""
+    g_run_step "$2" "one.sh"
+    g_run_step "$2" MATRIX "two.sh"
+' bash "${T_ROOT}/core/lib.sh" "${tree}" 2>/dev/null)" || out=""
 if [[ "${out}" == "A:${tree}:"$'\n'"B:${tree}:MATRIX" ]]; then
-    hft_pass "user.mode-test.steps" "le poste lance l'étape sans profil, le serveur garde le sien"
+    t_pass "user.mode-test.steps" "le poste lance l'étape sans profil, le serveur garde le sien"
 else
-    hft_fail "user.mode-test.steps" "arguments reçus : ${out}"
+    t_fail "user.mode-test.steps" "arguments reçus : ${out}"
 fi
 rm -rf "${tree}"
 
 log_work="$(mktemp -d)"
-if HF_PRODUCT_ROOT="${HFT_ROOT}" bash -c '
+if G_PRODUCT_ROOT="${T_ROOT}" bash -c '
     set -euo pipefail
-    unset HFS_SERVER_TYPE || true
+    unset S_SERVER_TYPE || true
     # shellcheck disable=SC1090
     source "$1"
-    HF_INSTALL_DIRECTORY="$2"
-    export HF_INSTALL_DIRECTORY
-    HFU_PROJECT_SLUG=high-fortress-user
-    HF_PROJECT_NAME=HF
+    G_INSTALL_DIRECTORY="$2"
+    export G_INSTALL_DIRECTORY
+    W_PROJECT_SLUG=liltress-workstation
+    G_PROJECT_NAME=HF
     unset UBUNTU_BASE_VERSION || true
     OS_PRETTY="Ubuntu"
     OS_VERSION_ID="26.10"
     export OS_PRETTY OS_VERSION_ID
-    hf_init_install_log
-    [[ "${HF_LOG_DIR}" == "${HF_INSTALL_DIRECTORY}/logs/install-"*"-user" ]]
-    grep -Fqx "os          : Ubuntu 26.10" "${HF_LOG_DIR}/meta.txt"
-    grep -Fqx "os          : Ubuntu 26.10" "${HF_LOG_DIR}/install.log"
+    g_init_install_log
+    [[ "${G_LOG_DIR}" == "${G_INSTALL_DIRECTORY}/logs/install-"*"-workstation" ]]
+    grep -Fqx "os          : Ubuntu 26.10" "${G_LOG_DIR}/meta.txt"
+    grep -Fqx "os          : Ubuntu 26.10" "${G_LOG_DIR}/install.log"
     OS_PRETTY="Ubuntu 26.10"
     export OS_PRETTY
-    hf_init_install_log
-    grep -Fqx "os          : Ubuntu 26.10" "${HF_LOG_DIR}/meta.txt"
-    ! grep -Fqx "os          : Ubuntu 26.10 26.10" "${HF_LOG_DIR}/meta.txt"
-' bash "${HFT_ROOT}/core/lib.sh" "${log_work}"; then
-    hft_pass "user.mode-test.logname" "journal nommé install-*-user, version de distribution écrite une fois"
+    g_init_install_log
+    grep -Fqx "os          : Ubuntu 26.10" "${G_LOG_DIR}/meta.txt"
+    ! grep -Fqx "os          : Ubuntu 26.10 26.10" "${G_LOG_DIR}/meta.txt"
+' bash "${T_ROOT}/core/lib.sh" "${log_work}"; then
+    t_pass "user.mode-test.logname" "journal nommé install-*-workstation, version de distribution écrite une fois"
 else
-    hft_fail "user.mode-test.logname" "le journal du poste omet -user ou la version de distribution"
+    t_fail "user.mode-test.logname" "le journal du poste omet -user ou la version de distribution"
 fi
 rm -rf "${log_work}"
 
@@ -241,11 +241,11 @@ if timeout 3 bash -c '
     set -euo pipefail
     # shellcheck disable=SC1090
     source "$1"
-    unset HF_INSTALL_DIRECTORY || true
+    unset G_INSTALL_DIRECTORY || true
     # shellcheck disable=SC1090
     source "$2"
-    [[ "${HF_MODE_TEST}" == "1" ]]
-    [[ -z "${HFS_SERVER_TYPE:-}" ]]
+    [[ "${G_MODE_TEST}" == "1" ]]
+    [[ -z "${S_SERVER_TYPE:-}" ]]
     work="$(mktemp -d)"
     trap "rm -rf -- \"${work}\"" EXIT
     mkdir -p "${work}/inst/scripts" "${work}/inst/config" "${work}/base"
@@ -254,11 +254,11 @@ if timeout 3 bash -c '
     printf C > "${work}/inst/config/global.conf"
     inst="$(cd -- "${work}/inst" && pwd -P)"
     base="$(cd -- "${work}/base" && pwd -P)"
-    out="$(HF_INSTALL_DIRECTORY="${inst}" HF_CONFIG_BASE_DIRECTORY="${base}" hf_offer_remove_installer 2>&1)"
+    out="$(G_INSTALL_DIRECTORY="${inst}" G_CONFIG_BASE_DIRECTORY="${base}" g_offer_remove_installer 2>&1)"
     [[ "${out}" != *[Ss]upprimer* ]]
     [[ -f "${inst}/hf" && -f "${inst}/config/global.conf" ]]
-' bash "${MONO}/core/log.sh" "${HFT_ROOT}/config/global.conf"; then
-    hft_pass "user.mode-test.skip" "HF_MODE_TEST=1 termine sans question"
+' bash "${MONO}/core/log.sh" "${T_ROOT}/config/global.conf"; then
+    t_pass "user.mode-test.skip" "G_MODE_TEST=1 termine sans question"
 else
-    hft_fail "user.mode-test.skip" "la question de suppression part encore"
+    t_fail "user.mode-test.skip" "la question de suppression part encore"
 fi

@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : system/collect-logs.sh
-# Updated at : 2026-10-15
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
-HF_INSTALL_DIRECTORY="${1:-}"
-if [[ -z "$HF_INSTALL_DIRECTORY" ]]; then
-    HF_INSTALL_DIRECTORY="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." &>/dev/null && pwd)"
+G_INSTALL_DIRECTORY="${1:-}"
+if [[ -z "$G_INSTALL_DIRECTORY" ]]; then
+    G_INSTALL_DIRECTORY="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." &>/dev/null && pwd)"
 fi
-export HF_INSTALL_DIRECTORY
+export G_INSTALL_DIRECTORY
 
 # shellcheck disable=SC1091
-source "${HF_INSTALL_DIRECTORY}/core/lib.sh"
+source "${G_INSTALL_DIRECTORY}/core/lib.sh"
 # shellcheck disable=SC1091
-source "${HF_INSTALL_DIRECTORY}/config/global.conf"
+source "${G_INSTALL_DIRECTORY}/config/global.conf"
 
-hf_require_root
-hf_collect_manual
+g_require_root
+g_collect_manual

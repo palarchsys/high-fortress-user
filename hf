@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : hf
-# Updated at : 2026-10-05
+# Updated at : 2026-10-28
 # Creator    : palarchsys
 # =============================================================================
 
@@ -17,4 +17,4 @@ else
     printf 'launch.sh introuvable depuis %s\n' "${ROOT}" >&2
     exit 1
 fi
-hf_launch "${ROOT}" "$@"
+g_launch "${ROOT}" "$@"
