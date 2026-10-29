@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : core/watchdog.sh
-# Updated at : 2026-10-28
+# Updated at : 2026-10-29
 # Creator    : palarchsys
 # =============================================================================
 
@@ -164,19 +164,66 @@ def clip(lines, limit=120):
     return lines[:limit] + [f"... {hidden} ligne(s) supplémentaire(s) non recopiées"]
 
 def format_aide(text):
-    kept = []
-    interesting = re.compile(
+    summary = re.compile(
         r"^(summary:|total number|added entries|removed entries|changed entries|"
-        r"aide found|start timestamp|end timestamp|f[+-]{3,}:|file:)",
+        r"added, removed and changed entries|added and removed entries|"
+        r"added and changed entries|removed and changed entries|"
+        r"detailed information about changes|"
+        r"aide found|start timestamp|end timestamp)\b",
         re.I,
     )
-    attr = re.compile(r"^\s{2,}(Size|Perm|Mtime|Ctime|Inode|Linkcount|UID|GID)\s*:", re.I)
+    # Type letter plus the summary field, or the plain added/removed/changed form.
+    # The whole line is the path. A path line is never dropped.
+    entry = re.compile(
+        r"^(?:[fdlcbpsDP!?][+.\-:=> <?A-Za-z]*:\s+\S|(?:added|removed|changed):\s+\S)"
+    )
+    # Detail header. AIDE names the path again: "Link: /path", "Directory: /path".
+    file_head = re.compile(
+        r"^(?:file|directory|fifo|link|block device|character device|"
+        r"socket|door|port|unknown file type):\s+\S",
+        re.I,
+    )
+    diff_attrs = re.compile(
+        r"^entry \S+ in databases has different attributes\b",
+        re.I,
+    )
+    # Lines after this header describe aide.db, not a watched path.
+    database = re.compile(
+        r"^the attributes of the \(uncompressed\) database\b",
+        re.I,
+    )
+    attr = re.compile(r"^\s+\S.*:")
+    rows = []
     for line in text.splitlines():
-        if interesting.search(line.strip()) or interesting.match(line) or attr.match(line):
-            kept.append(line.rstrip())
-        elif re.match(r"^\s*(added|removed|changed) entries:\s*$", line, re.I):
-            kept.append(line.rstrip())
-    return clip(kept)
+        raw = line.rstrip()
+        stripped = raw.strip()
+        if not stripped:
+            continue
+        if database.match(stripped):
+            break
+        if (
+            summary.match(stripped)
+            or entry.match(raw)
+            or file_head.match(raw)
+            or diff_attrs.match(raw)
+        ):
+            rows.append(("keep", raw))
+        elif attr.match(raw):
+            rows.append(("attr", raw))
+    out = []
+    attr_left = 40
+    hidden_attr = 0
+    for kind, raw in rows:
+        if kind == "keep":
+            out.append(raw)
+        elif attr_left > 0:
+            out.append(raw)
+            attr_left -= 1
+        else:
+            hidden_attr += 1
+    if hidden_attr:
+        out.append(f"... {hidden_attr} ligne(s) d'attribut supplémentaire(s) non recopiées")
+    return out
 
 def format_named(name, text):
     low = name.lower()

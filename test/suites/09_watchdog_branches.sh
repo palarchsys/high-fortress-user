@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # File       : test/suites/09_watchdog_branches.sh
-# Updated at : 2026-10-28
+# Updated at : 2026-10-29
 # Creator    : palarchsys
 # =============================================================================
 # -----------------------------------------------------------------------------
@@ -665,6 +665,124 @@ else
 fi
 
 t_stop_holder
+
+t_section "chemins AIDE dans l'alerte"
+# shellcheck disable=SC1091
+source "${parent}/core/watchdog.sh"
+work="${G_ARTIFACTS}/branch/aide-paths"
+rm -rf "${work}"
+mkdir -p "${work}"
+{
+    cat << 'EOF'
+Start timestamp: 2026-10-29 06:43:48 +0100 (AIDE 0.19.3)
+AIDE found differences between database and filesystem!!
+Summary:
+  Total number of entries:	43538
+  Added entries:		3
+  Removed entries:		1
+  Changed entries:		2
+Added entries:
+l++++++++++++++++++: /etc/systemd/system/multi-user.target.wants/snap-gnome\x2d46\x2d2404-177.mount
+f++++++++++++++++++: /etc/systemd/system/snap-gnome\x2d46\x2d2404-177.mount
+l++++++++++++++++++: /etc/systemd/system/snapd.mounts.target.wants/snap-gnome\x2d46\x2d2404-177.mount
+Removed entries:
+d------------------: /etc/removed-dir
+Changed entries:
+d =.p.u : /etc/changed-dir
+f >b... mc.C . .: /etc/changed file.txt
+c++++++++++++++++: /dev/added-char
+b----------------: /dev/removed-block
+p++++++++++++++++: /tmp/added.fifo
+s++++++++++++++++: /tmp/added.sock
+D++++++++++++++++: /tmp/added.door
+P++++++++++++++++: /tmp/added.port
+!++++++++++++++++: /tmp/type-changed
+?++++++++++++++++: /tmp/unknown-type
+added: /etc/plain added.txt
+removed: /etc/plain removed.txt
+changed: /etc/plain changed.txt
+Detailed information about changes:
+Directory: /etc/changed-dir
+ Perm      : 755 | 700
+Link: /etc/link-detail
+ Linkname  : old | new
+File: /etc/file-detail
+ Size      : 1 | 2
+ SHA256    : abcdef-file-hash
+Block device: /dev/sda
+Character device: /dev/null
+FIFO: /tmp/fifo-detail
+Socket: /tmp/sock-detail
+Door: /tmp/door-detail
+Port: /tmp/port-detail
+Unknown file type: /tmp/unknown-detail
+Entry /etc/attr-set in databases has different attributes: +acl
+EOF
+    n=1
+    while [[ "${n}" -le 45 ]]; do
+        printf ' Size      : %s | %s\n' "${n}" "$((n + 1))"
+        n=$((n + 1))
+    done
+    n=1
+    while [[ "${n}" -le 130 ]]; do
+        printf 'f++++++++++++++++++: /etc/bulk/file-%s\n' "${n}"
+        n=$((n + 1))
+    done
+    cat << 'EOF'
+The attributes of the (uncompressed) database(s):
+/var/lib/aide/aide.db
+ SHA256    : eD+Jr7xjbH8fbRgwNs1lvk2rdR69LOE0
+End timestamp: 2026-10-29 06:44:08 +0100 (run time: 0m 20s)
+EOF
+} > "${work}/aide-sample.log"
+excerpt="$(g_get_alert_excerpt "${work}/aide-sample.log")"
+printf '%s\n' "${excerpt}" > "${work}/excerpt.txt"
+aide_ok=1
+for path in \
+    'l++++++++++++++++++: /etc/systemd/system/multi-user.target.wants/snap-gnome\x2d46\x2d2404-177.mount' \
+    'f++++++++++++++++++: /etc/systemd/system/snap-gnome\x2d46\x2d2404-177.mount' \
+    'l++++++++++++++++++: /etc/systemd/system/snapd.mounts.target.wants/snap-gnome\x2d46\x2d2404-177.mount' \
+    'd------------------: /etc/removed-dir' \
+    'd =.p.u : /etc/changed-dir' \
+    'f >b... mc.C . .: /etc/changed file.txt' \
+    'c++++++++++++++++: /dev/added-char' \
+    'b----------------: /dev/removed-block' \
+    'p++++++++++++++++: /tmp/added.fifo' \
+    's++++++++++++++++: /tmp/added.sock' \
+    'D++++++++++++++++: /tmp/added.door' \
+    'P++++++++++++++++: /tmp/added.port' \
+    '!++++++++++++++++: /tmp/type-changed' \
+    '?++++++++++++++++: /tmp/unknown-type' \
+    'added: /etc/plain added.txt' \
+    'removed: /etc/plain removed.txt' \
+    'changed: /etc/plain changed.txt' \
+    'Directory: /etc/changed-dir' \
+    'Link: /etc/link-detail' \
+    'File: /etc/file-detail' \
+    'Block device: /dev/sda' \
+    'Character device: /dev/null' \
+    'FIFO: /tmp/fifo-detail' \
+    'Socket: /tmp/sock-detail' \
+    'Door: /tmp/door-detail' \
+    'Port: /tmp/port-detail' \
+    'Unknown file type: /tmp/unknown-detail' \
+    'Entry /etc/attr-set in databases has different attributes: +acl' \
+    'f++++++++++++++++++: /etc/bulk/file-1' \
+    'f++++++++++++++++++: /etc/bulk/file-130'
+do
+    grep -Fxq "${path}" "${work}/excerpt.txt" || aide_ok=0
+done
+grep -Fq 'abcdef-file-hash' "${work}/excerpt.txt" || aide_ok=0
+grep -Fq "ligne(s) d'attribut supplémentaire(s) non recopiées" "${work}/excerpt.txt" || aide_ok=0
+[[ "$(grep -c '/etc/bulk/file-' "${work}/excerpt.txt")" -eq 130 ]] || aide_ok=0
+grep -Fq '/var/lib/aide/aide.db' "${work}/excerpt.txt" && aide_ok=0
+grep -Fq 'eD+Jr7xjbH8fbRgwNs1lvk2rdR69LOE0' "${work}/excerpt.txt" && aide_ok=0
+grep -Fq 'ligne(s) supplémentaire(s) non recopiées' "${work}/excerpt.txt" && aide_ok=0
+if [[ "${aide_ok}" -eq 1 ]]; then
+    t_pass "branch.usr.aide.paths" "chaque chemin AIDE est dans l'alerte"
+else
+    t_fail "branch.usr.aide.paths" "$(tr '\n' ' ' < "${work}/excerpt.txt")"
+fi
 
 for id in usr.collect.install usr.base usr.integrity.bin usr.integrity.list usr.integrity.stamp usr.behavior.bin usr.behavior.stamp usr.egress.bin usr.egress.stamp usr.egress.table usr.isolate.state usr.net.ufw usr.boot.order usr.boot.timer usr.boot.scan-timer usr.periodic.timer usr.hourly.timer usr.clamav.lock usr.clamav.deny usr.conf.order usr.conf.base; do
     if grep -q "${id}" "${probe}"; then
